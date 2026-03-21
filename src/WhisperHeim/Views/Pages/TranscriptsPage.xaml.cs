@@ -72,8 +72,9 @@ public partial class TranscriptsPage : UserControl
         }
         else
         {
-            // Filter by date display or preview text
+            // Filter by name, date display, or preview text
             var filtered = _allItems.Where(i =>
+                i.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
                 i.DateDisplay.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
                 i.PreviewText.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
                 i.FileName.Contains(searchText, StringComparison.OrdinalIgnoreCase))
@@ -133,7 +134,7 @@ public partial class TranscriptsPage : UserControl
         ViewerHeader.Visibility = Visibility.Visible;
         ActionPanel.Visibility = Visibility.Visible;
 
-        TranscriptTitle.Text = $"Call on {transcript.RecordingStartedUtc.LocalDateTime:MMMM dd, yyyy}";
+        TranscriptNameBox.Text = transcript.Name;
         TranscriptInfo.Text = $"Started: {transcript.RecordingStartedUtc.LocalDateTime:HH:mm:ss} | " +
                               $"Duration: {transcript.Duration:hh\\:mm\\:ss} | " +
                               $"Segments: {transcript.Segments.Count}";
@@ -143,6 +144,54 @@ public partial class TranscriptsPage : UserControl
             .ToList();
 
         SegmentList.ItemsSource = viewModels;
+    }
+
+    private async void TranscriptNameBox_LostFocus(object sender, RoutedEventArgs e)
+    {
+        await SaveTranscriptNameAsync();
+    }
+
+    private async void TranscriptNameBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == System.Windows.Input.Key.Enter)
+        {
+            // Move focus away to trigger save
+            await SaveTranscriptNameAsync();
+            e.Handled = true;
+        }
+    }
+
+    private async Task SaveTranscriptNameAsync()
+    {
+        if (_selectedTranscript is null) return;
+
+        var newName = TranscriptNameBox.Text?.Trim();
+        if (string.IsNullOrEmpty(newName) || newName == _selectedTranscript.Name)
+            return;
+
+        _selectedTranscript.Name = newName;
+
+        try
+        {
+            await _storageService.UpdateAsync(_selectedTranscript);
+
+            // Refresh the list item to show the updated name
+            if (TranscriptList.SelectedItem is TranscriptListItem item)
+            {
+                item.Name = newName;
+                // Force list refresh
+                var selectedIndex = TranscriptList.SelectedIndex;
+                TranscriptList.ItemsSource = null;
+                ApplyFilter();
+                TranscriptList.SelectedIndex = selectedIndex;
+            }
+
+            Trace.TraceInformation("[TranscriptsPage] Renamed transcript to: {0}", newName);
+        }
+        catch (Exception ex)
+        {
+            Trace.TraceError("[TranscriptsPage] Failed to save transcript name: {0}", ex.Message);
+        }
     }
 
     private void HighlightMatchingSegments(string searchText)
@@ -373,6 +422,11 @@ internal sealed class TranscriptListItem
 
             if (transcript is not null)
             {
+                // Use the persisted name, or generate a default for old transcripts
+                Name = !string.IsNullOrEmpty(transcript.Name)
+                    ? transcript.Name
+                    : $"Call {transcript.RecordingStartedUtc.LocalDateTime:yyyy-MM-dd HH:mm}";
+
                 DurationDisplay = $"Duration: {transcript.Duration:hh\\:mm\\:ss}";
                 var firstSegment = transcript.Segments.FirstOrDefault();
                 PreviewText = firstSegment?.Text ?? "(empty)";
@@ -389,6 +443,7 @@ internal sealed class TranscriptListItem
 
     public string FilePath { get; }
     public string FileName { get; }
+    public string Name { get; set; } = "";
     public string DateDisplay { get; }
     public string DurationDisplay { get; } = "";
     public string PreviewText { get; } = "";

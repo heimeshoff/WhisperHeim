@@ -77,9 +77,30 @@ public sealed class TranscriptStorageService : ITranscriptStorageService
         if (transcript is not null)
         {
             transcript.FilePath = filePath;
+
+            // Backward compatibility: generate a default name for old transcripts without one
+            if (string.IsNullOrEmpty(transcript.Name))
+            {
+                transcript.Name = $"Call {transcript.RecordingStartedUtc.LocalDateTime:yyyy-MM-dd HH:mm}";
+            }
         }
 
         return transcript;
+    }
+
+    /// <inheritdoc />
+    public async Task UpdateAsync(
+        CallTranscript transcript,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrEmpty(transcript.FilePath))
+            throw new InvalidOperationException("Cannot update a transcript without a file path.");
+
+        var json = JsonSerializer.Serialize(transcript, JsonOptions);
+        await File.WriteAllTextAsync(transcript.FilePath, json, cancellationToken);
+
+        Trace.TraceInformation(
+            "[TranscriptStorageService] Updated transcript at {0}", transcript.FilePath);
     }
 
     /// <inheritdoc />

@@ -28,6 +28,13 @@ public interface ITranscriptStorageService
     Task<CallTranscript?> LoadAsync(string filePath, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Updates an existing transcript file in-place (re-serializes to its current FilePath).
+    /// </summary>
+    /// <param name="transcript">The transcript to update (must have a non-null FilePath).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task UpdateAsync(CallTranscript transcript, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Lists all saved transcript file paths, ordered by date descending (newest first).
     /// </summary>
     IReadOnlyList<string> ListTranscriptFiles();

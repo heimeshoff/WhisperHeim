@@ -14,6 +14,8 @@
             <TextBlock Text="Transcripts"
                        FontSize="20"
                        FontWeight="SemiBold" />
+            <TextBlock Text="Press Ctrl+Shift+Win+R to start or stop a call recording."
+                       Opacity="0.5" FontSize="12" />
 
             <!-- Transcribing indicator (shown while pipeline is running) -->
             <Border x:Name="TranscribingBanner"
@@ -71,9 +73,15 @@
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <StackPanel Margin="4">
-                                <TextBlock Text="{Binding DateDisplay}"
+                                <TextBlock Text="{Binding Name}"
                                            FontWeight="Medium"
-                                           FontSize="12" />
+                                           FontSize="12"
+                                           TextTrimming="CharacterEllipsis"
+                                           MaxWidth="170"
+                                           HorizontalAlignment="Left" />
+                                <TextBlock Text="{Binding DateDisplay}"
+                                           FontSize="11"
+                                           Opacity="0.6" />
                                 <TextBlock Text="{Binding DurationDisplay}"
                                            FontSize="11"
                                            Opacity="0.6" />
@@ -104,12 +112,16 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <!-- Viewer header with info -->
+                <!-- Viewer header with editable name -->
                 <StackPanel Grid.Row="0" x:Name="ViewerHeader" Visibility="Collapsed">
-                    <TextBlock x:Name="TranscriptTitle"
-                               FontSize="14"
-                               FontWeight="SemiBold"
-                               Margin="0,0,0,4" />
+                    <TextBox x:Name="TranscriptNameBox"
+                             FontSize="14"
+                             FontWeight="SemiBold"
+                             Margin="0,0,0,4"
+                             BorderThickness="0"
+                             Background="Transparent"
+                             LostFocus="TranscriptNameBox_LostFocus"
+                             KeyDown="TranscriptNameBox_KeyDown" />
                     <TextBlock x:Name="TranscriptInfo"
                                FontSize="11"
                                Opacity="0.6"

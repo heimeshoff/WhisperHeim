@@ -12,6 +12,10 @@ public sealed class CallTranscript
     [JsonPropertyName("id")]
     public required string Id { get; init; }
 
+    /// <summary>User-editable display name for this transcript.</summary>
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = "";
+
     /// <summary>UTC timestamp when the call recording started.</summary>
     [JsonPropertyName("recordingStartedUtc")]
     public required DateTimeOffset RecordingStartedUtc { get; init; }

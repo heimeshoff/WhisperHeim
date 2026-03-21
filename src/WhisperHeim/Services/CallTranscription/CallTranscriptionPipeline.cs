@@ -219,6 +219,7 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
         var transcript = new CallTranscript
         {
             Id = transcriptId,
+            Name = $"Call {session.StartTimestamp.LocalDateTime:yyyy-MM-dd HH:mm}",
             RecordingStartedUtc = session.StartTimestamp,
             RecordingEndedUtc = session.EndTimestamp.Value,
             Segments = mergedSegments,
