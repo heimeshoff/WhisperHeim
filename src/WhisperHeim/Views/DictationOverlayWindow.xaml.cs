@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Media.Animation;
 using WhisperHeim.Models;
 
@@ -11,6 +12,12 @@ namespace WhisperHeim.Views;
 /// A small, always-on-top, click-through overlay window that shows an animated
 /// microphone indicator during active dictation. Uses WS_EX_TRANSPARENT and
 /// WS_EX_NOACTIVATE to avoid stealing focus or blocking mouse clicks.
+///
+/// Supports four visual states (see <see cref="OverlayMicState"/>):
+///   Idle     -> green, gentle breathing pulse
+///   Speaking -> green, RMS amplitude-driven ring scaling
+///   NoMic    -> grey, static
+///   Error    -> red, static
 /// </summary>
 public partial class DictationOverlayWindow : Window
 {
@@ -26,13 +33,25 @@ public partial class DictationOverlayWindow : Window
     [DllImport("user32.dll")]
     private static extern int SetWindowLong(IntPtr hwnd, int index, int newStyle);
 
+    // State colors
+    private static readonly Color GreenColor = Color.FromRgb(0x44, 0xCC, 0x44);
+    private static readonly Color GreyColor = Color.FromRgb(0x99, 0x99, 0x99);
+    private static readonly Color RedColor = Color.FromRgb(0xEE, 0x33, 0x33);
+
+    // Color animation duration for smooth transitions
+    private static readonly Duration ColorTransitionDuration = new(TimeSpan.FromMilliseconds(300));
+
     private Storyboard? _listeningPulse;
     private Storyboard? _speechPulse;
     private Storyboard? _fadeIn;
     private Storyboard? _fadeOut;
 
     private bool _isVisible;
-    private bool _isSpeechActive;
+    private OverlayMicState _currentState = OverlayMicState.Idle;
+
+    // Smoothed RMS value for amplitude-driven animation (exponential moving average)
+    private double _smoothedRms;
+    private const double RmsSmoothingFactor = 0.3; // 0..1, higher = more responsive
 
     public DictationOverlayWindow()
     {
@@ -83,7 +102,6 @@ public partial class DictationOverlayWindow : Window
     {
         if (_isVisible) return;
         _isVisible = true;
-        _isSpeechActive = false;
 
         Show();
 
@@ -95,7 +113,9 @@ public partial class DictationOverlayWindow : Window
         }
 
         _fadeIn?.Begin(this);
-        _listeningPulse?.Begin(this, true);
+
+        // Default to Idle state when first shown
+        SetMicState(OverlayMicState.Idle);
 
         Trace.TraceInformation("[DictationOverlay] Shown.");
     }
@@ -107,7 +127,7 @@ public partial class DictationOverlayWindow : Window
     {
         if (!_isVisible) return;
         _isVisible = false;
-        _isSpeechActive = false;
+        _currentState = OverlayMicState.Idle;
 
         _listeningPulse?.Stop(this);
         _speechPulse?.Stop(this);
@@ -127,29 +147,130 @@ public partial class DictationOverlayWindow : Window
     }
 
     /// <summary>
-    /// Switches to the faster speech animation (call when partial results arrive).
+    /// Sets the visual state of the overlay microphone indicator.
+    /// Must be called on the UI thread.
     /// </summary>
-    public void NotifySpeechActivity()
+    public void SetMicState(OverlayMicState newState)
     {
-        if (!_isVisible || _isSpeechActive) return;
-        _isSpeechActive = true;
+        if (!_isVisible) return;
+        if (_currentState == newState) return;
 
-        _listeningPulse?.Stop(this);
-        _speechPulse?.Begin(this, true);
+        var previousState = _currentState;
+        _currentState = newState;
 
-        Trace.TraceInformation("[DictationOverlay] Speech activity detected, switching to fast pulse.");
+        // Determine target color
+        var targetColor = newState switch
+        {
+            OverlayMicState.Idle => GreenColor,
+            OverlayMicState.Speaking => GreenColor,
+            OverlayMicState.NoMic => GreyColor,
+            OverlayMicState.Error => RedColor,
+            _ => GreenColor
+        };
+
+        // Animate color transition for smooth visual change
+        AnimateColor(targetColor);
+
+        // Manage pulse animations based on state
+        switch (newState)
+        {
+            case OverlayMicState.Idle:
+                _speechPulse?.Stop(this);
+                _smoothedRms = 0;
+                ResetScaleTransform();
+                _listeningPulse?.Begin(this, true);
+                break;
+
+            case OverlayMicState.Speaking:
+                // Stop the listening pulse; RMS-driven scaling is applied directly
+                _listeningPulse?.Stop(this);
+                _speechPulse?.Stop(this);
+                _smoothedRms = 0;
+                ResetScaleTransform();
+                break;
+
+            case OverlayMicState.NoMic:
+            case OverlayMicState.Error:
+                _listeningPulse?.Stop(this);
+                _speechPulse?.Stop(this);
+                _smoothedRms = 0;
+                ResetScaleTransform();
+                break;
+        }
+
+        Trace.TraceInformation("[DictationOverlay] State: {0} -> {1}", previousState, newState);
     }
 
     /// <summary>
-    /// Switches back to the gentle listening animation (call when speech pauses).
+    /// Updates the overlay ring scale based on real-time RMS audio amplitude.
+    /// Must be called on the UI thread. Only has effect in <see cref="OverlayMicState.Speaking"/> state.
+    /// </summary>
+    /// <param name="rmsAmplitude">RMS amplitude in [0.0, 1.0] range.</param>
+    public void UpdateAmplitude(double rmsAmplitude)
+    {
+        if (!_isVisible || _currentState != OverlayMicState.Speaking) return;
+
+        // Clamp input
+        rmsAmplitude = Math.Clamp(rmsAmplitude, 0.0, 1.0);
+
+        // Smooth with exponential moving average to avoid jitter
+        _smoothedRms = _smoothedRms + RmsSmoothingFactor * (rmsAmplitude - _smoothedRms);
+
+        // Map smoothed RMS to scale range: 0.92 (silent) to 1.12 (loud)
+        // Use a slight curve for better visual response
+        var normalized = Math.Min(_smoothedRms * 3.0, 1.0); // amplify low values
+        var scale = 0.92 + normalized * 0.20;
+
+        ScaleTransform.ScaleX = scale;
+        ScaleTransform.ScaleY = scale;
+
+        // Also modulate opacity slightly for visual feedback
+        OverlayEllipse.Opacity = 0.7 + normalized * 0.3;
+    }
+
+    /// <summary>
+    /// Convenience: Switches to the faster speech animation (call when VAD detects speech).
+    /// </summary>
+    public void NotifySpeechActivity()
+    {
+        SetMicState(OverlayMicState.Speaking);
+    }
+
+    /// <summary>
+    /// Convenience: Switches back to the gentle listening animation (call when speech pauses).
     /// </summary>
     public void NotifySpeechPause()
     {
-        if (!_isVisible || !_isSpeechActive) return;
-        _isSpeechActive = false;
+        SetMicState(OverlayMicState.Idle);
+    }
 
-        _speechPulse?.Stop(this);
-        _listeningPulse?.Begin(this, true);
+    /// <summary>
+    /// Animates both the ellipse stroke and mic icon foreground to the target color.
+    /// </summary>
+    private void AnimateColor(Color targetColor)
+    {
+        var strokeAnim = new ColorAnimation(targetColor, ColorTransitionDuration)
+        {
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseInOut }
+        };
+
+        var iconAnim = new ColorAnimation(targetColor, ColorTransitionDuration)
+        {
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseInOut }
+        };
+
+        EllipseStrokeBrush.BeginAnimation(SolidColorBrush.ColorProperty, strokeAnim);
+        MicIconBrush.BeginAnimation(SolidColorBrush.ColorProperty, iconAnim);
+    }
+
+    /// <summary>
+    /// Resets the scale transform to 1.0 (no scaling).
+    /// </summary>
+    private void ResetScaleTransform()
+    {
+        ScaleTransform.ScaleX = 1.0;
+        ScaleTransform.ScaleY = 1.0;
+        OverlayEllipse.Opacity = 1.0;
     }
 
     private void OnFadeOutCompleted(object? sender, EventArgs e)

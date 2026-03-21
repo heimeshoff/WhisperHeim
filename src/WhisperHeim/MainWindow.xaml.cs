@@ -108,6 +108,13 @@ public partial class MainWindow : FluentWindow
             _transcriptionService,
             _inputSimulator,
             OnDictationStateChanged);
+
+        // Wire up audio amplitude for overlay RMS visualization
+        _orchestrator.AudioAmplitudeChanged += OnAudioAmplitudeChanged;
+
+        // Wire up pipeline errors for overlay error state
+        _orchestrator.PipelineError += OnPipelineError;
+
         _orchestrator.Start();
 
         // Initialize the dictation overlay if enabled in settings
@@ -150,6 +157,8 @@ public partial class MainWindow : FluentWindow
         if (isActive)
         {
             _overlayWindow?.ShowOverlay();
+            // Start in Idle (listening) state; will transition to Speaking when audio amplitude rises
+            _overlayWindow?.SetMicState(Views.OverlayMicState.Idle);
         }
         else
         {
@@ -157,6 +166,44 @@ public partial class MainWindow : FluentWindow
         }
 
         Trace.TraceInformation("[MainWindow] Tray icon updated. Active: {0}", isActive);
+    }
+
+    /// <summary>
+    /// Callback from the orchestrator with real-time audio RMS amplitude.
+    /// Called on a background thread -- dispatches to UI thread.
+    /// </summary>
+    private void OnAudioAmplitudeChanged(double rmsAmplitude)
+    {
+        // Use a simple threshold to detect speech vs idle
+        const double speechThreshold = 0.015;
+
+        Application.Current?.Dispatcher?.BeginInvoke(() =>
+        {
+            if (_overlayWindow is null) return;
+
+            if (rmsAmplitude > speechThreshold)
+            {
+                _overlayWindow.SetMicState(Views.OverlayMicState.Speaking);
+                _overlayWindow.UpdateAmplitude(rmsAmplitude);
+            }
+            else
+            {
+                _overlayWindow.SetMicState(Views.OverlayMicState.Idle);
+            }
+        });
+    }
+
+    /// <summary>
+    /// Callback from the orchestrator when a pipeline error occurs.
+    /// Called on a background thread -- dispatches to UI thread.
+    /// </summary>
+    private void OnPipelineError(Exception ex)
+    {
+        Application.Current?.Dispatcher?.BeginInvoke(() =>
+        {
+            _overlayWindow?.SetMicState(Views.OverlayMicState.Error);
+            Trace.TraceError("[MainWindow] Pipeline error reflected in overlay: {0}", ex.Message);
+        });
     }
 
     /// <summary>

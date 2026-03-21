@@ -32,6 +32,17 @@ public sealed class DictationOrchestrator : IDisposable
     private const int MinSamples = 8000; // 0.5s at 16kHz
     private const int SampleRate = 16000;
 
+    /// <summary>
+    /// Raised on a background thread with the RMS amplitude of each audio chunk.
+    /// Value is in [0.0, 1.0] range.
+    /// </summary>
+    public event Action<double>? AudioAmplitudeChanged;
+
+    /// <summary>
+    /// Raised on a background thread when a pipeline error occurs.
+    /// </summary>
+    public event Action<Exception>? PipelineError;
+
     public DictationOrchestrator(
         GlobalHotkeyService hotkeyService,
         IAudioCaptureService audioCapture,
@@ -97,6 +108,7 @@ public sealed class DictationOrchestrator : IDisposable
             Trace.TraceError("[DictationOrchestrator] Failed to start capture: {0}", ex.Message);
             _audioCapture.AudioDataAvailable -= OnAudioData;
             lock (_lock) _isRecording = false;
+            PipelineError?.Invoke(ex);
             return;
         }
 
@@ -158,6 +170,27 @@ public sealed class DictationOrchestrator : IDisposable
             if (_isRecording)
                 _recordedSamples.AddRange(e.Samples);
         }
+
+        // Calculate RMS amplitude and notify listeners
+        var rms = CalculateRms(e.Samples);
+        AudioAmplitudeChanged?.Invoke(rms);
+    }
+
+    /// <summary>
+    /// Calculates the Root Mean Square (RMS) amplitude of audio samples.
+    /// Returns a value in [0.0, 1.0] for normalized float samples.
+    /// </summary>
+    private static double CalculateRms(float[] samples)
+    {
+        if (samples.Length == 0) return 0.0;
+
+        double sumSquares = 0;
+        for (int i = 0; i < samples.Length; i++)
+        {
+            sumSquares += samples[i] * (double)samples[i];
+        }
+
+        return Math.Sqrt(sumSquares / samples.Length);
     }
 
     private async Task TranscribeFinalAsync(float[] samples)
@@ -178,6 +211,7 @@ public sealed class DictationOrchestrator : IDisposable
         catch (Exception ex)
         {
             Trace.TraceError("[DictationOrchestrator] Final transcription error: {0}", ex.Message);
+            PipelineError?.Invoke(ex);
         }
     }
 

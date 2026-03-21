@@ -21,28 +21,28 @@ public sealed class ModelManagerService
         Timeout = TimeSpan.FromMinutes(30)
     };
 
-    /// <summary>Parakeet TDT 0.6B int8 model for speech recognition via sherpa-onnx.</summary>
+    /// <summary>Parakeet TDT 0.6B v3 int8 model for multilingual speech recognition via sherpa-onnx.</summary>
     public static readonly ModelDefinition ParakeetTdt06B = new(
-        Name: "Parakeet TDT 0.6B",
-        Description: "NVIDIA Parakeet TDT 0.6B (int8) — offline speech recognition",
+        Name: "Parakeet TDT 0.6B v3",
+        Description: "NVIDIA Parakeet TDT 0.6B v3 (int8) — 25 European languages with auto-detection",
         SubDirectory: "parakeet-tdt-0.6b",
         Files: new[]
         {
             new ModelFileDefinition(
                 "encoder.int8.onnx",
-                "https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8/resolve/main/encoder.int8.onnx",
-                ExpectedSizeBytes: 683_671_552), // ~652 MB
+                "https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8/resolve/main/encoder.int8.onnx",
+                ExpectedSizeBytes: 652_000_000), // ~622 MB
             new ModelFileDefinition(
                 "decoder.int8.onnx",
-                "https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8/resolve/main/decoder.int8.onnx",
-                ExpectedSizeBytes: 7_610_368), // ~7.3 MB
+                "https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8/resolve/main/decoder.int8.onnx",
+                ExpectedSizeBytes: 12_600_000), // ~12 MB
             new ModelFileDefinition(
                 "joiner.int8.onnx",
-                "https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8/resolve/main/joiner.int8.onnx",
-                ExpectedSizeBytes: 1_824_768), // ~1.7 MB
+                "https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8/resolve/main/joiner.int8.onnx",
+                ExpectedSizeBytes: 6_400_000), // ~6.1 MB
             new ModelFileDefinition(
                 "tokens.txt",
-                "https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8/resolve/main/tokens.txt",
+                "https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8/resolve/main/tokens.txt",
                 ExpectedSizeBytes: 9_600), // ~9.4 KB
         });
 

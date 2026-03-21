@@ -94,7 +94,7 @@ public sealed class FileTranscriptionService : IFileTranscriptionService
 
         // Transcribe each chunk
         var textBuilder = new StringBuilder();
-        double progressPerChunk = 0.9 / chunks.Count; // remaining 90% split across chunks
+        double progressPerChunk = chunks.Count > 0 ? 0.9 / chunks.Count : 0.9;
 
         for (int i = 0; i < chunks.Count; i++)
         {

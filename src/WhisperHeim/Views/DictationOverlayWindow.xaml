@@ -94,9 +94,11 @@
     <Grid>
         <Ellipse x:Name="OverlayEllipse"
                  Fill="#CC2D2D2D"
-                 Stroke="#FFEE3333"
                  StrokeThickness="2"
                  RenderTransformOrigin="0.5,0.5">
+            <Ellipse.Stroke>
+                <SolidColorBrush x:Name="EllipseStrokeBrush" Color="#FF44CC44" />
+            </Ellipse.Stroke>
             <Ellipse.RenderTransform>
                 <ScaleTransform x:Name="ScaleTransform" ScaleX="1" ScaleY="1" />
             </Ellipse.RenderTransform>
@@ -107,10 +109,12 @@
                    Text="&#xE720;"
                    FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
                    FontSize="20"
-                   Foreground="#FFEE3333"
                    HorizontalAlignment="Center"
                    VerticalAlignment="Center"
                    RenderTransformOrigin="0.5,0.5">
+            <TextBlock.Foreground>
+                <SolidColorBrush x:Name="MicIconBrush" Color="#FF44CC44" />
+            </TextBlock.Foreground>
             <TextBlock.RenderTransform>
                 <ScaleTransform x:Name="IconScaleTransform" ScaleX="1" ScaleY="1" />
             </TextBlock.RenderTransform>

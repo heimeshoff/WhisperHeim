@@ -2,6 +2,32 @@
 
 ---
 
+## 2026-03-21 -- Task Completed: 025 - Overlay Microphone State Visualization
+
+**Type:** Task Completion
+**Task:** 025 - Overlay Microphone State Visualization
+**Summary:** Implemented dynamic overlay mic states (green idle, green+RMS-driven ring scaling while speaking, grey for no mic, red for errors). Added OverlayMicState enum, replaced hardcoded red with animated color brushes, wired real-time audio amplitude through orchestrator to drive smooth ring scaling.
+**Files changed:** 5 files
+
+---
+
+## 2026-03-21 -- Task Started: 025 - Overlay Microphone State Visualization
+
+**Type:** Task Start
+**Task:** 025 - Overlay Microphone State Visualization
+**Milestone:** --
+
+---
+
+## 2026-03-21 -- Idea Captured: Overlay Mic State Visualization
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/025-overlay-mic-state-visualization.md
+**Summary:** Dynamic mic icon colors (green=idle/speaking, grey=no mic, red=error) with amplitude-driven ring scaling animation during speech. Overlay only.
+
+---
+
 ## 2026-03-21 -- Task Completed: 024 - Windows Auto-Launch
 
 **Type:** Task Completion

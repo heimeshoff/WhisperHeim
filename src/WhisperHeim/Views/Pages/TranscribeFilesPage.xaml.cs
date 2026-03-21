@@ -151,6 +151,20 @@ public partial class TranscribeFilesPage : UserControl
 
     private async void ProcessFiles(string[] filePaths)
     {
+        try
+        {
+            await ProcessFilesCore(filePaths);
+        }
+        catch (Exception ex)
+        {
+            // Safety net: prevent any exception from escaping async void
+            // and reaching the global DispatcherUnhandledException handler.
+            Trace.TraceError("[TranscribeFilesPage] Unexpected error in ProcessFiles: {0}", ex);
+        }
+    }
+
+    private async Task ProcessFilesCore(string[] filePaths)
+    {
         // Filter to supported files
         var supportedFiles = filePaths
             .Where(f => _fileTranscriptionService.IsSupported(f))

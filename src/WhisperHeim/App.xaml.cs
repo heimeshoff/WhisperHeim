@@ -21,30 +21,57 @@ public partial class App : Application
     private readonly SettingsService _settingsService = new();
     private readonly AudioCaptureService _audioCaptureService = new();
     private readonly ModelManagerService _modelManager = new();
+    private bool _isShowingError;
 
     private void OnStartup(object sender, StartupEventArgs e)
     {
-        // Global exception handler for diagnostics
+        // Global exception handler for diagnostics -- guarded against re-entrance
+        // to prevent cascading MessageBox dialogs when multiple exceptions fire
+        // (e.g. COM/MediaFoundation errors during audio decode).
         DispatcherUnhandledException += (_, args) =>
         {
             System.Diagnostics.Trace.TraceError("[App] Unhandled UI exception: {0}", args.Exception);
-            MessageBox.Show(
-                $"WhisperHeim encountered an error:\n\n{args.Exception.Message}\n\n{args.Exception.StackTrace}",
-                "WhisperHeim Error",
-                MessageBoxButton.OK,
-                MessageBoxImage.Error);
             args.Handled = true;
+
+            if (_isShowingError)
+                return;
+
+            _isShowingError = true;
+            try
+            {
+                MessageBox.Show(
+                    $"WhisperHeim encountered an error:\n\n{args.Exception.Message}\n\n{args.Exception.StackTrace}",
+                    "WhisperHeim Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+            finally
+            {
+                _isShowingError = false;
+            }
         };
 
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
         {
             var ex = args.ExceptionObject as Exception;
             System.Diagnostics.Trace.TraceError("[App] Unhandled domain exception: {0}", ex);
-            MessageBox.Show(
-                $"WhisperHeim fatal error:\n\n{ex?.Message}\n\n{ex?.StackTrace}",
-                "WhisperHeim Fatal Error",
-                MessageBoxButton.OK,
-                MessageBoxImage.Error);
+
+            if (_isShowingError)
+                return;
+
+            _isShowingError = true;
+            try
+            {
+                MessageBox.Show(
+                    $"WhisperHeim fatal error:\n\n{ex?.Message}\n\n{ex?.StackTrace}",
+                    "WhisperHeim Fatal Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+            finally
+            {
+                _isShowingError = false;
+            }
         };
 
         try
