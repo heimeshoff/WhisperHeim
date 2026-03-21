@@ -4,6 +4,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using WhisperHeim.Services.Audio;
+using WhisperHeim.Services.Models;
 using WhisperHeim.Services.Settings;
 using WhisperHeim.Views.Pages;
 using Wpf.Ui.Controls;
@@ -17,13 +19,17 @@ public partial class MainWindow : FluentWindow
 {
     private bool _isExiting;
     private readonly SettingsService _settingsService;
+    private readonly IAudioCaptureService _audioCaptureService;
+    private readonly ModelManagerService _modelManager;
 
     // Cache pages so they are not recreated on every navigation
     private readonly Dictionary<string, object> _pageCache = new();
 
-    public MainWindow(SettingsService settingsService)
+    public MainWindow(SettingsService settingsService, IAudioCaptureService audioCaptureService, ModelManagerService modelManager)
     {
         _settingsService = settingsService;
+        _audioCaptureService = audioCaptureService;
+        _modelManager = modelManager;
 
         InitializeComponent();
 
@@ -118,6 +124,11 @@ public partial class MainWindow : FluentWindow
         }
     }
 
+    /// <summary>
+    /// Shows the settings window. Called from App.xaml.cs on manual (non-minimized) launch.
+    /// </summary>
+    public void ShowSettingsWindow() => ShowWindow();
+
     private void ShowWindow()
     {
         Show();
@@ -141,9 +152,9 @@ public partial class MainWindow : FluentWindow
             page = pageName switch
             {
                 "General" => new GeneralPage(_settingsService),
-                "Dictation" => new DictationPage(_settingsService),
+                "Dictation" => new DictationPage(_settingsService, _audioCaptureService),
                 "Templates" => new TemplatesPage(_settingsService),
-                "About" => new AboutPage(),
+                "About" => new AboutPage(_modelManager),
                 _ => null
             };
 

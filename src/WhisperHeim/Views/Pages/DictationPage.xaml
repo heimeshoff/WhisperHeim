@@ -8,7 +8,24 @@
                    FontWeight="SemiBold"
                    Margin="0,0,0,16" />
 
-        <TextBlock Text="Dictation and transcription options will appear here."
-                   Opacity="0.6" />
+        <ui:CardControl Margin="0,0,0,8">
+            <ui:CardControl.Header>
+                <StackPanel>
+                    <TextBlock Text="Microphone" FontWeight="Medium" />
+                    <TextBlock Text="Select the audio input device for dictation"
+                               Opacity="0.6" FontSize="12" />
+                </StackPanel>
+            </ui:CardControl.Header>
+            <ComboBox x:Name="MicrophoneCombo"
+                      MinWidth="220"
+                      SelectionChanged="MicrophoneCombo_SelectionChanged" />
+        </ui:CardControl>
+
+        <TextBlock x:Name="DeviceWarning"
+                   Foreground="Orange"
+                   FontSize="12"
+                   Margin="0,4,0,8"
+                   Visibility="Collapsed"
+                   TextWrapping="Wrap" />
     </StackPanel>
 </UserControl>
