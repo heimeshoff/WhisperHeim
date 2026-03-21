@@ -9,6 +9,7 @@ using WhisperHeim.Services.Audio;
 using WhisperHeim.Services.CallTranscription;
 using WhisperHeim.Services.Dictation;
 using WhisperHeim.Services.FileTranscription;
+using WhisperHeim.Services.Recording;
 using WhisperHeim.Services.Transcription;
 using WhisperHeim.Services.Hotkey;
 using WhisperHeim.Services.Input;
@@ -35,8 +36,13 @@ public partial class MainWindow : FluentWindow
     private readonly IInputSimulator _inputSimulator;
     private readonly ITemplateService _templateService;
 
+    // Call recording services (wired in App.xaml.cs, used by call recording UI)
+    private readonly ICallRecordingService _callRecordingService;
+    private readonly ICallTranscriptionPipeline _callTranscriptionPipeline;
+    private readonly CallRecordingHotkeyService _callRecordingHotkeyService;
+
     // Transcript storage for the Transcripts page
-    private readonly ITranscriptStorageService _transcriptStorageService = new TranscriptStorageService();
+    private readonly ITranscriptStorageService _transcriptStorageService;
 
     // File transcription for the Transcribe Files page
     private readonly IFileTranscriptionService _fileTranscriptionService;
@@ -65,7 +71,11 @@ public partial class MainWindow : FluentWindow
         ITranscriptionService transcriptionService,
         IInputSimulator inputSimulator,
         IFileTranscriptionService fileTranscriptionService,
-        ITemplateService templateService)
+        ITemplateService templateService,
+        ICallRecordingService callRecordingService,
+        ICallTranscriptionPipeline callTranscriptionPipeline,
+        CallRecordingHotkeyService callRecordingHotkeyService,
+        ITranscriptStorageService transcriptStorageService)
     {
         _settingsService = settingsService;
         _audioCaptureService = audioCaptureService;
@@ -74,6 +84,10 @@ public partial class MainWindow : FluentWindow
         _inputSimulator = inputSimulator;
         _fileTranscriptionService = fileTranscriptionService;
         _templateService = templateService;
+        _callRecordingService = callRecordingService;
+        _callTranscriptionPipeline = callTranscriptionPipeline;
+        _callRecordingHotkeyService = callRecordingHotkeyService;
+        _transcriptStorageService = transcriptStorageService;
 
         InitializeComponent();
 
@@ -280,10 +294,12 @@ public partial class MainWindow : FluentWindow
         }
         else
         {
-            // Clean up orchestrator, overlay, and hotkey on actual exit
+            // Clean up orchestrator, overlay, hotkey, and call recording services on actual exit
             _overlayWindow?.Close();
             _orchestrator?.Dispose();
             _hotkeyService.Dispose();
+            _callRecordingHotkeyService.Dispose();
+            (_callRecordingService as IDisposable)?.Dispose();
         }
 
         base.OnClosing(e);

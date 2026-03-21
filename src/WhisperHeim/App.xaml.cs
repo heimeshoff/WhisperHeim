@@ -2,8 +2,11 @@ using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using WhisperHeim.Services.Audio;
+using WhisperHeim.Services.CallTranscription;
+using WhisperHeim.Services.Diarization;
 using WhisperHeim.Services.Input;
 using WhisperHeim.Services.Models;
+using WhisperHeim.Services.Recording;
 using WhisperHeim.Services.Settings;
 using WhisperHeim.Services.Startup;
 using WhisperHeim.Services.FileTranscription;
@@ -127,6 +130,14 @@ public partial class App : Application
         var fileTranscriptionService = new FileTranscriptionService(transcriptionService);
         var templateService = new TemplateService(_settingsService);
 
+        // Create call recording services
+        var callRecordingService = new CallRecordingService();
+        var transcriptStorageService = new TranscriptStorageService();
+        var speakerDiarizationService = new SpeakerDiarizationService();
+        var callTranscriptionPipeline = new CallTranscriptionPipeline(
+            speakerDiarizationService, transcriptionService, transcriptStorageService);
+        var callRecordingHotkeyService = new CallRecordingHotkeyService(callRecordingService);
+
         // Determine whether we were launched via auto-start (--minimized flag)
         var startMinimized = e.Args.Contains("--minimized");
 
@@ -138,7 +149,11 @@ public partial class App : Application
             transcriptionService,
             inputSimulator,
             fileTranscriptionService,
-            templateService);
+            templateService,
+            callRecordingService,
+            callTranscriptionPipeline,
+            callRecordingHotkeyService,
+            transcriptStorageService);
         MainWindow = mainWindow;
 
         if (!startMinimized)

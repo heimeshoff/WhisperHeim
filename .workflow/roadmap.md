@@ -30,7 +30,7 @@
 - Timestamped, speaker-attributed transcripts
 - Transcript viewer with export (Markdown, JSON, TXT)
 
-**Tasks:** 015, 016, 017, 018, 019
+**Tasks:** 015, 016, 017, 018, 019, 026, 027, 028
 
 ---
 

@@ -2,6 +2,25 @@
 
 ---
 
+## 2026-03-21 -- Task Started: 026 - Wire call recording services in app startup
+
+**Type:** Task Start
+**Task:** 026 - Wire call recording services in app startup
+**Milestone:** M2 - Audio Capture + Call Transcription
+
+---
+
+## 2026-03-21 -- Planning: Call Recording UI Integration
+
+**Type:** Planning
+**Summary:** Planned 3 tasks to wire up the existing call recording backend to the UI — service registration, tray context menu with Ctrl+Win+R hotkey, and post-recording transcription progress dialog with auto-navigation.
+**Milestones created/updated:** M2 (added tasks 026-028)
+**Tasks created:** 026-wire-call-recording-services, 027-tray-menu-call-recording, 028-post-recording-transcription-ui
+**Tasks moved to backlog:** none
+**Ideas incorporated:** none
+
+---
+
 ## 2026-03-21 -- Task Completed: 025 - Overlay Microphone State Visualization
 
 **Type:** Task Completion
