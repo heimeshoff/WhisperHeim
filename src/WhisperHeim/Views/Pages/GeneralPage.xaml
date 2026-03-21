@@ -2,38 +2,68 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
-    <StackPanel Margin="24">
-        <TextBlock Text="General Settings"
-                   FontSize="20"
-                   FontWeight="SemiBold"
-                   Margin="0,0,0,16" />
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Background="#FFF9F9F9">
+        <StackPanel Margin="32,32,32,24" MaxWidth="700"
+                    HorizontalAlignment="Left">
+            <!-- Header -->
+            <TextBlock Text="Settings"
+                       FontSize="28" FontWeight="Bold"
+                       Foreground="#FF1A1C1C"
+                       Margin="0,0,0,4" />
+            <TextBlock Text="Manage your application preferences and behavioral settings."
+                       FontSize="14" Foreground="#FF404752"
+                       Margin="0,0,0,32" />
 
-        <ui:CardControl Margin="0,0,0,8">
-            <ui:CardControl.Header>
-                <StackPanel>
-                    <TextBlock Text="Start minimized" FontWeight="Medium" />
-                    <TextBlock Text="Launch WhisperHeim hidden in the system tray"
-                               Opacity="0.6" FontSize="12" />
-                </StackPanel>
-            </ui:CardControl.Header>
-            <CheckBox x:Name="StartMinimizedCheck"
-                      IsChecked="{Binding StartMinimized, Mode=TwoWay}"
-                      Checked="OnSettingChanged"
-                      Unchecked="OnSettingChanged" />
-        </ui:CardControl>
+            <!-- App Start Section -->
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                <ui:SymbolIcon Symbol="Power24" Foreground="#FF005FAA" Margin="0,0,8,0" />
+                <TextBlock Text="APP START"
+                           FontSize="10" FontWeight="Bold"
+                           Foreground="#FF404752"
+                           VerticalAlignment="Center" />
+            </StackPanel>
 
-        <ui:CardControl Margin="0,0,0,8">
-            <ui:CardControl.Header>
-                <StackPanel>
-                    <TextBlock Text="Launch at startup" FontWeight="Medium" />
-                    <TextBlock Text="Automatically start with Windows"
-                               Opacity="0.6" FontSize="12" />
-                </StackPanel>
-            </ui:CardControl.Header>
-            <CheckBox x:Name="LaunchAtStartupCheck"
-                      IsChecked="{Binding LaunchAtStartup, Mode=TwoWay}"
-                      Checked="OnSettingChanged"
-                      Unchecked="OnSettingChanged" />
-        </ui:CardControl>
-    </StackPanel>
+            <!-- Start minimized card -->
+            <Border Background="#FFFFFFFF" CornerRadius="12" Padding="24" Margin="0,0,0,8">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                        <TextBlock Text="Start minimized"
+                                   FontSize="14" FontWeight="SemiBold"
+                                   Foreground="#FF1A1C1C" />
+                        <TextBlock Text="Open the application in the system tray instead of a window."
+                                   FontSize="12" Foreground="#FF404752"
+                                   Margin="0,4,0,0" />
+                    </StackPanel>
+                    <ui:ToggleSwitch x:Name="StartMinimizedCheck"
+                                     IsChecked="{Binding StartMinimized, Mode=TwoWay}"
+                                     Checked="OnSettingChanged"
+                                     Unchecked="OnSettingChanged"
+                                     DockPanel.Dock="Right"
+                                     HorizontalAlignment="Right"
+                                     VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
+            <!-- Launch at startup card -->
+            <Border Background="#FFFFFFFF" CornerRadius="12" Padding="24" Margin="0,0,0,8">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                        <TextBlock Text="Launch at startup"
+                                   FontSize="14" FontWeight="SemiBold"
+                                   Foreground="#FF1A1C1C" />
+                        <TextBlock Text="Automatically run WhisperHeim when your operating system starts."
+                                   FontSize="12" Foreground="#FF404752"
+                                   Margin="0,4,0,0" />
+                    </StackPanel>
+                    <ui:ToggleSwitch x:Name="LaunchAtStartupCheck"
+                                     IsChecked="{Binding LaunchAtStartup, Mode=TwoWay}"
+                                     Checked="OnSettingChanged"
+                                     Unchecked="OnSettingChanged"
+                                     DockPanel.Dock="Right"
+                                     HorizontalAlignment="Right"
+                                     VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
 </UserControl>

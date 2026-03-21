@@ -9,6 +9,40 @@
         WindowBackdropType="Mica"
         ExtendsContentIntoTitleBar="True">
 
+    <ui:FluentWindow.Resources>
+        <!-- Quiet Engine: Pill-shaped nav item style -->
+        <Style x:Key="NavPillItem" TargetType="ListBoxItem">
+            <Setter Property="Padding" Value="16,8" />
+            <Setter Property="Margin" Value="0,2" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Bd"
+                                CornerRadius="9999"
+                                Padding="{TemplateBinding Padding}"
+                                Background="Transparent">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#FF005FAA" />
+                                <Setter Property="Foreground" Value="White" />
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsMouseOver" Value="True" />
+                                    <Condition Property="IsSelected" Value="False" />
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="Bd" Property="Background" Value="#18000000" />
+                            </MultiTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </ui:FluentWindow.Resources>
+
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -63,58 +97,53 @@
                      Background="Transparent"
                      BorderThickness="0"
                      SelectionChanged="NavList_SelectionChanged">
-                <ListBoxItem Tag="General" IsSelected="True">
-                    <StackPanel Orientation="Horizontal">
-                        <ui:SymbolIcon Symbol="Settings24" Margin="0,0,8,0" />
-                        <TextBlock Text="General" VerticalAlignment="Center" />
-                    </StackPanel>
-                </ListBoxItem>
-                <ListBoxItem Tag="Dictation">
+                <ListBoxItem Tag="Dictation" IsSelected="True" Style="{StaticResource NavPillItem}">
                     <StackPanel Orientation="Horizontal">
                         <ui:SymbolIcon Symbol="Mic24" Margin="0,0,8,0" />
-                        <TextBlock Text="Dictation" VerticalAlignment="Center" />
+                        <TextBlock Text="DICTATION" VerticalAlignment="Center"
+                                   FontSize="11" FontWeight="Medium" />
                     </StackPanel>
                 </ListBoxItem>
-                <ListBoxItem Tag="Templates">
+                <ListBoxItem Tag="Templates" Style="{StaticResource NavPillItem}">
                     <StackPanel Orientation="Horizontal">
                         <ui:SymbolIcon Symbol="Document24" Margin="0,0,8,0" />
-                        <TextBlock Text="Templates" VerticalAlignment="Center" />
+                        <TextBlock Text="TEMPLATES" VerticalAlignment="Center"
+                                   FontSize="11" FontWeight="Medium" />
                     </StackPanel>
                 </ListBoxItem>
-                <ListBoxItem Tag="TranscribeFiles">
-                    <StackPanel Orientation="Horizontal">
-                        <ui:SymbolIcon Symbol="ArrowDownload24" Margin="0,0,8,0" />
-                        <TextBlock Text="Transcribe Files" VerticalAlignment="Center" />
-                    </StackPanel>
-                </ListBoxItem>
-                <ListBoxItem Tag="Transcripts">
+                <ListBoxItem Tag="Recordings" Style="{StaticResource NavPillItem}">
                     <StackPanel Orientation="Horizontal">
                         <ui:SymbolIcon Symbol="DocumentText24" Margin="0,0,8,0" />
-                        <TextBlock Text="Transcripts" VerticalAlignment="Center" />
+                        <TextBlock Text="RECORDINGS" VerticalAlignment="Center"
+                                   FontSize="11" FontWeight="Medium" />
                     </StackPanel>
                 </ListBoxItem>
-                <ListBoxItem Tag="VoiceCloning">
+                <ListBoxItem Tag="Transcriptions" Style="{StaticResource NavPillItem}">
                     <StackPanel Orientation="Horizontal">
-                        <ui:SymbolIcon Symbol="PersonVoice24" Margin="0,0,8,0" />
-                        <TextBlock Text="Voice Cloning" VerticalAlignment="Center" />
+                        <ui:SymbolIcon Symbol="ArrowDownload24" Margin="0,0,8,0" />
+                        <TextBlock Text="TRANSCRIPTIONS" VerticalAlignment="Center"
+                                   FontSize="11" FontWeight="Medium" />
                     </StackPanel>
                 </ListBoxItem>
-                <ListBoxItem Tag="VoiceLoopback">
-                    <StackPanel Orientation="Horizontal">
-                        <ui:SymbolIcon Symbol="Speaker224" Margin="0,0,8,0" />
-                        <TextBlock Text="Voice Capture" VerticalAlignment="Center" />
-                    </StackPanel>
-                </ListBoxItem>
-                <ListBoxItem Tag="TextToSpeech">
+                <ListBoxItem Tag="TextToSpeech" Style="{StaticResource NavPillItem}">
                     <StackPanel Orientation="Horizontal">
                         <ui:SymbolIcon Symbol="ReadAloud24" Margin="0,0,8,0" />
-                        <TextBlock Text="Text to Speech" VerticalAlignment="Center" />
+                        <TextBlock Text="TEXT TO SPEECH" VerticalAlignment="Center"
+                                   FontSize="11" FontWeight="Medium" />
                     </StackPanel>
                 </ListBoxItem>
-                <ListBoxItem Tag="About">
+                <ListBoxItem Tag="Settings" Style="{StaticResource NavPillItem}">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="Settings24" Margin="0,0,8,0" />
+                        <TextBlock Text="SETTINGS" VerticalAlignment="Center"
+                                   FontSize="11" FontWeight="Medium" />
+                    </StackPanel>
+                </ListBoxItem>
+                <ListBoxItem Tag="Models" Style="{StaticResource NavPillItem}">
                     <StackPanel Orientation="Horizontal">
                         <ui:SymbolIcon Symbol="Info24" Margin="0,0,8,0" />
-                        <TextBlock Text="About" VerticalAlignment="Center" />
+                        <TextBlock Text="MODELS" VerticalAlignment="Center"
+                                   FontSize="11" FontWeight="Medium" />
                     </StackPanel>
                 </ListBoxItem>
             </ListBox>

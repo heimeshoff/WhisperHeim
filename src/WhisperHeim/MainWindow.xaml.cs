@@ -419,11 +419,11 @@ public partial class MainWindow : FluentWindow
 
     private TranscriptsPage GetOrCreateTranscriptsPage()
     {
-        if (_pageCache.TryGetValue("Transcripts", out var cached) && cached is TranscriptsPage page)
+        if (_pageCache.TryGetValue("Recordings", out var cached) && cached is TranscriptsPage page)
             return page;
 
         page = new TranscriptsPage(_transcriptStorageService);
-        _pageCache["Transcripts"] = page;
+        _pageCache["Recordings"] = page;
         return page;
     }
 
@@ -604,15 +604,16 @@ public partial class MainWindow : FluentWindow
         {
             page = pageName switch
             {
-                "General" => new GeneralPage(_settingsService),
                 "Dictation" => new DictationPage(_settingsService, _audioCaptureService),
                 "Templates" => new TemplatesPage(_templateService),
-                "TranscribeFiles" => new TranscribeFilesPage(_fileTranscriptionService),
-                "Transcripts" => new TranscriptsPage(_transcriptStorageService),
-                "VoiceCloning" => new VoiceCloningPage(_highQualityRecorderService),
-                "VoiceLoopback" => new VoiceLoopbackCapturePage(_highQualityLoopbackService),
-                "TextToSpeech" => new TextToSpeechPage(_textToSpeechService),
-                "About" => new AboutPage(_modelManager),
+                "Recordings" => new TranscriptsPage(_transcriptStorageService),
+                "Transcriptions" => new TranscribeFilesPage(_fileTranscriptionService),
+                "TextToSpeech" => new TextToSpeechPage(
+                    _textToSpeechService,
+                    _highQualityRecorderService,
+                    _highQualityLoopbackService),
+                "Settings" => new GeneralPage(_settingsService),
+                "Models" => new AboutPage(_modelManager),
                 _ => null
             };
 

@@ -2,36 +2,87 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Threading;
 using Microsoft.Win32;
+using WhisperHeim.Services.Audio;
 using WhisperHeim.Services.TextToSpeech;
 
 namespace WhisperHeim.Views.Pages;
 
 /// <summary>
-/// Text-to-speech page: enter text, select a voice, and play speech audio.
+/// Merged Text-to-Speech page: TTS playback + mic voice cloning + system audio voice capture.
 /// </summary>
 public partial class TextToSpeechPage : UserControl
 {
     private const string PreviewPhrase = "Hello, this is a voice preview.";
+    private const double MinimumDurationSeconds = 5.0;
 
+    /// <summary>
+    /// Directory for custom voice reference .wav files.
+    /// </summary>
+    private static readonly string CustomVoicesDir =
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "WhisperHeim",
+            "voices");
+
+    // ── TTS services ──
     private readonly ITextToSpeechService _ttsService;
     private readonly AudioExportService _exportService = new();
     private CancellationTokenSource? _cts;
     private bool _isSpeaking;
     private TtsGenerationResult? _lastGenerationResult;
 
-    public TextToSpeechPage(ITextToSpeechService ttsService)
+    // ── Voice cloning services ──
+    private readonly IHighQualityRecorderService _recorderService;
+    private readonly IHighQualityLoopbackService _loopbackService;
+    private readonly DispatcherTimer _loopbackDurationTimer;
+
+    // Clone state
+    private bool _isCloneRecording;
+    private bool _hasValidCloneRecording;
+    private bool _useMicSource = true; // true = mic, false = system audio
+
+    public TextToSpeechPage(
+        ITextToSpeechService ttsService,
+        IHighQualityRecorderService recorderService,
+        IHighQualityLoopbackService loopbackService)
     {
         _ttsService = ttsService;
+        _recorderService = recorderService;
+        _loopbackService = loopbackService;
 
         InitializeComponent();
+
+        // Duration update timer for loopback capture
+        _loopbackDurationTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(250)
+        };
+        _loopbackDurationTimer.Tick += LoopbackDurationTimer_Tick;
+
+        // Wire up recorder events
+        _recorderService.LevelChanged += OnRecorderLevelChanged;
+        _recorderService.DurationChanged += OnRecorderDurationChanged;
+        _recorderService.RecordingStopped += OnRecorderStopped;
+
+        // Wire up loopback events
+        _loopbackService.AudioDataAvailable += OnLoopbackAudioData;
+        _loopbackService.CaptureStopped += OnLoopbackCaptureStopped;
 
         Loaded += OnLoaded;
     }
 
+    // ════════════════════════════════════════════════════════════════
+    //  TTS: Voice loading & playback (from original TextToSpeechPage)
+    // ════════════════════════════════════════════════════════════════
+
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         await PopulateVoicesAsync();
+        PopulateCloneDevices();
+        RefreshVoicesList();
     }
 
     private async Task PopulateVoicesAsync()
@@ -40,7 +91,6 @@ public partial class TextToSpeechPage : UserControl
 
         try
         {
-            // Load the TTS model on a background thread to avoid blocking the UI
             if (!_ttsService.IsLoaded)
             {
                 StatusText.Text = "Loading TTS model...";
@@ -93,9 +143,6 @@ public partial class TextToSpeechPage : UserControl
         if (StopButton is not null)
             StopButton.IsEnabled = _isSpeaking;
 
-        if (PreviewVoiceButton is not null)
-            PreviewVoiceButton.IsEnabled = hasVoice && !_isSpeaking;
-
         if (SaveAsButton is not null)
             SaveAsButton.IsEnabled = hasText && hasVoice && !_isSpeaking;
     }
@@ -107,11 +154,6 @@ public partial class TextToSpeechPage : UserControl
             return;
 
         await SpeakTextAsync(text);
-    }
-
-    private async void PreviewVoiceButton_Click(object sender, RoutedEventArgs e)
-    {
-        await SpeakTextAsync(PreviewPhrase);
     }
 
     private void StopButton_Click(object sender, RoutedEventArgs e)
@@ -128,7 +170,6 @@ public partial class TextToSpeechPage : UserControl
         if (VoiceCombo.SelectedItem is not VoiceComboItem selectedVoice)
             return;
 
-        // Show save dialog first so user can cancel before generation
         var dialog = new SaveFileDialog
         {
             Title = "Save Audio As",
@@ -145,7 +186,6 @@ public partial class TextToSpeechPage : UserControl
 
         try
         {
-            // Generate audio (or reuse last if text hasn't changed)
             var result = await _ttsService.GenerateAudioAsync(text, selectedVoice.VoiceId);
             _lastGenerationResult = result;
 
@@ -186,26 +226,29 @@ public partial class TextToSpeechPage : UserControl
         if (VoiceCombo.SelectedItem is not VoiceComboItem selectedVoice)
             return;
 
-        // Cancel any existing playback
         CancelPlayback();
 
         _cts = new CancellationTokenSource();
         SetSpeakingState(true);
         StatusText.Text = "Generating speech...";
+        PlaybackTimeText.Text = "Generating...";
 
         try
         {
             await _ttsService.SpeakAsync(text, selectedVoice.VoiceId, cancellationToken: _cts.Token);
             StatusText.Text = "Playback complete.";
+            PlaybackTimeText.Text = "Complete";
         }
         catch (OperationCanceledException)
         {
             StatusText.Text = "Playback stopped.";
+            PlaybackTimeText.Text = "Stopped";
         }
         catch (Exception ex)
         {
             Trace.TraceError("[TextToSpeechPage] SpeakAsync failed: {0}", ex.Message);
             StatusText.Text = $"Error: {ex.Message}";
+            PlaybackTimeText.Text = "Error";
         }
         finally
         {
@@ -230,10 +273,412 @@ public partial class TextToSpeechPage : UserControl
         UpdateButtonStates();
     }
 
+    // ════════════════════════════════════════════════════════════════
+    //  Voice Cloning: Mic + System Audio (merged from two pages)
+    // ════════════════════════════════════════════════════════════════
+
+    private void SourceToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        _useMicSource = MicSourceToggle.IsChecked == true;
+        PopulateCloneDevices();
+    }
+
+    private void PopulateCloneDevices()
+    {
+        if (CloneDeviceCombo is null) return;
+
+        CloneDeviceCombo.Items.Clear();
+
+        if (_useMicSource)
+        {
+            CloneDeviceCombo.Items.Add(new DeviceComboItem("System Default", -1));
+            try
+            {
+                var devices = _recorderService.GetAvailableDevices();
+                foreach (var device in devices)
+                {
+                    CloneDeviceCombo.Items.Add(new DeviceComboItem(device.Name, device.DeviceIndex));
+                }
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceWarning("[TextToSpeechPage] Failed to enumerate mic devices: {0}", ex.Message);
+            }
+        }
+        else
+        {
+            CloneDeviceCombo.Items.Add(new DeviceComboItem("System Default", -1));
+            try
+            {
+                var devices = _loopbackService.GetAvailableDevices();
+                foreach (var device in devices)
+                {
+                    CloneDeviceCombo.Items.Add(new DeviceComboItem(device.Name, device.DeviceIndex));
+                }
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceWarning("[TextToSpeechPage] Failed to enumerate output devices: {0}", ex.Message);
+            }
+        }
+
+        CloneDeviceCombo.SelectedIndex = 0;
+        CloneDeviceCombo.DisplayMemberPath = "DisplayName";
+    }
+
+    private void CloneRecordButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isCloneRecording) return;
+
+        var selectedDevice = CloneDeviceCombo.SelectedItem as DeviceComboItem;
+        int deviceIndex = selectedDevice?.DeviceIndex ?? -1;
+
+        try
+        {
+            if (_useMicSource)
+            {
+                _recorderService.StartRecording(deviceIndex);
+            }
+            else
+            {
+                _loopbackService.StartCapture(deviceIndex);
+                _loopbackDurationTimer.Start();
+            }
+
+            _isCloneRecording = true;
+            _hasValidCloneRecording = false;
+
+            CloneRecordButton.IsEnabled = false;
+            CloneStopButton.IsEnabled = true;
+            CloneSaveButton.IsEnabled = false;
+            CloneVoiceNameBox.IsEnabled = false;
+            CloneDeviceCombo.IsEnabled = false;
+            MicSourceToggle.IsEnabled = false;
+            SystemAudioToggle.IsEnabled = false;
+            CloneStatusText.Text = _useMicSource
+                ? "Recording... Speak clearly into the microphone."
+                : "Capturing system audio... Play the target voice.";
+
+            // Reset visuals
+            LevelMeterFill.Width = 0;
+            CloneDurationProgress.Width = 0;
+            CloneDurationText.Text = "00:00";
+        }
+        catch (Exception ex)
+        {
+            CloneStatusText.Text = $"Failed to start: {ex.Message}";
+            ResetCloneControls();
+        }
+    }
+
+    private void CloneStopButton_Click(object sender, RoutedEventArgs e)
+    {
+        StopCloneRecording();
+    }
+
+    private void StopCloneRecording()
+    {
+        if (!_isCloneRecording) return;
+
+        _isCloneRecording = false;
+
+        if (_useMicSource)
+        {
+            var filePath = _recorderService.StopRecording();
+            _hasValidCloneRecording = filePath is not null && _recorderService.Duration.TotalSeconds >= MinimumDurationSeconds;
+
+            if (_hasValidCloneRecording)
+            {
+                CloneStatusText.Text = $"Recording complete ({_recorderService.Duration.TotalSeconds:F1}s). Enter a name and click Save.";
+            }
+            else if (_recorderService.Duration.TotalSeconds < MinimumDurationSeconds)
+            {
+                CloneStatusText.Text = $"Recording too short ({_recorderService.Duration.TotalSeconds:F1}s). Minimum {MinimumDurationSeconds}s required.";
+            }
+            else
+            {
+                CloneStatusText.Text = "Recording failed. Please try again.";
+            }
+        }
+        else
+        {
+            _loopbackDurationTimer.Stop();
+            _loopbackService.StopCapture();
+
+            bool hasRecording = _loopbackService.TempWavFilePath is not null
+                && File.Exists(_loopbackService.TempWavFilePath);
+            _hasValidCloneRecording = hasRecording;
+
+            if (hasRecording)
+            {
+                CloneStatusText.Text = "Capture complete. Enter a name and click Save.";
+            }
+            else
+            {
+                CloneStatusText.Text = "No audio was captured. Make sure audio is playing.";
+            }
+        }
+
+        ResetCloneControls();
+        LevelMeterFill.Width = 0;
+        LevelText.Text = "--";
+    }
+
+    private void CloneSaveButton_Click(object sender, RoutedEventArgs e)
+    {
+        var voiceName = CloneVoiceNameBox.Text?.Trim();
+        if (string.IsNullOrWhiteSpace(voiceName))
+        {
+            CloneStatusText.Text = "Please enter a voice name.";
+            return;
+        }
+
+        // Sanitize filename
+        foreach (var ch in Path.GetInvalidFileNameChars())
+        {
+            voiceName = voiceName.Replace(ch, '_');
+        }
+
+        var destPath = Path.Combine(CustomVoicesDir, $"{voiceName}.wav");
+
+        if (File.Exists(destPath))
+        {
+            var result = MessageBox.Show(
+                $"A voice named '{voiceName}' already exists. Overwrite?",
+                "Voice Already Exists",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (result != MessageBoxResult.Yes)
+                return;
+        }
+
+        try
+        {
+            bool saved;
+            if (_useMicSource)
+            {
+                saved = _recorderService.SaveRecording(destPath);
+            }
+            else
+            {
+                _loopbackService.SaveAsVoice(voiceName);
+                saved = true;
+            }
+
+            if (saved)
+            {
+                CloneStatusText.Text = $"Voice '{voiceName}' saved! It will appear in the voice selector.";
+                _hasValidCloneRecording = false;
+                CloneSaveButton.IsEnabled = false;
+                CloneVoiceNameBox.Text = "";
+                RefreshVoicesList();
+
+                // Refresh TTS voice list to pick up the new voice
+                _ = PopulateVoicesAsync();
+            }
+            else
+            {
+                CloneStatusText.Text = "Failed to save recording. Please try again.";
+            }
+        }
+        catch (Exception ex)
+        {
+            CloneStatusText.Text = $"Failed to save voice: {ex.Message}";
+            Trace.TraceError("[TextToSpeechPage] Save voice failed: {0}", ex);
+        }
+    }
+
+    private void ResetCloneControls()
+    {
+        CloneRecordButton.IsEnabled = true;
+        CloneStopButton.IsEnabled = false;
+        CloneVoiceNameBox.IsEnabled = true;
+        CloneDeviceCombo.IsEnabled = true;
+        MicSourceToggle.IsEnabled = true;
+        SystemAudioToggle.IsEnabled = true;
+        UpdateCloneSaveButtonState();
+    }
+
+    private void UpdateCloneSaveButtonState()
+    {
+        if (CloneSaveButton is null) return;
+        CloneSaveButton.IsEnabled = _hasValidCloneRecording
+            && !string.IsNullOrWhiteSpace(CloneVoiceNameBox.Text);
+    }
+
+    // ── Recorder event handlers (mic) ──
+
+    private void OnRecorderLevelChanged(object? sender, float level)
+    {
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (!_useMicSource || !_isCloneRecording) return;
+            var maxWidth = LevelMeterGrid.ActualWidth;
+            LevelMeterFill.Width = maxWidth * level;
+            LevelText.Text = level > 0.001f ? $"{20f * MathF.Log10(level):F1} dB" : "--";
+        });
+    }
+
+    private void OnRecorderDurationChanged(object? sender, TimeSpan duration)
+    {
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (!_useMicSource) return;
+
+            CloneDurationText.Text = $"{duration:mm\\:ss}";
+
+            double progress = Math.Min(1.0, duration.TotalSeconds / MinimumDurationSeconds);
+            CloneDurationProgress.Width = (CloneDurationProgress.Parent as Grid)?.ActualWidth * progress ?? 0;
+
+            if (duration.TotalSeconds >= MinimumDurationSeconds)
+            {
+                CloneDurationBrush.Color = Color.FromRgb(0x4C, 0xAF, 0x50);
+            }
+            else
+            {
+                CloneDurationBrush.Color = Color.FromRgb(0xFF, 0xA5, 0x00);
+            }
+        });
+    }
+
+    private void OnRecorderStopped(object? sender, RecordingStoppedEventArgs e)
+    {
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (!e.Success)
+            {
+                CloneStatusText.Text = $"Recording stopped due to an error: {e.Exception?.Message}";
+            }
+            _isCloneRecording = false;
+            ResetCloneControls();
+            LevelMeterFill.Width = 0;
+        });
+    }
+
+    // ── Loopback event handlers (system audio) ──
+
+    private void OnLoopbackAudioData(object? sender, HighQualityAudioEventArgs e)
+    {
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (_useMicSource || !_isCloneRecording) return;
+            float level = Math.Clamp(e.RmsLevel * 5f, 0f, 1f);
+            double maxWidth = LevelMeterGrid.ActualWidth;
+            LevelMeterFill.Width = level * maxWidth;
+
+            if (e.RmsLevel > 0.001f)
+            {
+                float db = 20f * MathF.Log10(e.RmsLevel);
+                LevelText.Text = $"{db:F1} dB";
+            }
+            else
+            {
+                LevelText.Text = "-inf dB";
+            }
+        });
+    }
+
+    private void LoopbackDurationTimer_Tick(object? sender, EventArgs e)
+    {
+        var duration = _loopbackService.Duration;
+        CloneDurationText.Text = $"{duration:mm\\:ss}";
+
+        double progress = Math.Min(1.0, duration.TotalSeconds / MinimumDurationSeconds);
+        CloneDurationProgress.Width = (CloneDurationProgress.Parent as Grid)?.ActualWidth * progress ?? 0;
+
+        if (duration.TotalSeconds >= MinimumDurationSeconds)
+        {
+            CloneDurationBrush.Color = Color.FromRgb(0x4C, 0xAF, 0x50);
+        }
+        else
+        {
+            CloneDurationBrush.Color = Color.FromRgb(0xFF, 0xA5, 0x00);
+        }
+    }
+
+    private void OnLoopbackCaptureStopped(object? sender, CaptureStoppedEventArgs e)
+    {
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (e.WasDeviceDisconnected)
+            {
+                CloneStatusText.Text = "Audio device was disconnected.";
+            }
+            if (_isCloneRecording)
+            {
+                StopCloneRecording();
+            }
+        });
+    }
+
+    // ── Library Voices list ──
+
+    private void RefreshVoicesList()
+    {
+        if (VoicesList is null) return;
+
+        VoicesList.Items.Clear();
+
+        if (!Directory.Exists(CustomVoicesDir))
+            return;
+
+        var wavFiles = Directory.GetFiles(CustomVoicesDir, "*.wav");
+
+        foreach (var wavFile in wavFiles)
+        {
+            var name = Path.GetFileNameWithoutExtension(wavFile);
+            var info = new FileInfo(wavFile);
+
+            var card = new Border
+            {
+                Background = new SolidColorBrush(Color.FromRgb(0xFF, 0xFF, 0xFF)),
+                CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(12),
+                Margin = new Thickness(0, 0, 0, 8)
+            };
+
+            var panel = new DockPanel();
+            var nameBlock = new TextBlock
+            {
+                Text = name,
+                FontWeight = FontWeights.SemiBold,
+                FontSize = 13,
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            DockPanel.SetDock(nameBlock, Dock.Left);
+
+            var sizeBlock = new TextBlock
+            {
+                Text = $"{info.Length / 1024.0:F0} KB",
+                Opacity = 0.5,
+                FontSize = 11,
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Right
+            };
+            DockPanel.SetDock(sizeBlock, Dock.Right);
+
+            panel.Children.Add(nameBlock);
+            panel.Children.Add(sizeBlock);
+            card.Child = panel;
+            VoicesList.Items.Add(card);
+        }
+    }
+
+    // ── Helpers ──
+
     /// <summary>
     /// Display item for the voice combo box.
     /// </summary>
     private sealed record VoiceComboItem(string DisplayName, string VoiceId)
+    {
+        public override string ToString() => DisplayName;
+    }
+
+    /// <summary>
+    /// Display item for clone device combo box.
+    /// </summary>
+    private sealed record DeviceComboItem(string DisplayName, int DeviceIndex)
     {
         public override string ToString() => DisplayName;
     }

@@ -2,121 +2,412 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
-    <Grid Margin="24">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+    <UserControl.Resources>
+        <Style x:Key="QuietCard" TargetType="Border">
+            <Setter Property="Background" Value="#FFFFFFFF" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="24" />
+        </Style>
+        <Style x:Key="SectionLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="#FF005FAA" />
 
-        <!-- Header -->
-        <TextBlock Grid.Row="0"
-                   Text="Text to Speech"
-                   FontSize="20"
-                   FontWeight="SemiBold"
-                   Margin="0,0,0,16" />
+        </Style>
+        <Style x:Key="SubtleText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="#FF404752" />
+        </Style>
+        <Style x:Key="GradientButton" TargetType="Button">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Padding" Value="24,10" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd"
+                                CornerRadius="12"
+                                Padding="{TemplateBinding Padding}">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#FF005FAA" Offset="0" />
+                                    <GradientStop Color="#FF0078D4" Offset="1" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Border.Effect>
+                                <DropShadowEffect Color="#FF005FAA" Opacity="0.2" BlurRadius="16" ShadowDepth="4" />
+                            </Border.Effect>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.4" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.9" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="GhostCard" TargetType="Border">
+            <Setter Property="Background" Value="#FFF9F9F9" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="16" />
+            <Setter Property="BorderBrush" Value="#26C0C7D4" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <Style x:Key="SourceToggleButton" TargetType="RadioButton">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Bd"
+                                CornerRadius="6"
+                                Padding="12,6"
+                                Background="Transparent"
+                                Cursor="Hand">
+                            <TextBlock x:Name="Txt"
+                                       Text="{TemplateBinding Content}"
+                                       FontSize="11"
+                                       FontWeight="Bold"
+                                                                             HorizontalAlignment="Center"
+                                       Foreground="#FF404752" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#FFFFFFFF" />
+                                <Setter TargetName="Txt" Property="Foreground" Value="#FF005FAA" />
+                                <Setter TargetName="Bd" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="#20000000" BlurRadius="4" ShadowDepth="1" Opacity="0.15" />
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
 
-        <!-- Text Input -->
-        <ui:CardControl Grid.Row="1" Margin="0,0,0,12">
-            <ui:CardControl.Header>
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-                    <TextBlock Grid.Row="0"
-                               Text="Enter text to speak"
-                               FontWeight="Medium"
-                               Margin="0,0,0,8" />
-                    <TextBox x:Name="SpeechTextInput"
-                             Grid.Row="1"
-                             AcceptsReturn="True"
-                             TextWrapping="Wrap"
-                             VerticalScrollBarVisibility="Auto"
-                             MinHeight="120"
-                             MaxHeight="300"
-                             TextChanged="SpeechTextInput_TextChanged" />
-                </Grid>
-            </ui:CardControl.Header>
-        </ui:CardControl>
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  Background="#FFF3F3F3">
+        <Grid Margin="32,32,32,24">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" MinWidth="300" />
+                <ColumnDefinition Width="24" />
+                <ColumnDefinition Width="280" />
+            </Grid.ColumnDefinitions>
 
-        <!-- Voice Selection -->
-        <ui:CardControl Grid.Row="2" Margin="0,0,0,12">
-            <ui:CardControl.Header>
-                <StackPanel>
-                    <TextBlock Text="Voice" FontWeight="Medium" />
-                    <TextBlock Text="Select a voice for speech generation"
-                               Opacity="0.6" FontSize="12" />
-                </StackPanel>
-            </ui:CardControl.Header>
-            <StackPanel Orientation="Horizontal">
-                <ComboBox x:Name="VoiceCombo"
-                          MinWidth="220"
-                          SelectionChanged="VoiceCombo_SelectionChanged" />
-                <Button x:Name="PreviewVoiceButton"
-                        Content="Preview"
-                        Click="PreviewVoiceButton_Click"
-                        IsEnabled="False"
-                        Margin="8,0,0,0"
-                        ToolTip="Play a short test phrase with the selected voice" />
+            <!-- ═══════════════ LEFT: Input Workspace (8-col bento) ═══════════════ -->
+            <StackPanel Grid.Column="0">
+                <!-- Page Header -->
+                <TextBlock Text="Text to Speech"
+                           FontSize="28"
+                           FontWeight="Bold"
+                           Foreground="#FF1A1C1C"
+                           Margin="0,0,0,4" />
+                <TextBlock Text="Synthesize lifelike speech using local neural models."
+                           Style="{StaticResource SubtleText}"
+                           Margin="0,0,0,24" />
+
+                <!-- Main TTS Card -->
+                <Border Style="{StaticResource QuietCard}" Margin="0,0,0,16">
+                    <Border.Effect>
+                        <DropShadowEffect Color="#FF005FAA" Opacity="0.04" BlurRadius="32" ShadowDepth="8" />
+                    </Border.Effect>
+                    <StackPanel>
+                        <!-- Header row: label + voice selector -->
+                        <DockPanel Margin="0,0,0,16">
+                            <TextBlock Text="INPUT WORKSPACE"
+                                       Style="{StaticResource SectionLabel}"
+                                       VerticalAlignment="Center"
+                                       DockPanel.Dock="Left" />
+                            <StackPanel Orientation="Horizontal"
+                                        DockPanel.Dock="Right"
+                                        HorizontalAlignment="Right">
+                                <ui:SymbolIcon Symbol="Person24"
+                                               Margin="0,0,6,0"
+                                               FontSize="14" />
+                                <ComboBox x:Name="VoiceCombo"
+                                          MinWidth="180"
+                                          SelectionChanged="VoiceCombo_SelectionChanged" />
+                            </StackPanel>
+                        </DockPanel>
+
+                        <!-- Text Input -->
+                        <TextBox x:Name="SpeechTextInput"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 VerticalScrollBarVisibility="Auto"
+                                 MinHeight="160"
+                                 MaxHeight="300"
+                                 Background="#08E2E2E2"
+                                 BorderThickness="0"
+                                 Padding="16"
+                                 FontSize="14"
+                                 TextChanged="SpeechTextInput_TextChanged" />
+
+                        <!-- Playback Progress -->
+                        <StackPanel Margin="0,16,0,0">
+                            <DockPanel Margin="0,0,0,4">
+                                <TextBlock Text="SYNTHESIS BUFFER"
+                                           FontSize="10"
+                                           FontWeight="Bold"
+                                                                                     Foreground="#FF404752"
+                                           DockPanel.Dock="Left" />
+                                <TextBlock x:Name="PlaybackTimeText"
+                                           Text="Ready"
+                                           FontSize="10"
+                                           FontWeight="Bold"
+                                           Foreground="#FF404752"
+                                           DockPanel.Dock="Right"
+                                           HorizontalAlignment="Right" />
+                            </DockPanel>
+                            <Grid Height="4">
+                                <Border Background="#FFE8E8E8" CornerRadius="2" />
+                                <ProgressBar x:Name="GenerationProgress"
+                                             Height="4"
+                                             IsIndeterminate="True"
+                                             Visibility="Collapsed" />
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- Controls Row -->
+                        <DockPanel Margin="0,20,0,0">
+                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                                <Button x:Name="PlayButton"
+                                        Click="PlayButton_Click"
+                                        IsEnabled="False"
+                                        Width="44" Height="44"
+                                        Padding="0"
+                                        ToolTip="Play">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="Bd"
+                                                    CornerRadius="22"
+                                                    Background="#FFE8E8E8"
+                                                    Width="44" Height="44"
+                                                    Cursor="Hand">
+                                                <ui:SymbolIcon Symbol="Play24"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center" />
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsEnabled" Value="False">
+                                                    <Setter TargetName="Bd" Property="Opacity" Value="0.4" />
+                                                </Trigger>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Bd" Property="Background" Value="#FFD3E3FF" />
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                                <Button x:Name="StopButton"
+                                        Click="StopButton_Click"
+                                        IsEnabled="False"
+                                        Width="44" Height="44"
+                                        Padding="0" Margin="8,0,0,0"
+                                        ToolTip="Stop">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="Bd"
+                                                    CornerRadius="22"
+                                                    Background="#FFE8E8E8"
+                                                    Width="44" Height="44"
+                                                    Cursor="Hand">
+                                                <ui:SymbolIcon Symbol="Stop24"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center" />
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsEnabled" Value="False">
+                                                    <Setter TargetName="Bd" Property="Opacity" Value="0.4" />
+                                                </Trigger>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Bd" Property="Background" Value="#FFFFDAD6" />
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </StackPanel>
+                            <Button x:Name="SaveAsButton"
+                                    Style="{StaticResource GradientButton}"
+                                    Click="SaveAsButton_Click"
+                                    IsEnabled="False"
+                                    HorizontalAlignment="Right"
+                                    DockPanel.Dock="Right">
+                                <StackPanel Orientation="Horizontal">
+                                    <ui:SymbolIcon Symbol="Save24" Margin="0,0,6,0" Foreground="White" />
+                                    <TextBlock Text="Save Audio" Foreground="White" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Status Summary Cards -->
+                <UniformGrid Columns="3" Margin="0,0,0,0">
+                    <Border Background="#FFEEEEEE" CornerRadius="12" Padding="16" Margin="0,0,8,0">
+                        <StackPanel>
+                            <TextBlock Text="MODEL" FontSize="10" FontWeight="Bold"
+                                       Foreground="#FF404752" />
+                            <TextBlock x:Name="ModelInfoText" Text="Pocket TTS"
+                                       FontSize="13" FontWeight="SemiBold" Margin="0,4,0,0" />
+                        </StackPanel>
+                    </Border>
+                    <Border Background="#FFEEEEEE" CornerRadius="12" Padding="16" Margin="4,0,4,0">
+                        <StackPanel>
+                            <TextBlock Text="INFERENCE" FontSize="10" FontWeight="Bold"
+                                       Foreground="#FF404752" />
+                            <TextBlock x:Name="InferenceText" Text="--"
+                                       FontSize="13" FontWeight="SemiBold" Margin="0,4,0,0" />
+                        </StackPanel>
+                    </Border>
+                    <Border Background="#FFEEEEEE" CornerRadius="12" Padding="16" Margin="8,0,0,0">
+                        <StackPanel>
+                            <TextBlock Text="OUTPUT" FontSize="10" FontWeight="Bold"
+                                       Foreground="#FF404752" />
+                            <TextBlock Text="24kHz / WAV"
+                                       FontSize="13" FontWeight="SemiBold" Margin="0,4,0,0" />
+                        </StackPanel>
+                    </Border>
+                </UniformGrid>
+
+                <!-- Status Text -->
+                <TextBlock x:Name="StatusText"
+                           FontSize="12"
+                           Foreground="#FF404752"
+                           Margin="0,12,0,0"
+                           TextWrapping="Wrap" />
             </StackPanel>
-        </ui:CardControl>
 
-        <!-- Progress Indicator -->
-        <ProgressBar x:Name="GenerationProgress"
-                     Grid.Row="3"
-                     Height="4"
-                     IsIndeterminate="True"
-                     Visibility="Collapsed"
-                     Margin="0,0,0,12" />
+            <!-- ═══════════════ RIGHT: Voice Clone Sidebar (4-col) ═══════════════ -->
+            <StackPanel Grid.Column="2">
+                <!-- Clone New Voice Card -->
+                <Border Style="{StaticResource GhostCard}" Margin="0,0,0,16">
+                    <StackPanel>
+                        <!-- Header -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                            <Ellipse Width="8" Height="8" Fill="#FFBA1A1A" Margin="0,0,8,0" />
+                            <TextBlock Text="CLONE NEW VOICE"
+                                       FontSize="12" FontWeight="Bold"
+                                       />
+                        </StackPanel>
 
-        <!-- Playback Controls and Status -->
-        <DockPanel Grid.Row="4" Margin="0,0,0,0">
-            <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                <ui:Button x:Name="PlayButton"
-                           Appearance="Primary"
-                           Click="PlayButton_Click"
-                           IsEnabled="False"
-                           Padding="24,8"
-                           FontWeight="Medium">
-                    <StackPanel Orientation="Horizontal">
-                        <ui:SymbolIcon Symbol="Play24" Margin="0,0,6,0" />
-                        <TextBlock Text="Speak" VerticalAlignment="Center" />
+                        <!-- Source Toggle: Microphone / System Audio -->
+                        <Border Background="#FFE2E2E2" CornerRadius="8" Padding="3" Margin="0,0,0,12">
+                            <UniformGrid Columns="2">
+                                <RadioButton x:Name="MicSourceToggle"
+                                             Content="MICROPHONE"
+                                             IsChecked="True"
+                                             Style="{StaticResource SourceToggleButton}"
+                                             GroupName="CloneSource"
+                                             Checked="SourceToggle_Changed" />
+                                <RadioButton x:Name="SystemAudioToggle"
+                                             Content="SYSTEM AUDIO"
+                                             Style="{StaticResource SourceToggleButton}"
+                                             GroupName="CloneSource"
+                                             Checked="SourceToggle_Changed" />
+                            </UniformGrid>
+                        </Border>
+
+                        <!-- Device selector -->
+                        <ComboBox x:Name="CloneDeviceCombo"
+                                  Margin="0,0,0,12"
+                                  HorizontalAlignment="Stretch" />
+
+                        <!-- Audio Visualizer (simplified waveform bars) -->
+                        <Border Background="#0D1A1C1C" CornerRadius="8" Height="72" Margin="0,0,0,12">
+                            <Grid x:Name="LevelMeterGrid">
+                                <Border x:Name="LevelMeterFill"
+                                        Background="#40005FAA"
+                                        CornerRadius="8"
+                                        HorizontalAlignment="Left"
+                                        Width="0" />
+                                <TextBlock x:Name="LevelText"
+                                           Text="--"
+                                           FontSize="11"
+                                           Foreground="#FF404752"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
+
+                        <!-- Recording Progress -->
+                        <DockPanel Margin="0,0,0,4">
+                            <TextBlock Text="PROGRESS (MIN 5S)"
+                                       FontSize="9" FontWeight="Bold"
+                                       Foreground="#FF404752"
+                                       DockPanel.Dock="Left" />
+                            <TextBlock x:Name="CloneDurationText"
+                                       Text="00:00"
+                                       FontSize="9" FontWeight="Bold"
+                                       Foreground="#FF404752"
+                                       DockPanel.Dock="Right"
+                                       HorizontalAlignment="Right" />
+                        </DockPanel>
+                        <Grid Height="4" Margin="0,0,0,12">
+                            <Border Background="#FFE8E8E8" CornerRadius="2" />
+                            <Border x:Name="CloneDurationProgress"
+                                    CornerRadius="2"
+                                    HorizontalAlignment="Left"
+                                    Width="0">
+                                <Border.Background>
+                                    <SolidColorBrush x:Name="CloneDurationBrush" Color="#FF4CAF50" />
+                                </Border.Background>
+                            </Border>
+                        </Grid>
+
+                        <!-- Record / Stop buttons -->
+                        <DockPanel Margin="0,0,0,8">
+                            <Button x:Name="CloneRecordButton"
+                                    Content="Record"
+                                    Click="CloneRecordButton_Click"
+                                    Padding="12,6"
+                                    DockPanel.Dock="Left" />
+                            <Button x:Name="CloneStopButton"
+                                    Content="Stop"
+                                    Click="CloneStopButton_Click"
+                                    IsEnabled="False"
+                                    Padding="12,6"
+                                    Margin="8,0,0,0"
+                                    DockPanel.Dock="Left" />
+                        </DockPanel>
+
+                        <!-- Voice Name + Save -->
+                        <TextBox x:Name="CloneVoiceNameBox"
+                                 MaxLength="50"
+                                 Margin="0,0,0,8" />
+                        <Button x:Name="CloneSaveButton"
+                                Content="SAVE VOICE INSTANCE"
+                                Click="CloneSaveButton_Click"
+                                IsEnabled="False"
+                                HorizontalAlignment="Stretch"
+                                Padding="12,10"
+                                FontWeight="Bold"
+                                FontSize="11" />
+
+                        <!-- Clone status -->
+                        <TextBlock x:Name="CloneStatusText"
+                                   FontSize="11"
+                                   Foreground="#FF404752"
+                                   Margin="0,8,0,0"
+                                   TextWrapping="Wrap" />
                     </StackPanel>
-                </ui:Button>
-                <ui:Button x:Name="StopButton"
-                           Appearance="Danger"
-                           Click="StopButton_Click"
-                           IsEnabled="False"
-                           Margin="8,0,0,0"
-                           Padding="24,8"
-                           FontWeight="Medium">
-                    <StackPanel Orientation="Horizontal">
-                        <ui:SymbolIcon Symbol="Stop24" Margin="0,0,6,0" />
-                        <TextBlock Text="Stop" VerticalAlignment="Center" />
-                    </StackPanel>
-                </ui:Button>
-                <ui:Button x:Name="SaveAsButton"
-                           Click="SaveAsButton_Click"
-                           IsEnabled="False"
-                           Margin="8,0,0,0"
-                           Padding="24,8"
-                           FontWeight="Medium">
-                    <StackPanel Orientation="Horizontal">
-                        <ui:SymbolIcon Symbol="Save24" Margin="0,0,6,0" />
-                        <TextBlock Text="Save as..." VerticalAlignment="Center" />
-                    </StackPanel>
-                </ui:Button>
+                </Border>
+
+                <!-- Library Voices -->
+                <TextBlock Text="LIBRARY VOICES"
+                           FontSize="10" FontWeight="Bold"
+                           Foreground="#FF404752"
+                           Margin="4,0,0,8" />
+                <ItemsControl x:Name="VoicesList" />
             </StackPanel>
-            <TextBlock x:Name="StatusText"
-                       DockPanel.Dock="Right"
-                       HorizontalAlignment="Right"
-                       VerticalAlignment="Center"
-                       FontSize="12"
-                       Opacity="0.7"
-                       TextWrapping="Wrap" />
-        </DockPanel>
-    </Grid>
+        </Grid>
+    </ScrollViewer>
 </UserControl>

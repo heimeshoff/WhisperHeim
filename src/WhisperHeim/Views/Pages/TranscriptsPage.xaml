@@ -6,256 +6,297 @@
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
         <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibility" />
+        <Style x:Key="SubtleText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="#FF404752" />
+        </Style>
+        <Style x:Key="SectionLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="#FF404752" />
+
+        </Style>
     </UserControl.Resources>
-    <Grid Margin="24">
+
+    <Grid Background="#FFF9F9F9">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <StackPanel Grid.Row="0" Margin="0,0,0,12">
-            <TextBlock Text="Transcripts"
-                       FontSize="20"
-                       FontWeight="SemiBold" />
-            <TextBlock Text="Press Ctrl+Shift+Win+R to start or stop a call recording."
-                       Opacity="0.5" FontSize="12" />
+        <!-- ═══════ Status Banner (transcribing indicator) ═══════ -->
+        <Border x:Name="TranscribingBanner"
+                Grid.Row="0"
+                Visibility="Collapsed"
+                Padding="16,10"
+                Margin="0">
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                    <GradientStop Color="#FF005FAA" Offset="0" />
+                    <GradientStop Color="#FF0078D4" Offset="1" />
+                </LinearGradientBrush>
+            </Border.Background>
+            <StackPanel Orientation="Horizontal">
+                <Ellipse Width="8" Height="8" Fill="White" Margin="0,0,12,0" />
+                <TextBlock Text="Transcribing call recording..."
+                           Foreground="White"
+                           FontSize="13" FontWeight="Medium" />
+            </StackPanel>
+        </Border>
 
-            <!-- Transcribing indicator (shown while pipeline is running) -->
-            <Border x:Name="TranscribingBanner"
-                    Visibility="Collapsed"
-                    Background="{DynamicResource SystemFillColorCautionBackgroundBrush}"
-                    CornerRadius="4"
-                    Padding="10,6"
-                    Margin="0,8,0,0">
-                <StackPanel Orientation="Horizontal">
-                    <ui:ProgressRing IsIndeterminate="True" Width="16" Height="16" />
-                    <TextBlock Text="Transcribing call recording..."
-                               Margin="8,0,0,0"
-                               VerticalAlignment="Center"
-                               FontSize="12" />
-                </StackPanel>
-            </Border>
-        </StackPanel>
+        <!-- ═══════ Main Content ═══════ -->
+        <Grid Grid.Row="1" Margin="24,16,24,16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
 
-        <!-- Search bar -->
-        <Grid Grid.Row="1" Margin="0,0,0,12">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <ui:TextBox x:Name="SearchBox"
-                        Grid.Column="0"
-                        PlaceholderText="Search transcripts..."
-                        TextChanged="SearchBox_TextChanged"
-                        Margin="0,0,8,0" />
-            <ui:Button x:Name="ClearSearchButton"
-                       Grid.Column="1"
-                       Content="Clear"
-                       Click="ClearSearch_Click" />
-        </Grid>
+            <!-- Header -->
+            <StackPanel Grid.Row="0" Margin="0,0,0,16">
+                <TextBlock Text="Recordings"
+                           FontSize="28" FontWeight="Bold"
+                           Foreground="#FF1A1C1C"
+                           Margin="0,0,0,4" />
+                <TextBlock Text="Press Ctrl+Win+R to start or stop a call recording."
+                           Style="{StaticResource SubtleText}" />
+            </StackPanel>
 
-        <!-- Main content: list + viewer split -->
-        <Grid Grid.Row="2">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="200" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-
-            <!-- Transcript list -->
-            <Grid Grid.Column="0" Margin="0,0,8,0">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="*" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                <ListBox x:Name="TranscriptList"
-                         Grid.Row="0"
-                         SelectionChanged="TranscriptList_SelectionChanged"
-                         Background="Transparent"
-                         BorderThickness="1"
-                         BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel Margin="4">
-                                <TextBlock Text="{Binding Name}"
-                                           FontWeight="Medium"
-                                           FontSize="12"
-                                           TextTrimming="CharacterEllipsis"
-                                           MaxWidth="170"
-                                           HorizontalAlignment="Left" />
-                                <TextBlock Text="{Binding DateDisplay}"
-                                           FontSize="11"
-                                           Opacity="0.6" />
-                                <TextBlock Text="{Binding DurationDisplay}"
-                                           FontSize="11"
-                                           Opacity="0.6" />
-                                <TextBlock Text="{Binding PreviewText}"
-                                           FontSize="11"
-                                           Opacity="0.4"
-                                           TextTrimming="CharacterEllipsis"
-                                           MaxWidth="170"
-                                           HorizontalAlignment="Left" />
-                            </StackPanel>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-                <ui:Button Grid.Row="1"
-                           Content="Delete Selected"
-                           Margin="0,8,0,0"
-                           HorizontalAlignment="Stretch"
-                           Click="DeleteTranscript_Click"
-                           x:Name="DeleteButton"
-                           IsEnabled="False" />
+            <!-- Search bar -->
+            <Grid Grid.Row="1" Margin="0,0,0,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <ui:TextBox x:Name="SearchBox"
+                            Grid.Column="0"
+                            PlaceholderText="Search transcripts, speakers, or keywords..."
+                            TextChanged="SearchBox_TextChanged"
+                            Margin="0,0,8,0" />
+                <ui:Button x:Name="ClearSearchButton"
+                           Grid.Column="1"
+                           Content="Clear"
+                           Click="ClearSearch_Click" />
             </Grid>
 
-            <!-- Transcript viewer -->
-            <Grid Grid.Column="1">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
+            <!-- Split: list + viewer -->
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="240" />
+                    <ColumnDefinition Width="16" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
 
-                <!-- Viewer header with editable name -->
-                <StackPanel Grid.Row="0" x:Name="ViewerHeader" Visibility="Collapsed">
-                    <TextBox x:Name="TranscriptNameBox"
-                             FontSize="14"
-                             FontWeight="SemiBold"
-                             Margin="0,0,0,4"
-                             BorderThickness="0"
+                <!-- LEFT: Transcript list -->
+                <Grid Grid.Column="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="RECENT TRANSCRIPTS"
+                               Style="{StaticResource SectionLabel}"
+                               Margin="4,0,0,8" />
+
+                    <ListBox x:Name="TranscriptList"
+                             Grid.Row="1"
+                             SelectionChanged="TranscriptList_SelectionChanged"
                              Background="Transparent"
-                             LostFocus="TranscriptNameBox_LostFocus"
-                             KeyDown="TranscriptNameBox_KeyDown" />
-                    <TextBlock x:Name="TranscriptInfo"
-                               FontSize="11"
-                               Opacity="0.6"
-                               Margin="0,0,0,8" />
-                </StackPanel>
-
-                <!-- Audio playback controls (shown when audio is available) -->
-                <Border Grid.Row="1"
-                        x:Name="PlaybackPanel"
-                        Visibility="Collapsed"
-                        Padding="8,6"
-                        Margin="0,0,0,4"
-                        CornerRadius="4"
-                        Background="{DynamicResource ControlFillColorDefaultBrush}">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <ui:Button x:Name="PlayPauseButton"
-                                   Grid.Column="0"
-                                   Content="Play"
-                                   Click="PlayPause_Click"
-                                   Padding="8,4"
-                                   Margin="0,0,6,0"
-                                   FontSize="12" />
-                        <ui:Button x:Name="StopButton"
-                                   Grid.Column="1"
-                                   Content="Stop"
-                                   Click="Stop_Click"
-                                   Padding="8,4"
-                                   Margin="0,0,8,0"
-                                   FontSize="12" />
-                        <TextBlock x:Name="PlaybackPositionText"
-                                   Grid.Column="3"
-                                   Text="00:00 / 00:00"
-                                   FontSize="11"
-                                   Opacity="0.7"
-                                   VerticalAlignment="Center" />
-                    </Grid>
-                </Border>
-
-                <!-- Transcript content -->
-                <ScrollViewer Grid.Row="2"
-                              VerticalScrollBarVisibility="Auto"
-                              x:Name="TranscriptScrollViewer">
-                    <ItemsControl x:Name="SegmentList">
-                        <ItemsControl.ItemTemplate>
+                             BorderThickness="0">
+                        <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <Border Margin="0,2,0,2"
-                                        Padding="8,4"
-                                        CornerRadius="4"
-                                        Background="{Binding CurrentBackground}"
-                                        Cursor="Hand"
-                                        MouseLeftButtonDown="Segment_MouseLeftButtonDown">
+                                <Border Padding="12,10" CornerRadius="12" Margin="0,2"
+                                        Background="#FFFFFFFF">
                                     <StackPanel>
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
-                                            <!-- Speaker label (click to edit) -->
-                                            <TextBlock Text="{Binding DisplaySpeaker}"
-                                                       FontWeight="SemiBold"
-                                                       FontSize="11"
-                                                       Foreground="{Binding SpeakerColor}"
-                                                       Cursor="Hand"
-                                                       ToolTip="Click to rename speaker; Shift+Click to rename just this segment"
-                                                       MouseLeftButtonDown="SpeakerLabel_MouseLeftButtonDown"
-                                                       Visibility="{Binding IsEditingSpeaker, Converter={StaticResource InverseBoolToVisibility}}" />
-                                            <!-- Inline edit field for speaker name -->
-                                            <TextBox Text="{Binding EditingSpeakerName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                     FontWeight="SemiBold"
-                                                     FontSize="11"
-                                                     MinWidth="80"
-                                                     Padding="2,0"
-                                                     BorderThickness="1"
-                                                     Visibility="{Binding IsEditingSpeaker, Converter={StaticResource BoolToVisibility}}"
-                                                     LostFocus="SpeakerEditBox_LostFocus"
-                                                     KeyDown="SpeakerEditBox_KeyDown"
-                                                     Loaded="SpeakerEditBox_Loaded" />
-                                            <TextBlock Text="{Binding TimestampDisplay}"
-                                                       FontSize="10"
-                                                       Opacity="0.5"
-                                                       Margin="8,0,0,0"
-                                                       VerticalAlignment="Center" />
-                                            <!-- Play indicator for currently playing segment -->
-                                            <TextBlock Text="  playing"
-                                                       FontSize="10"
-                                                       Opacity="0.6"
-                                                       VerticalAlignment="Center"
-                                                       Visibility="{Binding IsCurrentlyPlaying, Converter={StaticResource BoolToVisibility}}" />
-                                        </StackPanel>
-                                        <TextBlock Text="{Binding Text}"
-                                                   TextWrapping="Wrap"
-                                                   FontSize="13" />
+                                        <TextBlock Text="{Binding Name}"
+                                                   FontWeight="SemiBold"
+                                                   FontSize="12"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   MaxWidth="200"
+                                                   HorizontalAlignment="Left" />
+                                        <TextBlock Text="{Binding DateDisplay}"
+                                                   FontSize="10"
+                                                   Foreground="#FF404752"
+                                                   Margin="0,2,0,0" />
+                                        <TextBlock Text="{Binding DurationDisplay}"
+                                                   FontSize="10"
+                                                   Foreground="#FF404752" />
+                                        <TextBlock Text="{Binding PreviewText}"
+                                                   FontSize="10"
+                                                   Foreground="#FF717783"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   MaxWidth="200"
+                                                   HorizontalAlignment="Left"
+                                                   Margin="0,2,0,0" />
                                     </StackPanel>
                                 </Border>
                             </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
 
-                <!-- No transcript selected placeholder -->
-                <TextBlock x:Name="PlaceholderText"
-                           Grid.Row="2"
-                           Text="Select a transcript to view"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center"
-                           Opacity="0.4"
-                           FontSize="14" />
+                    <ui:Button Grid.Row="2"
+                               Content="Delete Selected"
+                               Margin="0,8,0,0"
+                               HorizontalAlignment="Stretch"
+                               Click="DeleteTranscript_Click"
+                               x:Name="DeleteButton"
+                               IsEnabled="False" />
+                </Grid>
 
-                <!-- Action buttons -->
-                <StackPanel Grid.Row="3"
-                            Orientation="Horizontal"
-                            Margin="0,8,0,0"
-                            x:Name="ActionPanel"
-                            Visibility="Collapsed">
-                    <ui:Button Content="Copy to Clipboard"
-                               Click="CopyToClipboard_Click"
-                               Margin="0,0,8,0" />
-                    <ui:Button Content="Export Markdown"
-                               Click="ExportMarkdown_Click"
-                               Margin="0,0,8,0" />
-                    <ui:Button Content="Export JSON"
-                               Click="ExportJson_Click"
-                               Margin="0,0,8,0" />
-                    <ui:Button Content="Export Text"
-                               Click="ExportText_Click" />
-                </StackPanel>
+                <!-- RIGHT: Transcript viewer -->
+                <Border Grid.Column="2"
+                        Background="#FFFFFFFF"
+                        CornerRadius="12"
+                        BorderBrush="#19C0C7D4" BorderThickness="1">
+                    <Border.Effect>
+                        <DropShadowEffect Color="#FF005FAA" Opacity="0.04" BlurRadius="32" ShadowDepth="8" />
+                    </Border.Effect>
+                    <Grid Margin="24,20">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <!-- Viewer header -->
+                        <StackPanel Grid.Row="0" x:Name="ViewerHeader" Visibility="Collapsed">
+                            <TextBox x:Name="TranscriptNameBox"
+                                     FontSize="16"
+                                     FontWeight="Bold"
+                                     Margin="0,0,0,4"
+                                     BorderThickness="0"
+                                     Background="Transparent"
+                                     LostFocus="TranscriptNameBox_LostFocus"
+                                     KeyDown="TranscriptNameBox_KeyDown" />
+                            <TextBlock x:Name="TranscriptInfo"
+                                       FontSize="11"
+                                       Foreground="#FF404752"
+                                       Margin="0,0,0,12" />
+                        </StackPanel>
+
+                        <!-- Audio playback controls -->
+                        <Border Grid.Row="1"
+                                x:Name="PlaybackPanel"
+                                Visibility="Collapsed"
+                                Padding="12,8"
+                                Margin="0,0,0,8"
+                                CornerRadius="8"
+                                Background="#FFF3F3F3">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <ui:Button x:Name="PlayPauseButton"
+                                           Grid.Column="0"
+                                           Content="Play"
+                                           Click="PlayPause_Click"
+                                           Padding="8,4"
+                                           Margin="0,0,6,0"
+                                           FontSize="12" />
+                                <ui:Button x:Name="StopButton"
+                                           Grid.Column="1"
+                                           Content="Stop"
+                                           Click="Stop_Click"
+                                           Padding="8,4"
+                                           Margin="0,0,8,0"
+                                           FontSize="12" />
+                                <TextBlock x:Name="PlaybackPositionText"
+                                           Grid.Column="3"
+                                           Text="00:00 / 00:00"
+                                           FontSize="11"
+                                           Foreground="#FF404752"
+                                           VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
+
+                        <!-- Transcript content -->
+                        <ScrollViewer Grid.Row="2"
+                                      VerticalScrollBarVisibility="Auto"
+                                      x:Name="TranscriptScrollViewer">
+                            <ItemsControl x:Name="SegmentList">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Margin="0,4,0,4"
+                                                Padding="12,8"
+                                                CornerRadius="12"
+                                                Background="{Binding CurrentBackground}"
+                                                Cursor="Hand"
+                                                MouseLeftButtonDown="Segment_MouseLeftButtonDown">
+                                            <StackPanel>
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                    <TextBlock Text="{Binding DisplaySpeaker}"
+                                                               FontWeight="Bold"
+                                                               FontSize="11"
+                                                                                                                             Foreground="{Binding SpeakerColor}"
+                                                               Cursor="Hand"
+                                                               ToolTip="Click to rename speaker; Shift+Click to rename just this segment"
+                                                               MouseLeftButtonDown="SpeakerLabel_MouseLeftButtonDown"
+                                                               Visibility="{Binding IsEditingSpeaker, Converter={StaticResource InverseBoolToVisibility}}" />
+                                                    <TextBox Text="{Binding EditingSpeakerName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                             FontWeight="Bold"
+                                                             FontSize="11"
+                                                             MinWidth="80"
+                                                             Padding="2,0"
+                                                             BorderThickness="1"
+                                                             Visibility="{Binding IsEditingSpeaker, Converter={StaticResource BoolToVisibility}}"
+                                                             LostFocus="SpeakerEditBox_LostFocus"
+                                                             KeyDown="SpeakerEditBox_KeyDown"
+                                                             Loaded="SpeakerEditBox_Loaded" />
+                                                    <TextBlock Text="{Binding TimestampDisplay}"
+                                                               FontSize="10"
+                                                               Foreground="#FF717783"
+                                                               Margin="8,0,0,0"
+                                                               VerticalAlignment="Center" />
+                                                    <TextBlock Text="  playing"
+                                                               FontSize="10"
+                                                               Foreground="#FF404752"
+                                                               VerticalAlignment="Center"
+                                                               Visibility="{Binding IsCurrentlyPlaying, Converter={StaticResource BoolToVisibility}}" />
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding Text}"
+                                                           TextWrapping="Wrap"
+                                                           FontSize="13" />
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+
+                        <!-- Placeholder -->
+                        <TextBlock x:Name="PlaceholderText"
+                                   Grid.Row="2"
+                                   Text="Select a transcript to view"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Foreground="#FF717783"
+                                   FontSize="14" />
+
+                        <!-- Action buttons -->
+                        <StackPanel Grid.Row="3"
+                                    Orientation="Horizontal"
+                                    Margin="0,12,0,0"
+                                    x:Name="ActionPanel"
+                                    Visibility="Collapsed">
+                            <ui:Button Content="Copy"
+                                       Click="CopyToClipboard_Click"
+                                       Margin="0,0,6,0" />
+                            <ui:Button Content="Export MD"
+                                       Click="ExportMarkdown_Click"
+                                       Margin="0,0,6,0" />
+                            <ui:Button Content="Export JSON"
+                                       Click="ExportJson_Click"
+                                       Margin="0,0,6,0" />
+                            <ui:Button Content="Export TXT"
+                                       Click="ExportText_Click" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
             </Grid>
         </Grid>
     </Grid>

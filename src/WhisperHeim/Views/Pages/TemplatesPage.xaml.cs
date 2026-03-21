@@ -22,6 +22,24 @@ public partial class TemplatesPage : UserControl
         TemplateList.ItemsSource = _templateService.GetTemplates();
     }
 
+    private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        var searchText = SearchBox?.Text?.Trim() ?? string.Empty;
+        var templates = _templateService.GetTemplates();
+
+        if (string.IsNullOrEmpty(searchText))
+        {
+            TemplateList.ItemsSource = templates;
+        }
+        else
+        {
+            TemplateList.ItemsSource = templates
+                .Where(t => t.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase)
+                    || t.Text.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+    }
+
     private void TemplateList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (TemplateList.SelectedItem is TemplateItem item)

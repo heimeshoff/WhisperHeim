@@ -2,59 +2,177 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
-    <StackPanel Margin="24">
-        <TextBlock Text="Dictation Settings"
-                   FontSize="20"
-                   FontWeight="SemiBold"
-                   Margin="0,0,0,16" />
+    <UserControl.Resources>
+        <Style x:Key="SubtleText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="#FF404752" />
+        </Style>
+        <Style x:Key="SectionLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="#FF404752" />
 
-        <ui:CardControl Margin="0,0,0,8">
-            <ui:CardControl.Header>
-                <StackPanel>
-                    <TextBlock Text="Microphone" FontWeight="Medium" />
-                    <TextBlock Text="Select the audio input device for dictation"
-                               Opacity="0.6" FontSize="12" />
-                </StackPanel>
-            </ui:CardControl.Header>
-            <ComboBox x:Name="MicrophoneCombo"
-                      MinWidth="220"
-                      SelectionChanged="MicrophoneCombo_SelectionChanged" />
-        </ui:CardControl>
+        </Style>
+    </UserControl.Resources>
 
-        <TextBlock x:Name="DeviceWarning"
-                   Foreground="Orange"
-                   FontSize="12"
-                   Margin="0,4,0,8"
-                   Visibility="Collapsed"
-                   TextWrapping="Wrap" />
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Background="#FFF3F3F3">
+        <Grid Margin="32,32,32,24">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" MinWidth="300" />
+                <ColumnDefinition Width="24" />
+                <ColumnDefinition Width="260" />
+            </Grid.ColumnDefinitions>
 
-        <!-- Hotkey info -->
-        <ui:CardControl Margin="0,8,0,8">
-            <ui:CardControl.Header>
-                <StackPanel>
-                    <TextBlock Text="Hotkeys" FontWeight="Medium" />
-                    <TextBlock Text="Keyboard shortcuts for voice features"
-                               Opacity="0.6" FontSize="12" />
-                </StackPanel>
-            </ui:CardControl.Header>
-            <StackPanel>
-                <TextBlock Text="Ctrl+Win — Toggle dictation" FontSize="13" />
-                <TextBlock Text="Alt+Win — Trigger template" FontSize="13" Opacity="0.7" />
+            <!-- ═══════ LEFT: Main Content ═══════ -->
+            <StackPanel Grid.Column="0">
+                <!-- Page Header -->
+                <TextBlock Text="Dictation"
+                           FontSize="28"
+                           FontWeight="Bold"
+                           Foreground="#FF1A1C1C"
+                           Margin="0,0,0,4" />
+                <TextBlock Text="Transform your voice into text locally and securely. Near-instant transcription with zero data leakage."
+                           Style="{StaticResource SubtleText}"
+                           TextWrapping="Wrap"
+                           Margin="0,0,0,24" />
+
+                <!-- Microphone Selector Card -->
+                <Border Background="#FFFFFFFF" CornerRadius="12" Padding="24" Margin="0,0,0,16">
+                    <StackPanel>
+                        <TextBlock Text="AUDIO INPUT DEVICE"
+                                   Style="{StaticResource SectionLabel}"
+                                   Margin="0,0,0,12" />
+                        <ComboBox x:Name="MicrophoneCombo"
+                                  HorizontalAlignment="Stretch"
+                                  SelectionChanged="MicrophoneCombo_SelectionChanged" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Device Warning -->
+                <TextBlock x:Name="DeviceWarning"
+                           Foreground="#FFFFA500"
+                           FontSize="12"
+                           Margin="0,0,0,12"
+                           Visibility="Collapsed"
+                           TextWrapping="Wrap" />
+
+                <!-- Test Area Card -->
+                <Border Background="#FFFFFFFF" CornerRadius="12" Padding="24" Margin="0,0,0,0">
+                    <Border.Effect>
+                        <DropShadowEffect Color="#FF005FAA" Opacity="0.03" BlurRadius="24" ShadowDepth="4" />
+                    </Border.Effect>
+                    <StackPanel>
+                        <DockPanel Margin="0,0,0,12">
+                            <TextBlock Text="SPEAK NOW"
+                                       FontSize="12" FontWeight="SemiBold"
+                                       Foreground="#FF005FAA"
+                                       VerticalAlignment="Center"
+                                       DockPanel.Dock="Left" />
+                        </DockPanel>
+                        <TextBox x:Name="TestTextBox"
+                                 MinHeight="180"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 VerticalScrollBarVisibility="Auto"
+                                 FontSize="16"
+                                 Background="#08E2E2E2"
+                                 BorderThickness="0"
+                                 Padding="16" />
+                        <TextBlock Text="Click the text box and press Ctrl+Win to start dictation. Your transcription appears as you speak."
+                                   Style="{StaticResource SubtleText}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,12,0,0" />
+                    </StackPanel>
+                </Border>
             </StackPanel>
-        </ui:CardControl>
 
-        <!-- Test area -->
-        <TextBlock Text="Test Area"
-                   FontSize="16"
-                   FontWeight="Medium"
-                   Margin="0,16,0,8" />
-        <TextBlock Text="Click the text box below and press Ctrl+Alt+Space to test dictation."
-                   Opacity="0.6" FontSize="12" Margin="0,0,0,8" />
-        <TextBox x:Name="TestTextBox"
-                 MinHeight="120"
-                 AcceptsReturn="True"
-                 TextWrapping="Wrap"
-                 VerticalScrollBarVisibility="Auto"
-                 FontSize="14" />
-    </StackPanel>
+            <!-- ═══════ RIGHT: Hotkey Reference ═══════ -->
+            <StackPanel Grid.Column="2">
+                <!-- Hotkeys Card -->
+                <Border Background="#FFFFFFFF" CornerRadius="12" Padding="24"
+                        BorderBrush="#19C0C7D4" BorderThickness="1" Margin="0,0,0,16">
+                    <Border.Effect>
+                        <DropShadowEffect Color="#FF005FAA" Opacity="0.06" BlurRadius="32" ShadowDepth="8" />
+                    </Border.Effect>
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                            <ui:SymbolIcon Symbol="Keyboard24" Foreground="#FF005FAA" Margin="0,0,8,0" />
+                            <TextBlock Text="HOTKEYS"
+                                       FontSize="11" FontWeight="Bold"
+                                       />
+                        </StackPanel>
+
+                        <!-- Shortcut rows -->
+                        <DockPanel Margin="0,0,0,12">
+                            <TextBlock Text="Start/Stop" FontSize="12" Foreground="#FF404752"
+                                       VerticalAlignment="Center" DockPanel.Dock="Left" />
+                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
+                                <Border Background="#FFE8E8E8" CornerRadius="4" Padding="6,3" Margin="2,0">
+                                    <TextBlock Text="Ctrl" FontSize="10" FontWeight="Bold" />
+                                </Border>
+                                <Border Background="#FFE8E8E8" CornerRadius="4" Padding="6,3" Margin="2,0">
+                                    <TextBlock Text="Win" FontSize="10" FontWeight="Bold" />
+                                </Border>
+                            </StackPanel>
+                        </DockPanel>
+
+                        <DockPanel Margin="0,0,0,12">
+                            <TextBlock Text="Read Aloud" FontSize="12" Foreground="#FF404752"
+                                       VerticalAlignment="Center" DockPanel.Dock="Left" />
+                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
+                                <Border Background="#FFE8E8E8" CornerRadius="4" Padding="6,3" Margin="2,0">
+                                    <TextBlock Text="Shift" FontSize="10" FontWeight="Bold" />
+                                </Border>
+                                <Border Background="#FFE8E8E8" CornerRadius="4" Padding="6,3" Margin="2,0">
+                                    <TextBlock Text="Win" FontSize="10" FontWeight="Bold" />
+                                </Border>
+                                <Border Background="#FFE8E8E8" CornerRadius="4" Padding="6,3" Margin="2,0">
+                                    <TextBlock Text="A" FontSize="10" FontWeight="Bold" />
+                                </Border>
+                            </StackPanel>
+                        </DockPanel>
+
+                        <DockPanel Margin="0,0,0,12">
+                            <TextBlock Text="Call Recording" FontSize="12" Foreground="#FF404752"
+                                       VerticalAlignment="Center" DockPanel.Dock="Left" />
+                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
+                                <Border Background="#FFE8E8E8" CornerRadius="4" Padding="6,3" Margin="2,0">
+                                    <TextBlock Text="Ctrl" FontSize="10" FontWeight="Bold" />
+                                </Border>
+                                <Border Background="#FFE8E8E8" CornerRadius="4" Padding="6,3" Margin="2,0">
+                                    <TextBlock Text="Win" FontSize="10" FontWeight="Bold" />
+                                </Border>
+                                <Border Background="#FFE8E8E8" CornerRadius="4" Padding="6,3" Margin="2,0">
+                                    <TextBlock Text="R" FontSize="10" FontWeight="Bold" />
+                                </Border>
+                            </StackPanel>
+                        </DockPanel>
+
+                        <Border Margin="0,8,0,0" Padding="0,12,0,0"
+                                BorderBrush="#19C0C7D4" BorderThickness="0,1,0,0">
+                            <TextBlock Text="Global hotkeys work even when WhisperHeim is minimized to the system tray."
+                                       FontSize="10" Foreground="#FF404752"
+                                       TextWrapping="Wrap" />
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <!-- Model Info Card -->
+                <Border Background="#0D005FAA" CornerRadius="12" Padding="20"
+                        BorderBrush="#19005FAA" BorderThickness="1">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <ui:SymbolIcon Symbol="Flash24" Foreground="#FF005FAA" FontSize="16" Margin="0,0,8,0" />
+                            <TextBlock Text="MODEL INFO"
+                                       FontSize="10" FontWeight="Bold"
+                                       Foreground="#FF005FAA" />
+                        </StackPanel>
+                        <TextBlock Text="Whisper model loaded. Press the hotkey combination to begin dictating."
+                                   FontSize="12" Foreground="#FF404752"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
 </UserControl>
