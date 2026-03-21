@@ -68,16 +68,18 @@ public interface ITextToSpeechService : IDisposable
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Plays the given text through the default audio output device.
+    /// Plays the given text through the specified audio output device.
     /// Combines streaming generation with NAudio playback for low-latency output.
     /// </summary>
     /// <param name="text">The text to speak.</param>
     /// <param name="voiceId">The voice ID to use.</param>
     /// <param name="speed">Speech speed multiplier (1.0 = normal).</param>
+    /// <param name="playbackDeviceNumber">NAudio playback device number (-1 = system default).</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     Task SpeakAsync(
         string text,
         string voiceId,
         float speed = 1.0f,
+        int playbackDeviceNumber = -1,
         CancellationToken cancellationToken = default);
 }

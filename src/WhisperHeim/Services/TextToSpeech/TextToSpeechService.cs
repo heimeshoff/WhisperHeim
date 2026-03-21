@@ -196,6 +196,7 @@ public sealed class TextToSpeechService : ITextToSpeechService
         string text,
         string voiceId,
         float speed = 1.0f,
+        int playbackDeviceNumber = -1,
         CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -206,8 +207,8 @@ public sealed class TextToSpeechService : ITextToSpeechService
         var chunks = new BlockingCollection<float[]>();
         var playbackComplete = new TaskCompletionSource();
 
-        // Set up NAudio playback
-        using var waveOut = new WaveOutEvent();
+        // Set up NAudio playback with the specified device
+        using var waveOut = new WaveOutEvent { DeviceNumber = playbackDeviceNumber };
         var waveProvider = new BufferedWaveProvider(
             new WaveFormat(PocketTtsSampleRate, 32, 1))
         {
