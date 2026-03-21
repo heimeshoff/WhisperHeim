@@ -2,6 +2,23 @@
 
 ---
 
+## 2026-03-21 -- Task Started: 027 - Tray context menu for start/stop call recording
+
+**Type:** Task Start
+**Task:** 027 - Tray context menu for start/stop call recording
+**Milestone:** M2 - Audio Capture + Call Transcription
+
+---
+
+## 2026-03-21 -- Task Completed: 026 - Wire call recording services in app startup
+
+**Type:** Task Completion
+**Task:** 026 - Wire call recording services in app startup
+**Summary:** Wired CallRecordingService, CallTranscriptionPipeline, CallRecordingHotkeyService, SpeakerDiarizationService, and TranscriptStorageService in App.xaml.cs and passed them to MainWindow constructor as fields.
+**Files changed:** 3 files
+
+---
+
 ## 2026-03-21 -- Task Started: 026 - Wire call recording services in app startup
 
 **Type:** Task Start

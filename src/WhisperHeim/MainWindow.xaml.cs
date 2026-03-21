@@ -57,6 +57,7 @@ public partial class MainWindow : FluentWindow
     // Tray icon images
     private ImageSource? _idleIcon;
     private ImageSource? _recordingIcon;
+    private ImageSource? _callRecordingIcon;
 
     // Dictation overlay indicator
     private DictationOverlayWindow? _overlayWindow;
@@ -91,9 +92,10 @@ public partial class MainWindow : FluentWindow
 
         InitializeComponent();
 
-        // Generate tray icons for idle and recording states
+        // Generate tray icons for idle, dictation, and call recording states
         _idleIcon = CreateMicrophoneIcon(Brushes.White);
         _recordingIcon = CreateMicrophoneIcon(Brushes.Red);
+        _callRecordingIcon = CreateMicrophoneIcon(Brushes.Orange);
         TrayIcon.Icon = _idleIcon;
 
         // Start minimized to tray - don't show the window
@@ -137,6 +139,20 @@ public partial class MainWindow : FluentWindow
         Trace.TraceInformation(
             "[MainWindow] Orchestrator started. Dictation hotkey: {0}",
             registered);
+
+        // Register call recording hotkey: Ctrl+Win+R
+        var callHotkey = new HotkeyRegistration(
+            ModifierKeys.Control | ModifierKeys.Win,
+            VirtualKey: 0x52); // 'R' key
+        bool callHkRegistered = _callRecordingHotkeyService.Register(callHotkey);
+        Trace.TraceInformation(
+            "[MainWindow] Call recording hotkey registered: {0}", callHkRegistered);
+
+        // Subscribe to call recording events
+        _callRecordingService.RecordingStarted += OnCallRecordingStarted;
+        _callRecordingService.RecordingStopped += OnCallRecordingStopped;
+        _callRecordingService.DurationUpdated += OnCallRecordingDurationUpdated;
+        _callRecordingService.StreamFailed += OnCallRecordingStreamFailed;
     }
 
     /// <summary>
@@ -165,8 +181,23 @@ public partial class MainWindow : FluentWindow
     /// </summary>
     private void OnDictationStateChanged(bool isActive)
     {
-        TrayIcon.Icon = (isActive ? _recordingIcon : _idleIcon)!;
-        TrayIcon.TooltipText = isActive ? "WhisperHeim - Recording..." : "WhisperHeim";
+        if (isActive)
+        {
+            TrayIcon.Icon = _recordingIcon!;
+            TrayIcon.TooltipText = "WhisperHeim - Recording...";
+        }
+        else if (_callRecordingService.IsRecording)
+        {
+            // Dictation ended but call recording is still active -- restore call recording state
+            TrayIcon.Icon = _callRecordingIcon!;
+            var duration = _callRecordingService.CurrentSession?.Duration ?? TimeSpan.Zero;
+            TrayIcon.TooltipText = $"WhisperHeim - Recording call ({CallRecordingService.FormatDuration(duration)})";
+        }
+        else
+        {
+            TrayIcon.Icon = _idleIcon!;
+            TrayIcon.TooltipText = "WhisperHeim";
+        }
 
         if (isActive)
         {
@@ -217,6 +248,55 @@ public partial class MainWindow : FluentWindow
         {
             _overlayWindow?.SetMicState(Views.OverlayMicState.Error);
             Trace.TraceError("[MainWindow] Pipeline error reflected in overlay: {0}", ex.Message);
+        });
+    }
+
+    // ── Call Recording event handlers ────────────────────────────────────
+
+    private void TrayCallRecording_Click(object sender, RoutedEventArgs e)
+    {
+        _callRecordingService.ToggleRecording();
+    }
+
+    private void OnCallRecordingStarted(object? sender, CallRecordingSession session)
+    {
+        Application.Current?.Dispatcher?.BeginInvoke(() =>
+        {
+            TrayIcon.Icon = _callRecordingIcon!;
+            TrayIcon.TooltipText = "WhisperHeim - Recording call (00:00)";
+            CallRecordingMenuItem.Header = "Stop Call Recording (00:00)";
+            Trace.TraceInformation("[MainWindow] Call recording started.");
+        });
+    }
+
+    private void OnCallRecordingStopped(object? sender, CallRecordingStoppedEventArgs e)
+    {
+        Application.Current?.Dispatcher?.BeginInvoke(() =>
+        {
+            TrayIcon.Icon = _idleIcon!;
+            TrayIcon.TooltipText = "WhisperHeim";
+            CallRecordingMenuItem.Header = "Start Call Recording";
+            Trace.TraceInformation("[MainWindow] Call recording stopped.");
+        });
+    }
+
+    private void OnCallRecordingDurationUpdated(object? sender, TimeSpan duration)
+    {
+        Application.Current?.Dispatcher?.BeginInvoke(() =>
+        {
+            var formatted = CallRecordingService.FormatDuration(duration);
+            CallRecordingMenuItem.Header = $"Stop Call Recording ({formatted})";
+            TrayIcon.TooltipText = $"WhisperHeim - Recording call ({formatted})";
+        });
+    }
+
+    private void OnCallRecordingStreamFailed(object? sender, StreamFailedEventArgs e)
+    {
+        Application.Current?.Dispatcher?.BeginInvoke(() =>
+        {
+            Trace.TraceWarning(
+                "[MainWindow] Call recording stream failed: {0} - {1}",
+                e.Stream, e.Exception?.Message);
         });
     }
 
@@ -294,6 +374,12 @@ public partial class MainWindow : FluentWindow
         }
         else
         {
+            // Unsubscribe from call recording events
+            _callRecordingService.RecordingStarted -= OnCallRecordingStarted;
+            _callRecordingService.RecordingStopped -= OnCallRecordingStopped;
+            _callRecordingService.DurationUpdated -= OnCallRecordingDurationUpdated;
+            _callRecordingService.StreamFailed -= OnCallRecordingStreamFailed;
+
             // Clean up orchestrator, overlay, hotkey, and call recording services on actual exit
             _overlayWindow?.Close();
             _orchestrator?.Dispose();

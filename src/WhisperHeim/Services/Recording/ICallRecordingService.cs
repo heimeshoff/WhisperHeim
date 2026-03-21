@@ -18,6 +18,12 @@ public interface ICallRecordingService : IDisposable
     event EventHandler<CallRecordingStoppedEventArgs>? RecordingStopped;
 
     /// <summary>
+    /// Raised every second while recording, carrying the current duration.
+    /// Useful for updating tray tooltip or menu display.
+    /// </summary>
+    event EventHandler<TimeSpan>? DurationUpdated;
+
+    /// <summary>
     /// Raised when one of the two capture streams fails but the other continues.
     /// </summary>
     event EventHandler<StreamFailedEventArgs>? StreamFailed;

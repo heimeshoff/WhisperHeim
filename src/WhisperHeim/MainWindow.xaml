@@ -28,6 +28,12 @@
             LeftClick="NotifyIcon_LeftClick">
             <tray:NotifyIcon.Menu>
                 <ContextMenu>
+                    <ui:MenuItem x:Name="CallRecordingMenuItem" Header="Start Call Recording" Click="TrayCallRecording_Click">
+                        <ui:MenuItem.Icon>
+                            <ui:SymbolIcon Symbol="Record24" />
+                        </ui:MenuItem.Icon>
+                    </ui:MenuItem>
+                    <Separator />
                     <ui:MenuItem Header="Settings" Click="TraySettings_Click">
                         <ui:MenuItem.Icon>
                             <ui:SymbolIcon Symbol="Settings24" />
