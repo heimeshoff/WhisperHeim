@@ -191,5 +191,21 @@ public partial class App : Application
         {
             mainWindow.ShowSettingsWindow();
         }
+
+        // Warm up TTS voice in the background after UI is ready.
+        // This pre-loads the model and runs a dummy generation to cache the
+        // default voice's embedding, so the first read-aloud hotkey press is instant.
+        var defaultVoiceId = _settingsService.Current.Tts.DefaultVoiceId;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await textToSpeechService.WarmUpAsync(defaultVoiceId);
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceWarning("[App] TTS warm-up failed (non-fatal): {0}", ex.Message);
+            }
+        });
     }
 }

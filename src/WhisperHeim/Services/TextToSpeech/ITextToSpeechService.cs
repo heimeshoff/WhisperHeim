@@ -33,6 +33,15 @@ public interface ITextToSpeechService : IDisposable
     void LoadModel();
 
     /// <summary>
+    /// Warms up the TTS engine by loading the model, caching the default voice's
+    /// WAV samples in memory, and running a short dummy generation to populate
+    /// the sherpa-onnx voice embedding cache. Should be called on a background
+    /// thread after the UI is loaded. Gracefully skips if no default voice is configured.
+    /// </summary>
+    /// <param name="defaultVoiceId">The default voice ID to warm up, or null to skip.</param>
+    Task WarmUpAsync(string? defaultVoiceId);
+
+    /// <summary>
     /// Returns all available voices (built-in + any custom voices from the voices directory).
     /// </summary>
     IReadOnlyList<TtsVoice> GetAvailableVoices();

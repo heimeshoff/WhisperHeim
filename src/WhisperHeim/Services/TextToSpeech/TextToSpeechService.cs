@@ -31,6 +31,13 @@ public sealed class TextToSpeechService : ITextToSpeechService
     private bool _disposed;
 
     /// <summary>
+    /// In-memory cache of loaded WAV samples keyed by voice ID.
+    /// Populated during warm-up and reused in <see cref="CreateGenerationConfig"/>
+    /// to avoid disk I/O on each generation call.
+    /// </summary>
+    private readonly Dictionary<string, (float[] Samples, int SampleRate)> _wavSampleCache = new();
+
+    /// <summary>
     /// Directory for custom voice reference .wav files.
     /// Users can drop .wav files here to add custom voices.
     /// </summary>
@@ -80,6 +87,7 @@ public sealed class TextToSpeechService : ITextToSpeechService
         config.Model.Pocket.VocabJson = vocabPath;
         config.Model.Pocket.TokenScoresJson = tokenScoresPath;
 
+        config.Model.Pocket.VoiceEmbeddingCacheCapacity = 10;
         config.Model.NumThreads = Math.Max(1, Environment.ProcessorCount / 2);
         config.Model.Debug = 0;
         config.Model.Provider = "cpu";
@@ -355,8 +363,8 @@ public sealed class TextToSpeechService : ITextToSpeechService
         // Expand existing silent regions for more breathing room between sentences
         genConfig.SilenceScale = 0.8f;
 
-        // Load reference audio for voice cloning using NAudio
-        var (samples, sampleRate) = LoadWavSamples(voice.ReferenceAudioPath);
+        // Load reference audio for voice cloning, using the in-memory cache when available
+        var (samples, sampleRate) = GetOrLoadWavSamples(voiceId, voice.ReferenceAudioPath);
         genConfig.ReferenceAudio = samples;
         genConfig.ReferenceSampleRate = sampleRate;
         genConfig.Extra["max_reference_audio_len"] = MaxReferenceAudioLenSeconds;
@@ -368,6 +376,69 @@ public sealed class TextToSpeechService : ITextToSpeechService
         genConfig.Extra["frames_after_eos"] = 12;
 
         return genConfig;
+    }
+
+    /// <inheritdoc />
+    public async Task WarmUpAsync(string? defaultVoiceId)
+    {
+        if (string.IsNullOrWhiteSpace(defaultVoiceId))
+        {
+            Trace.TraceInformation("[TTS] No default voice configured, skipping warm-up.");
+            return;
+        }
+
+        await Task.Run(() =>
+        {
+            try
+            {
+                // Ensure model is loaded
+                LoadModel();
+
+                // Pre-load WAV samples into memory cache
+                var voice = FindVoice(defaultVoiceId);
+                GetOrLoadWavSamples(defaultVoiceId, voice.ReferenceAudioPath);
+
+                // Run a short dummy generation to populate the sherpa-onnx voice embedding cache
+                var genConfig = CreateGenerationConfig(defaultVoiceId, 1.0f);
+                var sw = Stopwatch.StartNew();
+
+                OfflineTtsCallbackProgressWithArg noOpCallback =
+                    (IntPtr samples, int n, float progress, IntPtr arg) => 1;
+                _tts!.GenerateWithConfig("ready", genConfig, noOpCallback);
+                GC.KeepAlive(noOpCallback);
+                sw.Stop();
+
+                Trace.TraceInformation(
+                    "[TTS] Voice warm-up complete for '{0}' in {1:F1}s (embedding now cached).",
+                    defaultVoiceId, sw.Elapsed.TotalSeconds);
+            }
+            catch (Exception ex)
+            {
+                // Warm-up failure is non-fatal -- the voice will still work on first use
+                Trace.TraceWarning("[TTS] Voice warm-up failed (non-fatal): {0}", ex.Message);
+            }
+        });
+    }
+
+    /// <summary>
+    /// Returns cached WAV samples for a voice, loading from disk on first access.
+    /// </summary>
+    private (float[] Samples, int SampleRate) GetOrLoadWavSamples(string voiceId, string wavPath)
+    {
+        lock (_wavSampleCache)
+        {
+            if (_wavSampleCache.TryGetValue(voiceId, out var cached))
+                return cached;
+        }
+
+        var result = LoadWavSamples(wavPath);
+
+        lock (_wavSampleCache)
+        {
+            _wavSampleCache[voiceId] = result;
+        }
+
+        return result;
     }
 
     /// <summary>
