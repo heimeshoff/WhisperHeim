@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <Platforms>x64</Platforms>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WPF-UI" Version="3.*" />
+    <PackageReference Include="WPF-UI.Tray" Version="3.*" />
+    <PackageReference Include="NAudio" Version="2.*" />
+    <PackageReference Include="org.k2fsa.sherpa.onnx" Version="1.*" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.*" />
+  </ItemGroup>
+
+</Project>
