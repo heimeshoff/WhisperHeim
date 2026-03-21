@@ -1,0 +1,214 @@
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Windows;
+using System.Windows.Interop;
+using System.Windows.Media.Animation;
+using WhisperHeim.Models;
+
+namespace WhisperHeim.Views;
+
+/// <summary>
+/// A small, always-on-top, click-through overlay window that shows an animated
+/// microphone indicator during active dictation. Uses WS_EX_TRANSPARENT and
+/// WS_EX_NOACTIVATE to avoid stealing focus or blocking mouse clicks.
+/// </summary>
+public partial class DictationOverlayWindow : Window
+{
+    // Win32 extended window styles for click-through and no-activate behavior
+    private const int GWL_EXSTYLE = -20;
+    private const int WS_EX_TRANSPARENT = 0x00000020;
+    private const int WS_EX_NOACTIVATE = 0x08000000;
+    private const int WS_EX_TOOLWINDOW = 0x00000080;
+
+    [DllImport("user32.dll")]
+    private static extern int GetWindowLong(IntPtr hwnd, int index);
+
+    [DllImport("user32.dll")]
+    private static extern int SetWindowLong(IntPtr hwnd, int index, int newStyle);
+
+    private Storyboard? _listeningPulse;
+    private Storyboard? _speechPulse;
+    private Storyboard? _fadeIn;
+    private Storyboard? _fadeOut;
+
+    private bool _isVisible;
+    private bool _isSpeechActive;
+
+    public DictationOverlayWindow()
+    {
+        InitializeComponent();
+        Loaded += OnLoaded;
+    }
+
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        Loaded -= OnLoaded;
+
+        // Make the window click-through and prevent it from stealing focus
+        SetClickThrough();
+
+        // Cache storyboard references
+        _listeningPulse = (Storyboard)FindResource("ListeningPulse");
+        _speechPulse = (Storyboard)FindResource("SpeechPulse");
+        _fadeIn = (Storyboard)FindResource("FadeIn");
+        _fadeOut = (Storyboard)FindResource("FadeOut");
+    }
+
+    /// <summary>
+    /// Applies the overlay settings (size, position, opacity).
+    /// </summary>
+    public void ApplySettings(OverlaySettings settings)
+    {
+        Width = settings.Size;
+        Height = settings.Size;
+
+        // Scale the icon font size proportionally
+        MicIcon.FontSize = settings.Size * 0.42;
+
+        // Apply max opacity (animations will modulate within this)
+        MaxOpacity = settings.Opacity;
+
+        PositionOnScreen(settings.Position);
+    }
+
+    /// <summary>
+    /// The maximum opacity the overlay will reach (set from settings).
+    /// </summary>
+    private double MaxOpacity { get; set; } = 0.85;
+
+    /// <summary>
+    /// Shows the overlay with a fade-in animation and starts the listening pulse.
+    /// </summary>
+    public void ShowOverlay()
+    {
+        if (_isVisible) return;
+        _isVisible = true;
+        _isSpeechActive = false;
+
+        Show();
+
+        // Update the fade-in target to respect configured opacity
+        if (_fadeIn != null)
+        {
+            var anim = (DoubleAnimation)_fadeIn.Children[0];
+            anim.To = MaxOpacity;
+        }
+
+        _fadeIn?.Begin(this);
+        _listeningPulse?.Begin(this, true);
+
+        Trace.TraceInformation("[DictationOverlay] Shown.");
+    }
+
+    /// <summary>
+    /// Hides the overlay with a fade-out animation.
+    /// </summary>
+    public void HideOverlay()
+    {
+        if (!_isVisible) return;
+        _isVisible = false;
+        _isSpeechActive = false;
+
+        _listeningPulse?.Stop(this);
+        _speechPulse?.Stop(this);
+
+        if (_fadeOut != null)
+        {
+            _fadeOut.Completed -= OnFadeOutCompleted;
+            _fadeOut.Completed += OnFadeOutCompleted;
+            _fadeOut.Begin(this);
+        }
+        else
+        {
+            Hide();
+        }
+
+        Trace.TraceInformation("[DictationOverlay] Hiding.");
+    }
+
+    /// <summary>
+    /// Switches to the faster speech animation (call when partial results arrive).
+    /// </summary>
+    public void NotifySpeechActivity()
+    {
+        if (!_isVisible || _isSpeechActive) return;
+        _isSpeechActive = true;
+
+        _listeningPulse?.Stop(this);
+        _speechPulse?.Begin(this, true);
+
+        Trace.TraceInformation("[DictationOverlay] Speech activity detected, switching to fast pulse.");
+    }
+
+    /// <summary>
+    /// Switches back to the gentle listening animation (call when speech pauses).
+    /// </summary>
+    public void NotifySpeechPause()
+    {
+        if (!_isVisible || !_isSpeechActive) return;
+        _isSpeechActive = false;
+
+        _speechPulse?.Stop(this);
+        _listeningPulse?.Begin(this, true);
+    }
+
+    private void OnFadeOutCompleted(object? sender, EventArgs e)
+    {
+        _fadeOut!.Completed -= OnFadeOutCompleted;
+        Hide();
+        Opacity = 0;
+    }
+
+    /// <summary>
+    /// Sets the WS_EX_TRANSPARENT, WS_EX_NOACTIVATE, and WS_EX_TOOLWINDOW
+    /// extended styles so the window does not steal focus, does not appear
+    /// in Alt+Tab, and passes all mouse input through to windows behind it.
+    /// </summary>
+    private void SetClickThrough()
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd == IntPtr.Zero) return;
+
+        int exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+        exStyle |= WS_EX_TRANSPARENT | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW;
+        SetWindowLong(hwnd, GWL_EXSTYLE, exStyle);
+    }
+
+    /// <summary>
+    /// Positions the overlay on the primary screen based on a named position.
+    /// </summary>
+    private void PositionOnScreen(string position)
+    {
+        var workArea = SystemParameters.WorkArea;
+        const double margin = 20;
+
+        switch (position)
+        {
+            case "TopLeft":
+                Left = workArea.Left + margin;
+                Top = workArea.Top + margin;
+                break;
+            case "TopCenter":
+                Left = workArea.Left + (workArea.Width - Width) / 2;
+                Top = workArea.Top + margin;
+                break;
+            case "TopRight":
+                Left = workArea.Right - Width - margin;
+                Top = workArea.Top + margin;
+                break;
+            case "BottomLeft":
+                Left = workArea.Left + margin;
+                Top = workArea.Bottom - Height - margin;
+                break;
+            case "BottomRight":
+                Left = workArea.Right - Width - margin;
+                Top = workArea.Bottom - Height - margin;
+                break;
+            case "BottomCenter":
+            default:
+                Left = workArea.Left + (workArea.Width - Width) / 2;
+                Top = workArea.Bottom - Height - margin;
+                break;
+        }
+    }
+}

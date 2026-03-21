@@ -6,12 +6,16 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using WhisperHeim.Services.Audio;
+using WhisperHeim.Services.CallTranscription;
 using WhisperHeim.Services.Dictation;
+using WhisperHeim.Services.FileTranscription;
+using WhisperHeim.Services.Transcription;
 using WhisperHeim.Services.Hotkey;
 using WhisperHeim.Services.Input;
 using WhisperHeim.Services.Models;
 using WhisperHeim.Services.Orchestration;
 using WhisperHeim.Services.Settings;
+using WhisperHeim.Views;
 using WhisperHeim.Views.Pages;
 using Wpf.Ui.Controls;
 
@@ -29,6 +33,12 @@ public partial class MainWindow : FluentWindow
     private readonly IDictationPipeline _dictationPipeline;
     private readonly IInputSimulator _inputSimulator;
 
+    // Transcript storage for the Transcripts page
+    private readonly ITranscriptStorageService _transcriptStorageService = new TranscriptStorageService();
+
+    // File transcription for the Transcribe Files page
+    private readonly IFileTranscriptionService _fileTranscriptionService;
+
     // Hotkey and orchestration
     private readonly GlobalHotkeyService _hotkeyService = new();
     private DictationOrchestrator? _orchestrator;
@@ -36,6 +46,10 @@ public partial class MainWindow : FluentWindow
     // Tray icon images
     private ImageSource? _idleIcon;
     private ImageSource? _recordingIcon;
+
+    // Dictation overlay indicator
+    private DictationOverlayWindow? _overlayWindow;
+    private System.Windows.Threading.DispatcherTimer? _speechPauseTimer;
 
     // Cache pages so they are not recreated on every navigation
     private readonly Dictionary<string, object> _pageCache = new();
@@ -45,13 +59,15 @@ public partial class MainWindow : FluentWindow
         IAudioCaptureService audioCaptureService,
         ModelManagerService modelManager,
         IDictationPipeline dictationPipeline,
-        IInputSimulator inputSimulator)
+        IInputSimulator inputSimulator,
+        IFileTranscriptionService fileTranscriptionService)
     {
         _settingsService = settingsService;
         _audioCaptureService = audioCaptureService;
         _modelManager = modelManager;
         _dictationPipeline = dictationPipeline;
         _inputSimulator = inputSimulator;
+        _fileTranscriptionService = fileTranscriptionService;
 
         InitializeComponent();
 
@@ -89,18 +105,81 @@ public partial class MainWindow : FluentWindow
             OnDictationStateChanged);
         _orchestrator.Start();
 
+        // Initialize the dictation overlay if enabled in settings
+        InitializeOverlay();
+
+        // Listen for partial results to trigger speech animation on the overlay
+        _dictationPipeline.PartialResult += OnPartialResultForOverlay;
+
         Trace.TraceInformation("[MainWindow] Orchestrator started. Hotkey registered: {0}", registered);
     }
 
     /// <summary>
+    /// Creates and configures the dictation overlay window based on settings.
+    /// </summary>
+    private void InitializeOverlay()
+    {
+        var overlaySettings = _settingsService.Current.Overlay;
+        if (!overlaySettings.Enabled)
+        {
+            Trace.TraceInformation("[MainWindow] Overlay disabled in settings.");
+            return;
+        }
+
+        _overlayWindow = new DictationOverlayWindow();
+        _overlayWindow.ApplySettings(overlaySettings);
+
+        // Timer to revert from speech-active animation back to listening pulse
+        _speechPauseTimer = new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(1500)
+        };
+        _speechPauseTimer.Tick += (_, _) =>
+        {
+            _speechPauseTimer.Stop();
+            _overlayWindow?.NotifySpeechPause();
+        };
+
+        Trace.TraceInformation("[MainWindow] Overlay initialized. Position: {0}, Size: {1}",
+            overlaySettings.Position, overlaySettings.Size);
+    }
+
+    /// <summary>
+    /// When partial transcription results arrive, switch the overlay to the
+    /// faster speech animation.
+    /// </summary>
+    private void OnPartialResultForOverlay(object? sender, DictationResultEventArgs e)
+    {
+        if (_overlayWindow is null || string.IsNullOrEmpty(e.Text)) return;
+
+        Dispatcher.BeginInvoke(() =>
+        {
+            _overlayWindow.NotifySpeechActivity();
+            _speechPauseTimer?.Stop();
+            _speechPauseTimer?.Start();
+        });
+    }
+
+    /// <summary>
     /// Callback from the orchestrator when dictation starts or stops.
-    /// Updates the tray icon to reflect the current state.
+    /// Updates the tray icon and overlay to reflect the current state.
     /// Called on the UI thread.
     /// </summary>
     private void OnDictationStateChanged(bool isActive)
     {
         TrayIcon.Icon = (isActive ? _recordingIcon : _idleIcon)!;
         TrayIcon.TooltipText = isActive ? "WhisperHeim - Recording..." : "WhisperHeim";
+
+        // Show or hide the overlay indicator
+        if (isActive)
+        {
+            _overlayWindow?.ShowOverlay();
+        }
+        else
+        {
+            _speechPauseTimer?.Stop();
+            _overlayWindow?.HideOverlay();
+        }
 
         Trace.TraceInformation("[MainWindow] Tray icon updated. Active: {0}", isActive);
     }
@@ -157,7 +236,8 @@ public partial class MainWindow : FluentWindow
         }
         else
         {
-            // Clean up orchestrator and hotkey on actual exit
+            // Clean up orchestrator, overlay, and hotkey on actual exit
+            _overlayWindow?.Close();
             _orchestrator?.Dispose();
             _hotkeyService.Dispose();
         }
@@ -224,6 +304,8 @@ public partial class MainWindow : FluentWindow
                 "General" => new GeneralPage(_settingsService),
                 "Dictation" => new DictationPage(_settingsService, _audioCaptureService),
                 "Templates" => new TemplatesPage(_settingsService),
+                "TranscribeFiles" => new TranscribeFilesPage(_fileTranscriptionService),
+                "Transcripts" => new TranscriptsPage(_transcriptStorageService),
                 "About" => new AboutPage(_modelManager),
                 _ => null
             };
