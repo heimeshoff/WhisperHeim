@@ -33,10 +33,54 @@ public sealed class CallTranscript
     public required IReadOnlyList<TranscriptSegment> Segments { get; init; }
 
     /// <summary>
+    /// Global speaker name mappings: original label to custom display name.
+    /// For example, {"Other": "Alice", "Speaker 2": "Bob"}.
+    /// </summary>
+    [JsonPropertyName("speakerNameMap")]
+    public Dictionary<string, string> SpeakerNameMap { get; set; } = new();
+
+    /// <summary>
     /// Path to the stored transcript JSON file, or null if not yet persisted.
     /// </summary>
     [JsonIgnore]
     public string? FilePath { get; set; }
+
+    /// <summary>
+    /// Returns the display name for a segment, considering per-segment overrides first,
+    /// then global speaker name mappings, and finally the original speaker label.
+    /// </summary>
+    public string GetDisplaySpeaker(TranscriptSegment segment)
+    {
+        // Per-segment override takes priority
+        if (!string.IsNullOrEmpty(segment.SpeakerOverride))
+            return segment.SpeakerOverride;
+
+        // Global rename mapping
+        if (SpeakerNameMap.TryGetValue(segment.Speaker, out var mapped))
+            return mapped;
+
+        return segment.Speaker;
+    }
+
+    /// <summary>
+    /// Globally renames all segments with the given original speaker label.
+    /// Clears any per-segment overrides that match the new name.
+    /// </summary>
+    public void RenameSpeakerGlobally(string originalSpeaker, string newName)
+    {
+        if (string.IsNullOrWhiteSpace(newName) || originalSpeaker == newName)
+            return;
+
+        SpeakerNameMap[originalSpeaker] = newName;
+
+        // Clear per-segment overrides on segments with this original speaker
+        // that match the new global name (they're now redundant)
+        foreach (var segment in Segments.Where(s => s.Speaker == originalSpeaker))
+        {
+            if (segment.SpeakerOverride == newName)
+                segment.SpeakerOverride = null;
+        }
+    }
 }
 
 /// <summary>
@@ -45,9 +89,16 @@ public sealed class CallTranscript
 /// </summary>
 public sealed class TranscriptSegment
 {
-    /// <summary>Display label for the speaker (e.g., "You", "Speaker 1").</summary>
+    /// <summary>Original speaker label assigned during transcription (e.g., "You", "Speaker 1").</summary>
     [JsonPropertyName("speaker")]
     public required string Speaker { get; init; }
+
+    /// <summary>
+    /// Optional per-segment speaker name override. When set, takes priority
+    /// over the global speaker name map.
+    /// </summary>
+    [JsonPropertyName("speakerOverride")]
+    public string? SpeakerOverride { get; set; }
 
     /// <summary>Start time of this segment relative to the recording start.</summary>
     [JsonPropertyName("startTime")]

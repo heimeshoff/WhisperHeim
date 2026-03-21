@@ -1,9 +1,12 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using Microsoft.Win32;
 using WhisperHeim.Services.CallTranscription;
@@ -140,7 +143,7 @@ public partial class TranscriptsPage : UserControl
                               $"Segments: {transcript.Segments.Count}";
 
         var viewModels = transcript.Segments
-            .Select(s => new SegmentViewModel(s))
+            .Select(s => new SegmentViewModel(s, transcript))
             .ToList();
 
         SegmentList.ItemsSource = viewModels;
@@ -198,6 +201,110 @@ public partial class TranscriptsPage : UserControl
     {
         // Re-display with matching info - for simplicity, just re-filter the list view
         // The segment content search happens via the list filter
+    }
+
+    // --- Speaker name editing ---
+
+    private void SpeakerLabel_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not FrameworkElement { DataContext: SegmentViewModel vm })
+            return;
+
+        // Shift+Click = per-segment override; plain click = global rename
+        vm.IsPerSegmentEdit = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
+        vm.BeginEditSpeaker();
+    }
+
+    private void SpeakerEditBox_Loaded(object sender, RoutedEventArgs e)
+    {
+        // Auto-focus and select all text when the edit box appears
+        if (sender is TextBox textBox && textBox.DataContext is SegmentViewModel { IsEditingSpeaker: true })
+        {
+            textBox.Focus();
+            textBox.SelectAll();
+        }
+    }
+
+    private async void SpeakerEditBox_LostFocus(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { DataContext: SegmentViewModel vm })
+            return;
+
+        await CommitSpeakerEditAsync(vm);
+    }
+
+    private async void SpeakerEditBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (sender is not FrameworkElement { DataContext: SegmentViewModel vm })
+            return;
+
+        if (e.Key == Key.Enter)
+        {
+            await CommitSpeakerEditAsync(vm);
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            vm.CancelEditSpeaker();
+            e.Handled = true;
+        }
+    }
+
+    private async Task CommitSpeakerEditAsync(SegmentViewModel vm)
+    {
+        if (_selectedTranscript is null || !vm.IsEditingSpeaker)
+            return;
+
+        var newName = vm.EditingSpeakerName?.Trim();
+        var currentDisplay = vm.DisplaySpeaker;
+
+        // Cancel if empty or unchanged
+        if (string.IsNullOrEmpty(newName) || newName == currentDisplay)
+        {
+            vm.CancelEditSpeaker();
+            return;
+        }
+
+        if (vm.IsPerSegmentEdit)
+        {
+            // Per-segment override
+            vm.Segment.SpeakerOverride = newName;
+            vm.CommitEditSpeaker();
+
+            Trace.TraceInformation(
+                "[TranscriptsPage] Per-segment speaker rename: '{0}' -> '{1}'",
+                currentDisplay, newName);
+        }
+        else
+        {
+            // Global rename: update all segments with the same original speaker
+            _selectedTranscript.RenameSpeakerGlobally(vm.Segment.Speaker, newName);
+
+            // Refresh all segment view models to reflect the rename
+            if (SegmentList.ItemsSource is List<SegmentViewModel> allVms)
+            {
+                foreach (var svm in allVms.Where(s => s.Segment.Speaker == vm.Segment.Speaker))
+                {
+                    svm.RefreshDisplaySpeaker();
+                }
+            }
+
+            vm.CommitEditSpeaker();
+
+            Trace.TraceInformation(
+                "[TranscriptsPage] Global speaker rename: '{0}' -> '{1}'",
+                vm.Segment.Speaker, newName);
+        }
+
+        // Persist changes
+        try
+        {
+            await _storageService.UpdateAsync(_selectedTranscript);
+        }
+        catch (Exception ex)
+        {
+            Trace.TraceError("[TranscriptsPage] Failed to save speaker rename: {0}", ex.Message);
+        }
     }
 
     private void ClearViewer()
@@ -325,7 +432,8 @@ public partial class TranscriptsPage : UserControl
 
         foreach (var segment in transcript.Segments)
         {
-            sb.AppendLine($"[{segment.StartTime:hh\\:mm\\:ss}] {segment.Speaker}: {segment.Text}");
+            var speaker = transcript.GetDisplaySpeaker(segment);
+            sb.AppendLine($"[{segment.StartTime:hh\\:mm\\:ss}] {speaker}: {segment.Text}");
         }
 
         return sb.ToString();
@@ -345,12 +453,13 @@ public partial class TranscriptsPage : UserControl
         string? currentSpeaker = null;
         foreach (var segment in transcript.Segments)
         {
-            if (segment.Speaker != currentSpeaker)
+            var speaker = transcript.GetDisplaySpeaker(segment);
+            if (speaker != currentSpeaker)
             {
                 if (currentSpeaker is not null)
                     sb.AppendLine();
-                sb.AppendLine($"### {segment.Speaker}");
-                currentSpeaker = segment.Speaker;
+                sb.AppendLine($"### {speaker}");
+                currentSpeaker = speaker;
             }
 
             sb.AppendLine($"*[{segment.StartTime:hh\\:mm\\:ss}]* {segment.Text}");
@@ -369,12 +478,15 @@ public partial class TranscriptsPage : UserControl
             durationSeconds = transcript.Duration.TotalSeconds,
             segments = transcript.Segments.Select(s => new
             {
-                speaker = s.Speaker,
+                speaker = transcript.GetDisplaySpeaker(s),
+                originalSpeaker = s.Speaker,
+                speakerOverride = s.SpeakerOverride,
                 startTime = s.StartTime.TotalSeconds,
                 endTime = s.EndTime.TotalSeconds,
                 text = s.Text,
                 isLocalSpeaker = s.IsLocalSpeaker
-            })
+            }),
+            speakerNameMap = transcript.SpeakerNameMap
         };
 
         return JsonSerializer.Serialize(exportData, new JsonSerializerOptions
@@ -451,13 +563,19 @@ internal sealed class TranscriptListItem
 
 /// <summary>
 /// View model for a single transcript segment in the viewer.
+/// Supports inline editing of speaker names with INotifyPropertyChanged.
 /// </summary>
-internal sealed class SegmentViewModel
+internal sealed class SegmentViewModel : INotifyPropertyChanged
 {
     private static readonly Brush LocalSpeakerColor = new SolidColorBrush(Color.FromRgb(86, 156, 214));   // Blue
     private static readonly Brush RemoteSpeakerColor = new SolidColorBrush(Color.FromRgb(206, 145, 120)); // Orange
     private static readonly Brush LocalBackground = new SolidColorBrush(Color.FromArgb(20, 86, 156, 214));
     private static readonly Brush RemoteBackground = new SolidColorBrush(Color.FromArgb(20, 206, 145, 120));
+
+    private readonly CallTranscript _transcript;
+    private string _displaySpeaker;
+    private bool _isEditingSpeaker;
+    private string _editingSpeakerName = "";
 
     static SegmentViewModel()
     {
@@ -467,18 +585,80 @@ internal sealed class SegmentViewModel
         RemoteBackground.Freeze();
     }
 
-    public SegmentViewModel(TranscriptSegment segment)
+    public SegmentViewModel(TranscriptSegment segment, CallTranscript transcript)
     {
-        Speaker = segment.Speaker;
+        Segment = segment;
+        _transcript = transcript;
+        _displaySpeaker = transcript.GetDisplaySpeaker(segment);
         Text = segment.Text;
         TimestampDisplay = $"{segment.StartTime:hh\\:mm\\:ss}";
+        // Colors are based on IsLocalSpeaker, which stays consistent after renames
         SpeakerColor = segment.IsLocalSpeaker ? LocalSpeakerColor : RemoteSpeakerColor;
         Background = segment.IsLocalSpeaker ? LocalBackground : RemoteBackground;
     }
 
-    public string Speaker { get; }
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    /// <summary>The underlying segment model.</summary>
+    public TranscriptSegment Segment { get; }
+
+    /// <summary>The resolved display name (considering global map and per-segment override).</summary>
+    public string DisplaySpeaker
+    {
+        get => _displaySpeaker;
+        private set { _displaySpeaker = value; OnPropertyChanged(); }
+    }
+
     public string Text { get; }
     public string TimestampDisplay { get; }
     public Brush SpeakerColor { get; }
     public Brush Background { get; }
+
+    /// <summary>Whether the speaker name edit box is shown.</summary>
+    public bool IsEditingSpeaker
+    {
+        get => _isEditingSpeaker;
+        private set { _isEditingSpeaker = value; OnPropertyChanged(); }
+    }
+
+    /// <summary>The text currently in the speaker edit box.</summary>
+    public string EditingSpeakerName
+    {
+        get => _editingSpeakerName;
+        set { _editingSpeakerName = value; OnPropertyChanged(); }
+    }
+
+    /// <summary>Whether this edit is a per-segment override (true) or global rename (false).</summary>
+    public bool IsPerSegmentEdit { get; set; }
+
+    /// <summary>Enter edit mode for the speaker name.</summary>
+    public void BeginEditSpeaker()
+    {
+        EditingSpeakerName = DisplaySpeaker;
+        IsEditingSpeaker = true;
+    }
+
+    /// <summary>Commit the edit and refresh the display name.</summary>
+    public void CommitEditSpeaker()
+    {
+        IsEditingSpeaker = false;
+        RefreshDisplaySpeaker();
+    }
+
+    /// <summary>Cancel the edit without saving.</summary>
+    public void CancelEditSpeaker()
+    {
+        IsEditingSpeaker = false;
+    }
+
+    /// <summary>Re-resolve the display speaker name from the transcript model.</summary>
+    public void RefreshDisplaySpeaker()
+    {
+        DisplaySpeaker = _transcript.GetDisplaySpeaker(Segment);
+    }
+
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
 }
