@@ -4,7 +4,7 @@
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         xmlns:tray="clr-namespace:Wpf.Ui.Tray.Controls;assembly=Wpf.Ui.Tray"
         Title="WhisperHeim"
-        Height="500" Width="400"
+        Height="500" Width="600"
         WindowStartupLocation="CenterScreen"
         WindowBackdropType="Mica"
         ExtendsContentIntoTitleBar="True">
@@ -43,20 +43,49 @@
             </tray:NotifyIcon.Menu>
         </tray:NotifyIcon>
 
-        <!-- Main Content -->
-        <Grid Grid.Row="1" Margin="16">
-            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                <ui:SymbolIcon Symbol="Mic24" FontSize="48" Margin="0,0,0,16" />
-                <TextBlock Text="WhisperHeim"
-                           FontSize="24"
-                           FontWeight="SemiBold"
-                           HorizontalAlignment="Center" />
-                <TextBlock Text="Live dictation powered by Whisper"
-                           FontSize="14"
-                           Opacity="0.6"
-                           HorizontalAlignment="Center"
-                           Margin="0,8,0,0" />
-            </StackPanel>
+        <!-- Settings Navigation -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="180" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Nav panel -->
+            <ListBox x:Name="NavList"
+                     Grid.Column="0"
+                     Margin="8"
+                     Background="Transparent"
+                     BorderThickness="0"
+                     SelectionChanged="NavList_SelectionChanged">
+                <ListBoxItem Tag="General" IsSelected="True">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="Settings24" Margin="0,0,8,0" />
+                        <TextBlock Text="General" VerticalAlignment="Center" />
+                    </StackPanel>
+                </ListBoxItem>
+                <ListBoxItem Tag="Dictation">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="Mic24" Margin="0,0,8,0" />
+                        <TextBlock Text="Dictation" VerticalAlignment="Center" />
+                    </StackPanel>
+                </ListBoxItem>
+                <ListBoxItem Tag="Templates">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="Document24" Margin="0,0,8,0" />
+                        <TextBlock Text="Templates" VerticalAlignment="Center" />
+                    </StackPanel>
+                </ListBoxItem>
+                <ListBoxItem Tag="About">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="Info24" Margin="0,0,8,0" />
+                        <TextBlock Text="About" VerticalAlignment="Center" />
+                    </StackPanel>
+                </ListBoxItem>
+            </ListBox>
+
+            <!-- Page content area -->
+            <ContentPresenter x:Name="PageContent"
+                              Grid.Column="1" />
         </Grid>
     </Grid>
 </ui:FluentWindow>

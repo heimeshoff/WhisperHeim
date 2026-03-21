@@ -1,9 +1,11 @@
 using System.ComponentModel;
 using System.Globalization;
-using System.IO;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using WhisperHeim.Services.Settings;
+using WhisperHeim.Views.Pages;
 using Wpf.Ui.Controls;
 
 namespace WhisperHeim;
@@ -14,9 +16,15 @@ namespace WhisperHeim;
 public partial class MainWindow : FluentWindow
 {
     private bool _isExiting;
+    private readonly SettingsService _settingsService;
 
-    public MainWindow()
+    // Cache pages so they are not recreated on every navigation
+    private readonly Dictionary<string, object> _pageCache = new();
+
+    public MainWindow(SettingsService settingsService)
     {
+        _settingsService = settingsService;
+
         InitializeComponent();
 
         // Generate tray icon from Segoe Fluent Icons microphone glyph
@@ -116,5 +124,38 @@ public partial class MainWindow : FluentWindow
         ShowInTaskbar = true;
         WindowState = WindowState.Normal;
         Activate();
+    }
+
+    private void NavList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (NavList.SelectedItem is ListBoxItem item && item.Tag is string tag)
+        {
+            NavigateTo(tag);
+        }
+    }
+
+    private void NavigateTo(string pageName)
+    {
+        if (!_pageCache.TryGetValue(pageName, out var page))
+        {
+            page = pageName switch
+            {
+                "General" => new GeneralPage(_settingsService),
+                "Dictation" => new DictationPage(_settingsService),
+                "Templates" => new TemplatesPage(_settingsService),
+                "About" => new AboutPage(),
+                _ => null
+            };
+
+            if (page is not null)
+            {
+                _pageCache[pageName] = page;
+            }
+        }
+
+        if (page is not null)
+        {
+            PageContent.Content = page;
+        }
     }
 }
