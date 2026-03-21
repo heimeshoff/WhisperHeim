@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using System.IO;
+using Concentus;
+using Concentus.Oggfile;
 using NAudio.Wave;
 
 namespace WhisperHeim.Services.FileTranscription;
@@ -8,7 +10,7 @@ namespace WhisperHeim.Services.FileTranscription;
 /// Decodes audio files (WAV, MP3, M4A, OGG) to 16kHz mono float32 PCM samples.
 /// Uses NAudio's MediaFoundationReader for MP3/M4A/WAV (Windows Media Foundation),
 /// and NAudio's built-in WaveFileReader for plain WAV files.
-/// For OGG files, uses MediaFoundationReader which supports Opus on Windows 10+.
+/// For OGG/Opus files (e.g. WhatsApp voice messages), uses Concentus managed decoder.
 /// </summary>
 internal static class AudioFileDecoder
 {
@@ -68,21 +70,38 @@ internal static class AudioFileDecoder
 
     private static (float[] Samples, int SampleRate) DecodeOgg(string filePath)
     {
-        // MediaFoundation on Windows 10+ supports Opus in OGG containers
-        // (via the Web Media Extensions or Opus codec from the MS Store).
-        // If that fails, we provide a clear error message.
-        try
+        // Use Concentus managed Opus decoder — works without any Windows codec packs.
+        using var fileStream = File.OpenRead(filePath);
+        var decoder = OpusCodecFactory.CreateDecoder(48000, 1); // Opus standard: 48kHz
+        var oggReader = new OpusOggReadStream(decoder, fileStream);
+
+        var allSamples = new List<short>();
+        while (oggReader.HasNextPacket)
         {
-            return DecodeWithMediaFoundation(filePath);
+            var packet = oggReader.DecodeNextPacket();
+            if (packet != null)
+                allSamples.AddRange(packet);
         }
-        catch (Exception ex)
+
+        if (allSamples.Count == 0)
+            return (Array.Empty<float>(), TargetSampleRate);
+
+        // Downsample from 48kHz to 16kHz (factor of 3) and convert to float32
+        int ratio = 48000 / TargetSampleRate; // 3
+        int outputLength = allSamples.Count / ratio;
+        var samples = new float[outputLength];
+        for (int i = 0; i < outputLength; i++)
         {
-            throw new InvalidOperationException(
-                $"Failed to decode OGG file '{Path.GetFileName(filePath)}'. " +
-                "Ensure the Windows 'Web Media Extensions' package is installed from the Microsoft Store " +
-                "for OGG/Opus support. " +
-                $"Error: {ex.Message}", ex);
+            samples[i] = allSamples[i * ratio] / 32768f;
         }
+
+        Trace.TraceInformation(
+            "[AudioFileDecoder] Decoded OGG/Opus: {0} samples ({1:F2}s) at {2}Hz",
+            samples.Length,
+            (double)samples.Length / TargetSampleRate,
+            TargetSampleRate);
+
+        return (samples, TargetSampleRate);
     }
 
     private static (float[] Samples, int SampleRate) DecodeWithMediaFoundation(string filePath)

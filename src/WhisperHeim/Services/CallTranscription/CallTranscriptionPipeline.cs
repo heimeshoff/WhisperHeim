@@ -57,8 +57,7 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
         var sw = Stopwatch.StartNew();
 
         if (!_diarization.IsLoaded)
-            throw new InvalidOperationException(
-                "Diarization models are not loaded. Call LoadModels() first.");
+            _diarization.LoadModels();
 
         if (!_transcription.IsLoaded)
             throw new InvalidOperationException(
@@ -73,6 +72,13 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
 
         // ── Stage 1: Load audio ─────────────────────────────────────────
         ReportProgress(progress, PipelineStage.LoadingAudio, 0, "Loading audio files...");
+
+        Trace.TraceInformation(
+            "[CallTranscriptionPipeline] Mic WAV: {0} (exists={1})",
+            session.MicWavFilePath, File.Exists(session.MicWavFilePath));
+        Trace.TraceInformation(
+            "[CallTranscriptionPipeline] System WAV: {0} (exists={1})",
+            session.SystemWavFilePath, File.Exists(session.SystemWavFilePath));
 
         var micSamples = await Task.Run(
             () => LoadWavSamples(session.MicWavFilePath), cancellationToken);
@@ -125,6 +131,18 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
         ReportProgress(progress, PipelineStage.Diarizing, 100,
             $"Diarization complete: {diarizedSegments.Count} segments found.");
 
+        // Log each diarization segment for diagnostics
+        for (int i = 0; i < diarizedSegments.Count; i++)
+        {
+            var ds = diarizedSegments[i];
+            Trace.TraceInformation(
+                "[CallTranscriptionPipeline] Diarization segment {0}: speaker={1}, source={2}, " +
+                "start={3:F2}s, end={4:F2}s, duration={5:F2}s",
+                i, ds.SpeakerId, ds.Source,
+                ds.StartTime.TotalSeconds, ds.EndTime.TotalSeconds,
+                (ds.EndTime - ds.StartTime).TotalSeconds);
+        }
+
         Trace.TraceInformation(
             "[CallTranscriptionPipeline] Diarization complete: {0} segments",
             diarizedSegments.Count);
@@ -160,6 +178,12 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
                 _ => ExtractSegment(combinedSamples, seg.StartTime, seg.EndTime),
             };
 
+            Trace.TraceInformation(
+                "[CallTranscriptionPipeline] Segment {0}: {1} samples ({2:F2}s) from {3}",
+                i, segmentSamples.Length,
+                (double)segmentSamples.Length / ExpectedSampleRate,
+                seg.Source);
+
             if (segmentSamples.Length == 0)
                 continue;
 
@@ -167,6 +191,9 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
                 segmentSamples, ExpectedSampleRate, cancellationToken);
 
             var text = result.Text.Trim();
+            Trace.TraceInformation(
+                "[CallTranscriptionPipeline] Segment {0} transcribed: \"{1}\"", i, text);
+
             if (string.IsNullOrWhiteSpace(text))
                 continue;
 

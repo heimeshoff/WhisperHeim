@@ -29,7 +29,19 @@ public partial class TranscriptsPage : UserControl
     /// <summary>
     /// Reloads the transcript list from storage.
     /// </summary>
-    public void RefreshList() => LoadTranscriptList();
+    public void RefreshList() => Dispatcher.Invoke(LoadTranscriptList);
+
+    /// <summary>
+    /// Shows the "Transcribing..." banner at the top of the page.
+    /// </summary>
+    public void ShowTranscribingIndicator() =>
+        Dispatcher.Invoke(() => TranscribingBanner.Visibility = Visibility.Visible);
+
+    /// <summary>
+    /// Hides the "Transcribing..." banner.
+    /// </summary>
+    public void HideTranscribingIndicator() =>
+        Dispatcher.Invoke(() => TranscribingBanner.Visibility = Visibility.Collapsed);
 
     private void LoadTranscriptList()
     {
@@ -50,6 +62,9 @@ public partial class TranscriptsPage : UserControl
     private void ApplyFilter()
     {
         var searchText = SearchBox?.Text?.Trim() ?? string.Empty;
+
+        // Always reset ItemsSource so WPF picks up changes to the list
+        TranscriptList.ItemsSource = null;
 
         if (string.IsNullOrEmpty(searchText))
         {

@@ -54,6 +54,13 @@ public partial class App : Application
             }
         };
 
+        // Prevent unobserved task exceptions (e.g. from parallel diarization) from crashing the app
+        TaskScheduler.UnobservedTaskException += (_, args) =>
+        {
+            System.Diagnostics.Trace.TraceError("[App] Unobserved task exception: {0}", args.Exception);
+            args.SetObserved();
+        };
+
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
         {
             var ex = args.ExceptionObject as Exception;

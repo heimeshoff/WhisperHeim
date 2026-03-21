@@ -292,43 +292,55 @@ public partial class MainWindow : FluentWindow
         });
     }
 
-    private void StartPostRecordingTranscription(CallRecordingSession session)
+    private async void StartPostRecordingTranscription(CallRecordingSession session)
     {
-        Trace.TraceInformation("[MainWindow] Starting post-recording transcription pipeline.");
+        Trace.TraceInformation("[MainWindow] Starting post-recording transcription pipeline (background).");
+        Trace.TraceInformation("[MainWindow] Session: mic={0}, system={1}",
+            session.MicWavFilePath, session.SystemWavFilePath);
 
-        var transcript = Views.TranscriptionProgressDialog.ShowAndProcess(
-            _callTranscriptionPipeline, session);
+        // Show "transcribing..." indicator on the Transcripts page
+        var transcriptsPage = GetOrCreateTranscriptsPage();
+        transcriptsPage.ShowTranscribingIndicator();
 
-        if (transcript is not null)
+        try
         {
-            // Refresh the transcripts page and navigate to it
-            if (_pageCache.TryGetValue("Transcripts", out var page) &&
-                page is Views.Pages.TranscriptsPage transcriptsPage)
+            var transcript = await Task.Run(async () =>
             {
-                transcriptsPage.RefreshList();
-            }
-
-            NavigateTo("Transcripts");
-
-            // Sync the nav highlight to "Transcripts"
-            foreach (var item in NavList.Items)
-            {
-                if (item is System.Windows.Controls.ListBoxItem lbi && lbi.Tag is string tag && tag == "Transcripts")
+                try
                 {
-                    NavList.SelectedItem = lbi;
-                    break;
+                    return await _callTranscriptionPipeline.ProcessAsync(session);
                 }
-            }
+                catch (Exception ex)
+                {
+                    Trace.TraceError("[MainWindow] Pipeline background thread exception: {0}\n{1}",
+                        ex.Message, ex.StackTrace);
+                    throw;
+                }
+            });
 
-            // Show the window if it was hidden (tray-only mode)
-            ShowWindow();
+            Trace.TraceInformation("[MainWindow] Transcription pipeline completed: {0} segments.",
+                transcript.Segments.Count);
 
-            Trace.TraceInformation("[MainWindow] Navigated to Transcripts page after successful transcription.");
+            // Refresh the transcripts page — new transcript will appear in the list
+            transcriptsPage.HideTranscribingIndicator();
+            transcriptsPage.RefreshList();
         }
-        else
+        catch (Exception ex)
         {
-            Trace.TraceInformation("[MainWindow] Transcription was cancelled or failed.");
+            Trace.TraceError("[MainWindow] Transcription pipeline failed: {0}\n{1}",
+                ex.Message, ex.StackTrace);
+            transcriptsPage.HideTranscribingIndicator();
         }
+    }
+
+    private TranscriptsPage GetOrCreateTranscriptsPage()
+    {
+        if (_pageCache.TryGetValue("Transcripts", out var cached) && cached is TranscriptsPage page)
+            return page;
+
+        page = new TranscriptsPage(_transcriptStorageService);
+        _pageCache["Transcripts"] = page;
+        return page;
     }
 
     private void OnCallRecordingDurationUpdated(object? sender, TimeSpan duration)

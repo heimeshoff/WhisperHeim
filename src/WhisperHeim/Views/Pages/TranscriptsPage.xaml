@@ -10,11 +10,27 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <TextBlock Grid.Row="0"
-                   Text="Transcripts"
-                   FontSize="20"
-                   FontWeight="SemiBold"
-                   Margin="0,0,0,12" />
+        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+            <TextBlock Text="Transcripts"
+                       FontSize="20"
+                       FontWeight="SemiBold" />
+
+            <!-- Transcribing indicator (shown while pipeline is running) -->
+            <Border x:Name="TranscribingBanner"
+                    Visibility="Collapsed"
+                    Background="{DynamicResource SystemFillColorCautionBackgroundBrush}"
+                    CornerRadius="4"
+                    Padding="10,6"
+                    Margin="0,8,0,0">
+                <StackPanel Orientation="Horizontal">
+                    <ui:ProgressRing IsIndeterminate="True" Width="16" Height="16" />
+                    <TextBlock Text="Transcribing call recording..."
+                               Margin="8,0,0,0"
+                               VerticalAlignment="Center"
+                               FontSize="12" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
 
         <!-- Search bar -->
         <Grid Grid.Row="1" Margin="0,0,0,12">

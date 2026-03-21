@@ -114,10 +114,12 @@ public sealed class LoopbackCaptureService : IAudioCaptureService
 
         _ringBuffer.Clear();
 
-        // Create temp WAV file for recording
+        // Create temp WAV file for recording (in WhisperHeim subfolder, same as mic files)
+        var tempDir = Path.Combine(Path.GetTempPath(), "WhisperHeim");
+        Directory.CreateDirectory(tempDir);
         _tempWavFilePath = Path.Combine(
-            Path.GetTempPath(),
-            $"whisperheim_loopback_{DateTime.UtcNow:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}.wav");
+            tempDir,
+            $"call_loopback_{DateTime.UtcNow:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}.wav");
 
         _capture = new WasapiLoopbackCapture();
         _capture.DataAvailable += OnDataAvailable;

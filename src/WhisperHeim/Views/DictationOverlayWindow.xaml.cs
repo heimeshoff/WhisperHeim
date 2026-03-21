@@ -176,17 +176,18 @@ public partial class DictationOverlayWindow : Window
         {
             case OverlayMicState.Idle:
                 _speechPulse?.Stop(this);
+                _listeningPulse?.Stop(this);
                 _smoothedRms = 0;
                 ResetScaleTransform();
-                _listeningPulse?.Begin(this, true);
+                // Static -- no animation while idle
                 break;
 
             case OverlayMicState.Speaking:
-                // Stop the listening pulse; RMS-driven scaling is applied directly
                 _listeningPulse?.Stop(this);
-                _speechPulse?.Stop(this);
                 _smoothedRms = 0;
                 ResetScaleTransform();
+                // Start the pulsing storyboard; UpdateAmplitude will control its speed
+                _speechPulse?.Begin(this, true);
                 break;
 
             case OverlayMicState.NoMic:
@@ -209,6 +210,7 @@ public partial class DictationOverlayWindow : Window
     public void UpdateAmplitude(double rmsAmplitude)
     {
         if (!_isVisible || _currentState != OverlayMicState.Speaking) return;
+        if (_speechPulse is null) return;
 
         // Clamp input
         rmsAmplitude = Math.Clamp(rmsAmplitude, 0.0, 1.0);
@@ -216,16 +218,13 @@ public partial class DictationOverlayWindow : Window
         // Smooth with exponential moving average to avoid jitter
         _smoothedRms = _smoothedRms + RmsSmoothingFactor * (rmsAmplitude - _smoothedRms);
 
-        // Map smoothed RMS to scale range: 0.92 (silent) to 1.12 (loud)
-        // Use a slight curve for better visual response
-        var normalized = Math.Min(_smoothedRms * 3.0, 1.0); // amplify low values
-        var scale = 0.92 + normalized * 0.20;
+        // Map smoothed RMS to speed ratio: louder = faster pulsing
+        // Amplify low values so even quiet speech is visible
+        var normalized = Math.Min(_smoothedRms * 3.0, 1.0);
 
-        ScaleTransform.ScaleX = scale;
-        ScaleTransform.ScaleY = scale;
-
-        // Also modulate opacity slightly for visual feedback
-        OverlayEllipse.Opacity = 0.7 + normalized * 0.3;
+        // SpeedRatio: 0.5 (quiet speech) to 4.0 (loud speech)
+        var speedRatio = 0.5 + normalized * 3.5;
+        _speechPulse.SetSpeedRatio(this, speedRatio);
     }
 
     /// <summary>

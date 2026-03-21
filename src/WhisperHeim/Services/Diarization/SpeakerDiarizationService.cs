@@ -148,16 +148,13 @@ public sealed class SpeakerDiarizationService : ISpeakerDiarizationService
             throw new InvalidOperationException(
                 "Models are not loaded. Call LoadModels() before diarizing.");
 
-        // Step 1: Diarize each stream independently
+        // Step 1: Diarize each stream sequentially.
+        // They share a native lock anyway, and sequential execution avoids
+        // unobserved task exceptions if one fails.
         // Mic stream should have primarily one speaker (the local user).
         // Loopback stream has remote speakers.
-        var micTask = DiarizeAsync(micSamples, numSpeakers: 1, cancellationToken: cancellationToken);
-        var loopbackTask = DiarizeAsync(loopbackSamples, numSpeakers: -1, cancellationToken: cancellationToken);
-
-        await Task.WhenAll(micTask, loopbackTask);
-
-        var micResult = micTask.Result;
-        var loopbackResult = loopbackTask.Result;
+        var micResult = await DiarizeAsync(micSamples, numSpeakers: 1, cancellationToken: cancellationToken);
+        var loopbackResult = await DiarizeAsync(loopbackSamples, numSpeakers: -1, cancellationToken: cancellationToken);
 
         // Step 2: Build attributed segments
         var attributed = new List<AttributedDiarizationSegment>();

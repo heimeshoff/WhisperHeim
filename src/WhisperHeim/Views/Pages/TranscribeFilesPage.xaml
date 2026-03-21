@@ -7,6 +7,9 @@
              DragEnter="OnDragEnter"
              DragLeave="OnDragLeave"
              DragOver="OnDragOver">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+    </UserControl.Resources>
     <Grid Margin="24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -146,8 +149,4 @@
             </ItemsControl>
         </ScrollViewer>
     </Grid>
-
-    <UserControl.Resources>
-        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
-    </UserControl.Resources>
 </UserControl>

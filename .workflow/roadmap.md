@@ -47,12 +47,16 @@
 
 ---
 
-### M4: Text-to-Speech
+### M4: Text-to-Speech (Kyutai Pocket TTS)
 **Status:** Not Started
-**Target:** AI voice generation (details TBD)
+**Target:** Local AI voice generation with voice cloning and read-aloud hotkey
 
 **Goals:**
-- Feed text, hear it read aloud with selectable voices
-- Model and approach to be decided
+- Kyutai Pocket TTS integration via sherpa-onnx (CPU-only, 100M params, English)
+- Voice cloning from mic recording or system audio loopback (≥5s reference)
+- Global hotkey to read selected text aloud from any application (UI Automation + Ctrl+C fallback)
+- Paste-and-read UI with voice selector and playback controls
+- Export generated speech as MP3, OGG, or WAV
+- Custom voice management (create, name, preview, delete)
 
-**Tasks:** 023 (backlog)
+**Tasks:** 023, 029, 030, 031, 032, 033, 034, 035

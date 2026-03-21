@@ -2,6 +2,24 @@
 
 ---
 
+## 2026-03-21 18:50 -- Idea Captured: Kyutai Pocket TTS Integration
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/023-tts-pocket-tts.md (parent) + subtasks 029–035
+**Summary:** Full TTS milestone using Kyutai Pocket TTS — voice cloning from mic/loopback, read-selected-text hotkey (UI Automation + Ctrl+C fallback), TTS UI page, MP3/OGG export, and settings. Researched feasibility of all components: Pocket TTS runs CPU-only via sherpa-onnx (already a dependency), text selection capture is proven pattern, loopback capture infrastructure exists. English-only, 7 tasks total.
+
+---
+
+## 2026-03-21 -- Task Completed: 028 - Post-recording transcription pipeline with progress UI
+
+**Type:** Task Completion
+**Task:** 028 - Post-recording transcription pipeline with progress UI
+**Summary:** Created TranscriptionProgressDialog with dual progress bars, stage description, and cancel button. Wired into MainWindow to auto-trigger pipeline when recording stops, with navigation to TranscriptsPage on success.
+**Files changed:** 4 files
+
+---
+
 ## 2026-03-21 -- Task Started: 028 - Post-recording transcription pipeline with progress UI
 
 **Type:** Task Start
