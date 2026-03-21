@@ -251,49 +251,63 @@ public sealed class CallRecordingService : ICallRecordingService
 
     private void OnMicCaptureStopped(object? sender, CaptureStoppedEventArgs e)
     {
-        lock (_lock)
+        try
         {
-            bool wasActive = _micStreamActive;
-            _micStreamActive = false;
-
-            if (wasActive && IsRecording && e.WasDeviceDisconnected)
+            lock (_lock)
             {
-                // Mic stream failed but system may still be running
-                StreamFailed?.Invoke(this,
-                    new StreamFailedEventArgs(AudioStreamKind.Microphone, e.Exception));
+                bool wasActive = _micStreamActive;
+                _micStreamActive = false;
 
-                // If both streams are now dead, stop the whole recording
-                if (!_systemStreamActive)
+                if (wasActive && IsRecording && e.WasDeviceDisconnected)
                 {
-                    IsRecording = false;
-                    _durationTimer.Stop();
-                    FinalizeSession();
+                    // Mic stream failed but system may still be running
+                    StreamFailed?.Invoke(this,
+                        new StreamFailedEventArgs(AudioStreamKind.Microphone, e.Exception));
+
+                    // If both streams are now dead, stop the whole recording
+                    if (!_systemStreamActive)
+                    {
+                        IsRecording = false;
+                        _durationTimer.Stop();
+                        FinalizeSession();
+                    }
                 }
             }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[CallRecordingService] OnMicCaptureStopped error: {ex}");
         }
     }
 
     private void OnLoopbackCaptureStopped(object? sender, CaptureStoppedEventArgs e)
     {
-        lock (_lock)
+        try
         {
-            bool wasActive = _systemStreamActive;
-            _systemStreamActive = false;
-
-            if (wasActive && IsRecording && e.WasDeviceDisconnected)
+            lock (_lock)
             {
-                // System stream failed but mic may still be running
-                StreamFailed?.Invoke(this,
-                    new StreamFailedEventArgs(AudioStreamKind.System, e.Exception));
+                bool wasActive = _systemStreamActive;
+                _systemStreamActive = false;
 
-                // If both streams are now dead, stop the whole recording
-                if (!_micStreamActive)
+                if (wasActive && IsRecording && e.WasDeviceDisconnected)
                 {
-                    IsRecording = false;
-                    _durationTimer.Stop();
-                    FinalizeSession();
+                    // System stream failed but mic may still be running
+                    StreamFailed?.Invoke(this,
+                        new StreamFailedEventArgs(AudioStreamKind.System, e.Exception));
+
+                    // If both streams are now dead, stop the whole recording
+                    if (!_micStreamActive)
+                    {
+                        IsRecording = false;
+                        _durationTimer.Stop();
+                        FinalizeSession();
+                    }
                 }
             }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[CallRecordingService] OnLoopbackCaptureStopped error: {ex}");
         }
     }
 

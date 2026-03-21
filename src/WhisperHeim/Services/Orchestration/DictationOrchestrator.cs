@@ -91,11 +91,10 @@ public sealed class DictationOrchestrator : IDisposable
         {
             if (_isRecording) return; // already recording
             _isRecording = true;
+            _recordedSamples.Clear();
         }
 
         Trace.TraceInformation("[DictationOrchestrator] Hotkey pressed -- starting recording.");
-
-        _recordedSamples.Clear();
 
         _audioCapture.AudioDataAvailable += OnAudioData;
 
@@ -165,15 +164,22 @@ public sealed class DictationOrchestrator : IDisposable
 
     private void OnAudioData(object? sender, AudioDataEventArgs e)
     {
-        lock (_lock)
+        try
         {
-            if (_isRecording)
-                _recordedSamples.AddRange(e.Samples);
-        }
+            lock (_lock)
+            {
+                if (_isRecording)
+                    _recordedSamples.AddRange(e.Samples);
+            }
 
-        // Calculate RMS amplitude and notify listeners
-        var rms = CalculateRms(e.Samples);
-        AudioAmplitudeChanged?.Invoke(rms);
+            // Calculate RMS amplitude and notify listeners
+            var rms = CalculateRms(e.Samples);
+            AudioAmplitudeChanged?.Invoke(rms);
+        }
+        catch (Exception ex)
+        {
+            Trace.TraceError("[DictationOrchestrator] OnAudioData error: {0}", ex);
+        }
     }
 
     /// <summary>

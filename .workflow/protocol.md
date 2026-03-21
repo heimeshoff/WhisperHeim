@@ -2,6 +2,15 @@
 
 ---
 
+## 2026-03-21 21:40 -- Idea Captured: Transcript Usability Improvements
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/036-transcript-naming.md, tasks/todo/037-speaker-name-editing.md, tasks/todo/038-transcript-audio-playback.md
+**Summary:** Three tasks to improve transcript usability long-term: (1) editable transcript names with auto-default from date/time, (2) speaker name editing with global rename + per-segment override, (3) click-to-play audio playback from segments with WAV files preserved alongside transcripts. All added to M2 milestone.
+
+---
+
 ## 2026-03-21 21:35 -- Milestone M4 Complete: Text-to-Speech (Kyutai Pocket TTS)
 
 **Type:** Milestone Completion

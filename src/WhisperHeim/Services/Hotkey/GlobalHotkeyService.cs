@@ -90,31 +90,38 @@ public sealed class GlobalHotkeyService : IDisposable
 
     private IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
     {
-        if (nCode >= 0)
+        try
         {
-            int vkCode = Marshal.ReadInt32(lParam);
-            int msg = wParam.ToInt32();
-
-            if (vkCode == Hotkey.VirtualKey)
+            if (nCode >= 0)
             {
-                if (msg is NativeMethods.WM_KEYDOWN or NativeMethods.WM_SYSKEYDOWN)
+                int vkCode = Marshal.ReadInt32(lParam);
+                int msg = wParam.ToInt32();
+
+                if (vkCode == Hotkey.VirtualKey)
                 {
-                    // Only fire on the initial key-down, not auto-repeat
-                    if (!_targetKeyDown && AreModifiersPressed())
+                    if (msg is NativeMethods.WM_KEYDOWN or NativeMethods.WM_SYSKEYDOWN)
                     {
-                        _targetKeyDown = true;
-                        HotkeyPressed?.Invoke(this, EventArgs.Empty);
+                        // Only fire on the initial key-down, not auto-repeat
+                        if (!_targetKeyDown && AreModifiersPressed())
+                        {
+                            _targetKeyDown = true;
+                            HotkeyPressed?.Invoke(this, EventArgs.Empty);
+                        }
                     }
-                }
-                else if (msg is NativeMethods.WM_KEYUP or NativeMethods.WM_SYSKEYUP)
-                {
-                    if (_targetKeyDown)
+                    else if (msg is NativeMethods.WM_KEYUP or NativeMethods.WM_SYSKEYUP)
                     {
-                        _targetKeyDown = false;
-                        HotkeyReleased?.Invoke(this, EventArgs.Empty);
+                        if (_targetKeyDown)
+                        {
+                            _targetKeyDown = false;
+                            HotkeyReleased?.Invoke(this, EventArgs.Empty);
+                        }
                     }
                 }
             }
+        }
+        catch (Exception ex)
+        {
+            Trace.TraceError("[GlobalHotkeyService] Hook callback error: {0}", ex);
         }
 
         return NativeMethods.CallNextHookEx(_hookId, nCode, wParam, lParam);

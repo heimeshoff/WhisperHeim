@@ -26,6 +26,7 @@ public partial class App : Application
     private readonly SettingsService _settingsService = new();
     private readonly AudioCaptureService _audioCaptureService = new();
     private readonly ModelManagerService _modelManager = new();
+    private ReadAloudHotkeyService? _readAloudHotkeyService;
     private bool _isShowingError;
 
     private void OnStartup(object sender, StartupEventArgs e)
@@ -66,7 +67,9 @@ public partial class App : Application
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
         {
             var ex = args.ExceptionObject as Exception;
-            System.Diagnostics.Trace.TraceError("[App] Unhandled domain exception: {0}", ex);
+            System.Diagnostics.Trace.TraceError(
+                "[App] Unhandled domain exception (IsTerminating={0}): {1}\nStackTrace: {2}",
+                args.IsTerminating, ex?.Message, ex?.StackTrace ?? "(no stack trace)");
 
             if (_isShowingError)
                 return;
@@ -157,9 +160,10 @@ public partial class App : Application
         var highQualityRecorderService = new HighQualityRecorderService();
 
         // Create read-aloud services (selected text capture + hotkey)
+        // NOTE: must be stored in a field to prevent GC from collecting the keyboard hook delegate
         var selectedTextService = new SelectedTextService();
-        var readAloudHotkeyService = new ReadAloudHotkeyService(selectedTextService, textToSpeechService, _settingsService);
-        readAloudHotkeyService.Register();
+        _readAloudHotkeyService = new ReadAloudHotkeyService(selectedTextService, textToSpeechService, _settingsService);
+        _readAloudHotkeyService.Register();
 
         // Determine whether we were launched via auto-start (--minimized flag)
         var startMinimized = e.Args.Contains("--minimized");

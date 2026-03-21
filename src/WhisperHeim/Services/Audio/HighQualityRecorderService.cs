@@ -102,7 +102,11 @@ public sealed class HighQualityRecorderService : IHighQualityRecorderService
 
             // Start a timer that fires every ~100ms to raise DurationChanged
             _durationUpdateTimer = new System.Threading.Timer(
-                _ => DurationChanged?.Invoke(this, _durationTimer.Elapsed),
+                _ =>
+                {
+                    try { DurationChanged?.Invoke(this, _durationTimer.Elapsed); }
+                    catch (Exception ex) { Trace.TraceError("[HighQualityRecorder] DurationChanged error: {0}", ex); }
+                },
                 null,
                 TimeSpan.FromMilliseconds(100),
                 TimeSpan.FromMilliseconds(100));
@@ -191,35 +195,35 @@ public sealed class HighQualityRecorderService : IHighQualityRecorderService
     /// </summary>
     private void OnDataAvailable(object? sender, WaveInEventArgs e)
     {
-        if (e.BytesRecorded == 0)
-            return;
-
-        // Write raw PCM to WAV file
         try
         {
+            if (e.BytesRecorded == 0)
+                return;
+
+            // Write raw PCM to WAV file
             _writer?.Write(e.Buffer, 0, e.BytesRecorded);
+
+            // Calculate RMS level for the level meter
+            int sampleCount = e.BytesRecorded / 2; // 16-bit samples
+            double sumSquares = 0;
+
+            for (int i = 0; i < sampleCount; i++)
+            {
+                short pcm16 = BitConverter.ToInt16(e.Buffer, i * 2);
+                float sample = pcm16 / 32768f;
+                sumSquares += sample * sample;
+            }
+
+            float rms = (float)Math.Sqrt(sumSquares / sampleCount);
+            // Clamp to [0, 1]
+            rms = Math.Min(1.0f, rms * 3.0f); // Amplify a bit for visual feedback
+
+            LevelChanged?.Invoke(this, rms);
         }
         catch (Exception ex)
         {
-            Trace.TraceError("[HighQualityRecorder] Write error: {0}", ex);
+            Trace.TraceError("[HighQualityRecorder] OnDataAvailable error: {0}", ex);
         }
-
-        // Calculate RMS level for the level meter
-        int sampleCount = e.BytesRecorded / 2; // 16-bit samples
-        double sumSquares = 0;
-
-        for (int i = 0; i < sampleCount; i++)
-        {
-            short pcm16 = BitConverter.ToInt16(e.Buffer, i * 2);
-            float sample = pcm16 / 32768f;
-            sumSquares += sample * sample;
-        }
-
-        float rms = (float)Math.Sqrt(sumSquares / sampleCount);
-        // Clamp to [0, 1]
-        rms = Math.Min(1.0f, rms * 3.0f); // Amplify a bit for visual feedback
-
-        LevelChanged?.Invoke(this, rms);
     }
 
     /// <summary>
@@ -227,18 +231,24 @@ public sealed class HighQualityRecorderService : IHighQualityRecorderService
     /// </summary>
     private void OnWaveInStopped(object? sender, StoppedEventArgs e)
     {
-        bool wasRecording = _isRecording;
-        _isRecording = false;
-
-        if (e.Exception is not null)
+        try
         {
-            Trace.TraceError("[HighQualityRecorder] Recording stopped with error: {0}", e.Exception);
-        }
+            _isRecording = false;
 
-        RecordingStopped?.Invoke(this, new RecordingStoppedEventArgs(
-            success: e.Exception is null,
-            filePath: _tempFilePath,
-            exception: e.Exception));
+            if (e.Exception is not null)
+            {
+                Trace.TraceError("[HighQualityRecorder] Recording stopped with error: {0}", e.Exception);
+            }
+
+            RecordingStopped?.Invoke(this, new RecordingStoppedEventArgs(
+                success: e.Exception is null,
+                filePath: _tempFilePath,
+                exception: e.Exception));
+        }
+        catch (Exception ex)
+        {
+            Trace.TraceError("[HighQualityRecorder] OnWaveInStopped error: {0}", ex);
+        }
     }
 
     private void CleanupRecording()

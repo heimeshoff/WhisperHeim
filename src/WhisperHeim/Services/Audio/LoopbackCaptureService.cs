@@ -179,40 +179,40 @@ public sealed class LoopbackCaptureService : IAudioCaptureService
     /// </summary>
     private void OnDataAvailable(object? sender, WaveInEventArgs e)
     {
-        int bytesRecorded = e.BytesRecorded;
-        if (bytesRecorded == 0 || _capture is null)
-            return;
-
-        WaveFormat sourceFormat = _capture.WaveFormat;
-
-        // Convert raw bytes to float samples based on source format
-        float[] sourceFloats = ConvertToFloat(e.Buffer, bytesRecorded, sourceFormat);
-
-        // Down-mix to mono if needed
-        float[] monoSamples = sourceFormat.Channels > 1
-            ? DownmixToMono(sourceFloats, sourceFormat.Channels)
-            : sourceFloats;
-
-        // Resample from source sample rate to 16kHz
-        float[] resampled = sourceFormat.SampleRate != TargetSampleRate
-            ? Resample(monoSamples, sourceFormat.SampleRate, TargetSampleRate)
-            : monoSamples;
-
-        // Write to WAV file
         try
         {
+            int bytesRecorded = e.BytesRecorded;
+            if (bytesRecorded == 0 || _capture is null)
+                return;
+
+            WaveFormat sourceFormat = _capture.WaveFormat;
+
+            // Convert raw bytes to float samples based on source format
+            float[] sourceFloats = ConvertToFloat(e.Buffer, bytesRecorded, sourceFormat);
+
+            // Down-mix to mono if needed
+            float[] monoSamples = sourceFormat.Channels > 1
+                ? DownmixToMono(sourceFloats, sourceFormat.Channels)
+                : sourceFloats;
+
+            // Resample from source sample rate to 16kHz
+            float[] resampled = sourceFormat.SampleRate != TargetSampleRate
+                ? Resample(monoSamples, sourceFormat.SampleRate, TargetSampleRate)
+                : monoSamples;
+
+            // Write to WAV file
             _waveFileWriter?.WriteSamples(resampled, 0, resampled.Length);
+
+            // Push into ring buffer
+            _ringBuffer.Write(resampled);
+
+            // Raise event for subscribers
+            AudioDataAvailable?.Invoke(this, new AudioDataEventArgs(resampled));
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Ignore file write errors during capture to avoid crashing the audio thread.
+            System.Diagnostics.Trace.TraceError("[LoopbackCapture] OnDataAvailable error: {0}", ex);
         }
-
-        // Push into ring buffer
-        _ringBuffer.Write(resampled);
-
-        // Raise event for subscribers
-        AudioDataAvailable?.Invoke(this, new AudioDataEventArgs(resampled));
     }
 
     /// <summary>
@@ -220,16 +220,22 @@ public sealed class LoopbackCaptureService : IAudioCaptureService
     /// </summary>
     private void OnRecordingStopped(object? sender, StoppedEventArgs e)
     {
-        bool wasCapturing = _isCapturing;
-        _isCapturing = false;
+        try
+        {
+            _isCapturing = false;
 
-        bool deviceDisconnected = e.Exception is not null;
+            bool deviceDisconnected = e.Exception is not null;
 
-        CleanupCapture();
+            CleanupCapture();
 
-        CaptureStopped?.Invoke(this, new CaptureStoppedEventArgs(
-            wasDeviceDisconnected: deviceDisconnected,
-            exception: e.Exception));
+            CaptureStopped?.Invoke(this, new CaptureStoppedEventArgs(
+                wasDeviceDisconnected: deviceDisconnected,
+                exception: e.Exception));
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Trace.TraceError("[LoopbackCapture] OnRecordingStopped error: {0}", ex);
+        }
     }
 
     /// <summary>

@@ -29,21 +29,22 @@ public partial class TextToSpeechPage : UserControl
         Loaded += OnLoaded;
     }
 
-    private void OnLoaded(object sender, RoutedEventArgs e)
+    private async void OnLoaded(object sender, RoutedEventArgs e)
     {
-        PopulateVoices();
+        await PopulateVoicesAsync();
     }
 
-    private void PopulateVoices()
+    private async Task PopulateVoicesAsync()
     {
         VoiceCombo.Items.Clear();
 
         try
         {
-            // Ensure the model is loaded so voices are available
+            // Load the TTS model on a background thread to avoid blocking the UI
             if (!_ttsService.IsLoaded)
             {
-                _ttsService.LoadModel();
+                StatusText.Text = "Loading TTS model...";
+                await Task.Run(() => _ttsService.LoadModel());
             }
 
             var voices = _ttsService.GetAvailableVoices();
@@ -59,6 +60,8 @@ public partial class TextToSpeechPage : UserControl
             {
                 VoiceCombo.SelectedIndex = 0;
             }
+
+            StatusText.Text = "";
         }
         catch (Exception ex)
         {

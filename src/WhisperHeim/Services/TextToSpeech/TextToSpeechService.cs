@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -139,7 +138,15 @@ public sealed class TextToSpeechService : ITextToSpeechService
             var genConfig = CreateGenerationConfig(voiceId, speed);
             var sw = Stopwatch.StartNew();
 
-            var audio = _tts.GenerateWithConfig(text, genConfig, callback: null!);
+            // Use a no-op callback that supports cancellation instead of null
+            // (null delegate can cause native crash in some sherpa-onnx versions)
+            OfflineTtsCallbackProgressWithArg callback = (IntPtr samples, int n, float progress, IntPtr arg) =>
+            {
+                return cancellationToken.IsCancellationRequested ? 0 : 1;
+            };
+
+            var audio = _tts.GenerateWithConfig(text, genConfig, callback);
+            GC.KeepAlive(callback);
             sw.Stop();
 
             var samples = audio.Samples;
@@ -172,22 +179,36 @@ public sealed class TextToSpeechService : ITextToSpeechService
 
             var genConfig = CreateGenerationConfig(voiceId, speed);
 
-            var callback = new OfflineTtsCallbackProgressWithArg((IntPtr samples, int n, float progress, IntPtr arg) =>
+            // IMPORTANT: The delegate must be prevented from garbage collection while
+            // native code holds a reference to it. Store in a local and use GC.KeepAlive
+            // after the native call completes.
+            OfflineTtsCallbackProgressWithArg callback = (IntPtr samples, int n, float progress, IntPtr arg) =>
             {
-                if (cancellationToken.IsCancellationRequested)
-                    return 0; // Stop generating
-
-                if (n > 0)
+                try
                 {
-                    var chunk = new float[n];
-                    Marshal.Copy(samples, chunk, 0, n);
-                    onChunk(chunk, progress);
-                }
+                    if (cancellationToken.IsCancellationRequested)
+                        return 0; // Stop generating
 
-                return 1; // Continue generating
-            });
+                    if (n > 0)
+                    {
+                        var chunk = new float[n];
+                        Marshal.Copy(samples, chunk, 0, n);
+                        onChunk(chunk, progress);
+                    }
+
+                    return 1; // Continue generating
+                }
+                catch (Exception ex)
+                {
+                    Trace.TraceError("[TTS] Error in streaming callback: {0}", ex);
+                    return 0; // Stop on error
+                }
+            };
 
             _tts.GenerateWithConfig(text, genConfig, callback);
+
+            // Prevent GC from collecting the delegate while native code is using it
+            GC.KeepAlive(callback);
         }, cancellationToken);
     }
 
@@ -204,20 +225,27 @@ public sealed class TextToSpeechService : ITextToSpeechService
         if (_tts is null)
             throw new InvalidOperationException("TTS model not loaded. Call LoadModel() first.");
 
-        var chunks = new BlockingCollection<float[]>();
         var playbackComplete = new TaskCompletionSource();
 
-        // Set up NAudio playback with the specified device
+        // Set up NAudio playback with IEEE float format (sherpa-onnx outputs float32 samples in [-1,1])
         using var waveOut = new WaveOutEvent { DeviceNumber = playbackDeviceNumber };
-        var waveProvider = new BufferedWaveProvider(
-            new WaveFormat(PocketTtsSampleRate, 32, 1))
+        var floatFormat = WaveFormat.CreateIeeeFloatWaveFormat(PocketTtsSampleRate, 1);
+        var waveProvider = new BufferedWaveProvider(floatFormat)
         {
-            BufferLength = PocketTtsSampleRate * 4 * 10, // 10 seconds buffer
-            DiscardOnBufferOverflow = false
+            // 30 seconds buffer to avoid overflow on longer texts
+            BufferLength = PocketTtsSampleRate * 4 * 30,
+            DiscardOnBufferOverflow = true
         };
 
         waveOut.Init(waveProvider);
-        waveOut.PlaybackStopped += (_, _) => playbackComplete.TrySetResult();
+        waveOut.PlaybackStopped += (_, args) =>
+        {
+            if (args.Exception is not null)
+                Trace.TraceError("[TTS] Playback error: {0}", args.Exception);
+            playbackComplete.TrySetResult();
+        };
+
+        var playbackStarted = false;
 
         // Start streaming generation in background
         var generationTask = GenerateAudioStreamingAsync(
@@ -225,15 +253,27 @@ public sealed class TextToSpeechService : ITextToSpeechService
             voiceId,
             (chunk, progress) =>
             {
-                // Convert float samples to byte buffer for NAudio
-                var bytes = new byte[chunk.Length * 4];
-                Buffer.BlockCopy(chunk, 0, bytes, 0, bytes.Length);
-                waveProvider.AddSamples(bytes, 0, bytes.Length);
-
-                // Start playback on first chunk for low latency
-                if (waveOut.PlaybackState == PlaybackState.Stopped)
+                try
                 {
-                    waveOut.Play();
+                    // Clamp samples to [-1, 1] to prevent distortion
+                    var bytes = new byte[chunk.Length * 4];
+                    for (int i = 0; i < chunk.Length; i++)
+                    {
+                        float sample = Math.Clamp(chunk[i], -1.0f, 1.0f);
+                        BitConverter.TryWriteBytes(bytes.AsSpan(i * 4), sample);
+                    }
+                    waveProvider.AddSamples(bytes, 0, bytes.Length);
+
+                    // Start playback on first chunk for low latency
+                    if (!playbackStarted)
+                    {
+                        playbackStarted = true;
+                        waveOut.Play();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Trace.TraceError("[TTS] Error adding samples to playback buffer: {0}", ex);
                 }
             },
             speed,
@@ -244,7 +284,6 @@ public sealed class TextToSpeechService : ITextToSpeechService
         // Wait for playback to drain the buffer
         if (waveOut.PlaybackState == PlaybackState.Playing)
         {
-            // Poll until buffer is drained or cancelled
             while (waveProvider.BufferedBytes > 0 && !cancellationToken.IsCancellationRequested)
             {
                 await Task.Delay(50, cancellationToken);

@@ -154,25 +154,32 @@ public sealed class AudioCaptureService : IAudioCaptureService
     /// </summary>
     private void OnDataAvailable(object? sender, WaveInEventArgs e)
     {
-        int bytesRecorded = e.BytesRecorded;
-        if (bytesRecorded == 0)
-            return;
-
-        // Each sample is 2 bytes (16-bit)
-        int sampleCount = bytesRecorded / 2;
-        float[] samples = new float[sampleCount];
-
-        for (int i = 0; i < sampleCount; i++)
+        try
         {
-            short pcm16 = BitConverter.ToInt16(e.Buffer, i * 2);
-            samples[i] = pcm16 / 32768f;
+            int bytesRecorded = e.BytesRecorded;
+            if (bytesRecorded == 0)
+                return;
+
+            // Each sample is 2 bytes (16-bit)
+            int sampleCount = bytesRecorded / 2;
+            float[] samples = new float[sampleCount];
+
+            for (int i = 0; i < sampleCount; i++)
+            {
+                short pcm16 = BitConverter.ToInt16(e.Buffer, i * 2);
+                samples[i] = pcm16 / 32768f;
+            }
+
+            // Push into ring buffer
+            _ringBuffer.Write(samples);
+
+            // Raise event for subscribers
+            AudioDataAvailable?.Invoke(this, new AudioDataEventArgs(samples));
         }
-
-        // Push into ring buffer
-        _ringBuffer.Write(samples);
-
-        // Raise event for subscribers
-        AudioDataAvailable?.Invoke(this, new AudioDataEventArgs(samples));
+        catch (Exception ex)
+        {
+            System.Diagnostics.Trace.TraceError("[AudioCaptureService] OnDataAvailable error: {0}", ex);
+        }
     }
 
     /// <summary>
@@ -180,29 +187,33 @@ public sealed class AudioCaptureService : IAudioCaptureService
     /// </summary>
     private void OnRecordingStopped(object? sender, StoppedEventArgs e)
     {
-        bool wasCapturing = _isCapturing;
-        _isCapturing = false;
-
-        bool deviceDisconnected = e.Exception is not null;
-
-        if (e.Exception is not null)
+        try
         {
-            System.Diagnostics.Trace.TraceError(
-                "[AudioCaptureService] RecordingStopped with exception: {0}", e.Exception);
+            _isCapturing = false;
+
+            bool deviceDisconnected = e.Exception is not null;
+
+            if (e.Exception is not null)
+            {
+                System.Diagnostics.Trace.TraceError(
+                    "[AudioCaptureService] RecordingStopped with exception: {0}", e.Exception);
+            }
+            else
+            {
+                System.Diagnostics.Trace.TraceInformation(
+                    "[AudioCaptureService] RecordingStopped normally.");
+            }
+
+            CleanupWaveIn();
+
+            CaptureStopped?.Invoke(this, new CaptureStoppedEventArgs(
+                wasDeviceDisconnected: deviceDisconnected,
+                exception: e.Exception));
         }
-        else
+        catch (Exception ex)
         {
-            System.Diagnostics.Trace.TraceInformation(
-                "[AudioCaptureService] RecordingStopped normally. wasCapturing={0}", wasCapturing);
+            System.Diagnostics.Trace.TraceError("[AudioCaptureService] OnRecordingStopped error: {0}", ex);
         }
-
-        CleanupWaveIn();
-
-        // Only raise CaptureStopped if we were actually capturing
-        // (avoids double-fire when user calls StopCapture which triggers this callback).
-        CaptureStopped?.Invoke(this, new CaptureStoppedEventArgs(
-            wasDeviceDisconnected: deviceDisconnected,
-            exception: e.Exception));
     }
 
     private void CleanupWaveIn()

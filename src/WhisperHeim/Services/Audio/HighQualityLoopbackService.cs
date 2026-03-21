@@ -179,30 +179,30 @@ public sealed class HighQualityLoopbackService : IHighQualityLoopbackService
     /// </summary>
     private void OnDataAvailable(object? sender, WaveInEventArgs e)
     {
-        int bytesRecorded = e.BytesRecorded;
-        if (bytesRecorded == 0 || _capture is null)
-            return;
-
-        // Write raw bytes directly to WAV -- no conversion, no resampling
         try
         {
+            int bytesRecorded = e.BytesRecorded;
+            if (bytesRecorded == 0 || _capture is null)
+                return;
+
+            // Write raw bytes directly to WAV -- no conversion, no resampling
             lock (_lock)
             {
                 _waveFileWriter?.Write(e.Buffer, 0, bytesRecorded);
             }
+
+            // Compute RMS from float samples for level metering
+            float rmsLevel = ComputeRms(e.Buffer, bytesRecorded, _capture.WaveFormat);
+
+            // Convert to float samples for the event (mono downmix for simplicity)
+            var floatSamples = ConvertToFloatMono(e.Buffer, bytesRecorded, _capture.WaveFormat);
+
+            AudioDataAvailable?.Invoke(this, new HighQualityAudioEventArgs(floatSamples, rmsLevel));
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Ignore file write errors during capture to avoid crashing the audio thread.
+            Trace.TraceError("[HQLoopback] OnDataAvailable error: {0}", ex);
         }
-
-        // Compute RMS from float samples for level metering
-        float rmsLevel = ComputeRms(e.Buffer, bytesRecorded, _capture.WaveFormat);
-
-        // Convert to float samples for the event (mono downmix for simplicity)
-        var floatSamples = ConvertToFloatMono(e.Buffer, bytesRecorded, _capture.WaveFormat);
-
-        AudioDataAvailable?.Invoke(this, new HighQualityAudioEventArgs(floatSamples, rmsLevel));
     }
 
     /// <summary>
@@ -210,16 +210,22 @@ public sealed class HighQualityLoopbackService : IHighQualityLoopbackService
     /// </summary>
     private void OnRecordingStopped(object? sender, StoppedEventArgs e)
     {
-        bool wasCapturing = _isCapturing;
-        _isCapturing = false;
+        try
+        {
+            _isCapturing = false;
 
-        bool deviceDisconnected = e.Exception is not null;
+            bool deviceDisconnected = e.Exception is not null;
 
-        CleanupCapture();
+            CleanupCapture();
 
-        CaptureStopped?.Invoke(this, new CaptureStoppedEventArgs(
-            wasDeviceDisconnected: deviceDisconnected,
-            exception: e.Exception));
+            CaptureStopped?.Invoke(this, new CaptureStoppedEventArgs(
+                wasDeviceDisconnected: deviceDisconnected,
+                exception: e.Exception));
+        }
+        catch (Exception ex)
+        {
+            Trace.TraceError("[HQLoopback] OnRecordingStopped error: {0}", ex);
+        }
     }
 
     /// <summary>
