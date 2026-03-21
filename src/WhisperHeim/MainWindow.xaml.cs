@@ -1,11 +1,16 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using WhisperHeim.Services.Audio;
+using WhisperHeim.Services.Dictation;
+using WhisperHeim.Services.Hotkey;
+using WhisperHeim.Services.Input;
 using WhisperHeim.Services.Models;
+using WhisperHeim.Services.Orchestration;
 using WhisperHeim.Services.Settings;
 using WhisperHeim.Views.Pages;
 using Wpf.Ui.Controls;
@@ -21,31 +26,90 @@ public partial class MainWindow : FluentWindow
     private readonly SettingsService _settingsService;
     private readonly IAudioCaptureService _audioCaptureService;
     private readonly ModelManagerService _modelManager;
+    private readonly IDictationPipeline _dictationPipeline;
+    private readonly IInputSimulator _inputSimulator;
+
+    // Hotkey and orchestration
+    private readonly GlobalHotkeyService _hotkeyService = new();
+    private DictationOrchestrator? _orchestrator;
+
+    // Tray icon images
+    private ImageSource? _idleIcon;
+    private ImageSource? _recordingIcon;
 
     // Cache pages so they are not recreated on every navigation
     private readonly Dictionary<string, object> _pageCache = new();
 
-    public MainWindow(SettingsService settingsService, IAudioCaptureService audioCaptureService, ModelManagerService modelManager)
+    public MainWindow(
+        SettingsService settingsService,
+        IAudioCaptureService audioCaptureService,
+        ModelManagerService modelManager,
+        IDictationPipeline dictationPipeline,
+        IInputSimulator inputSimulator)
     {
         _settingsService = settingsService;
         _audioCaptureService = audioCaptureService;
         _modelManager = modelManager;
+        _dictationPipeline = dictationPipeline;
+        _inputSimulator = inputSimulator;
 
         InitializeComponent();
 
-        // Generate tray icon from Segoe Fluent Icons microphone glyph
-        TrayIcon.Icon = CreateMicrophoneIcon();
+        // Generate tray icons for idle and recording states
+        _idleIcon = CreateMicrophoneIcon(Brushes.White);
+        _recordingIcon = CreateMicrophoneIcon(Brushes.Red);
+        TrayIcon.Icon = _idleIcon;
 
         // Start minimized to tray - don't show the window
         Visibility = Visibility.Hidden;
         ShowInTaskbar = false;
+
+        // Register global hotkey and start orchestration once the window handle is available
+        Loaded += OnWindowLoaded;
+    }
+
+    private void OnWindowLoaded(object sender, RoutedEventArgs e)
+    {
+        Loaded -= OnWindowLoaded;
+
+        // Register the global hotkey (needs HWND)
+        bool registered = _hotkeyService.Register(this);
+        if (!registered)
+        {
+            Trace.TraceWarning(
+                "[MainWindow] Failed to register global hotkey. " +
+                "Another application may own the combination.");
+        }
+
+        // Wire up the orchestrator
+        _orchestrator = new DictationOrchestrator(
+            _hotkeyService,
+            _dictationPipeline,
+            _inputSimulator,
+            OnDictationStateChanged);
+        _orchestrator.Start();
+
+        Trace.TraceInformation("[MainWindow] Orchestrator started. Hotkey registered: {0}", registered);
+    }
+
+    /// <summary>
+    /// Callback from the orchestrator when dictation starts or stops.
+    /// Updates the tray icon to reflect the current state.
+    /// Called on the UI thread.
+    /// </summary>
+    private void OnDictationStateChanged(bool isActive)
+    {
+        TrayIcon.Icon = (isActive ? _recordingIcon : _idleIcon)!;
+        TrayIcon.TooltipText = isActive ? "WhisperHeim - Recording..." : "WhisperHeim";
+
+        Trace.TraceInformation("[MainWindow] Tray icon updated. Active: {0}", isActive);
     }
 
     /// <summary>
     /// Renders a microphone glyph from Segoe Fluent Icons into a BitmapSource
     /// suitable for use as a tray icon.
     /// </summary>
-    private static ImageSource CreateMicrophoneIcon()
+    private static ImageSource CreateMicrophoneIcon(Brush foreground)
     {
         const int size = 32;
         // U+E720 = Microphone glyph in Segoe Fluent Icons / Segoe MDL2 Assets
@@ -64,7 +128,7 @@ public partial class MainWindow : FluentWindow
                 FlowDirection.LeftToRight,
                 typeface,
                 24,
-                Brushes.White,
+                foreground,
                 96);
 
             // Center the glyph
@@ -90,6 +154,12 @@ public partial class MainWindow : FluentWindow
             e.Cancel = true;
             Hide();
             ShowInTaskbar = false;
+        }
+        else
+        {
+            // Clean up orchestrator and hotkey on actual exit
+            _orchestrator?.Dispose();
+            _hotkeyService.Dispose();
         }
 
         base.OnClosing(e);

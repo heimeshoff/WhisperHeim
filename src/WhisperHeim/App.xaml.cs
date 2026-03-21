@@ -1,9 +1,12 @@
 using System.Linq;
 using System.Windows;
 using WhisperHeim.Services.Audio;
+using WhisperHeim.Services.Dictation;
+using WhisperHeim.Services.Input;
 using WhisperHeim.Services.Models;
 using WhisperHeim.Services.Settings;
 using WhisperHeim.Services.Startup;
+using WhisperHeim.Services.Transcription;
 using WhisperHeim.Views;
 
 namespace WhisperHeim;
@@ -39,11 +42,24 @@ public partial class App : Application
             }
         }
 
+        // Create services for the dictation pipeline
+        var vadService = new SileroVadService(ModelManagerService.SileroVadModelPath);
+        var transcriptionService = new TranscriptionService();
+        transcriptionService.LoadModel();
+        var dictationPipeline = new DictationPipeline(
+            _audioCaptureService, vadService, transcriptionService);
+        var inputSimulator = new InputSimulator();
+
         // Determine whether we were launched via auto-start (--minimized flag)
         var startMinimized = e.Args.Contains("--minimized");
 
-        // Create the main window
-        var mainWindow = new MainWindow(_settingsService, _audioCaptureService, _modelManager);
+        // Create the main window with all services
+        var mainWindow = new MainWindow(
+            _settingsService,
+            _audioCaptureService,
+            _modelManager,
+            dictationPipeline,
+            inputSimulator);
         MainWindow = mainWindow;
 
         if (!startMinimized)
