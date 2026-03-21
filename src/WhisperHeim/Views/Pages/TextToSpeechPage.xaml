@@ -1,0 +1,111 @@
+<UserControl x:Class="WhisperHeim.Views.Pages.TextToSpeechPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <TextBlock Grid.Row="0"
+                   Text="Text to Speech"
+                   FontSize="20"
+                   FontWeight="SemiBold"
+                   Margin="0,0,0,16" />
+
+        <!-- Text Input -->
+        <ui:CardControl Grid.Row="1" Margin="0,0,0,12">
+            <ui:CardControl.Header>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0"
+                               Text="Enter text to speak"
+                               FontWeight="Medium"
+                               Margin="0,0,0,8" />
+                    <TextBox x:Name="SpeechTextInput"
+                             Grid.Row="1"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             VerticalScrollBarVisibility="Auto"
+                             MinHeight="120"
+                             MaxHeight="300"
+                             TextChanged="SpeechTextInput_TextChanged" />
+                </Grid>
+            </ui:CardControl.Header>
+        </ui:CardControl>
+
+        <!-- Voice Selection -->
+        <ui:CardControl Grid.Row="2" Margin="0,0,0,12">
+            <ui:CardControl.Header>
+                <StackPanel>
+                    <TextBlock Text="Voice" FontWeight="Medium" />
+                    <TextBlock Text="Select a voice for speech generation"
+                               Opacity="0.6" FontSize="12" />
+                </StackPanel>
+            </ui:CardControl.Header>
+            <StackPanel Orientation="Horizontal">
+                <ComboBox x:Name="VoiceCombo"
+                          MinWidth="220"
+                          SelectionChanged="VoiceCombo_SelectionChanged" />
+                <Button x:Name="PreviewVoiceButton"
+                        Content="Preview"
+                        Click="PreviewVoiceButton_Click"
+                        IsEnabled="False"
+                        Margin="8,0,0,0"
+                        ToolTip="Play a short test phrase with the selected voice" />
+            </StackPanel>
+        </ui:CardControl>
+
+        <!-- Progress Indicator -->
+        <ProgressBar x:Name="GenerationProgress"
+                     Grid.Row="3"
+                     Height="4"
+                     IsIndeterminate="True"
+                     Visibility="Collapsed"
+                     Margin="0,0,0,12" />
+
+        <!-- Playback Controls and Status -->
+        <DockPanel Grid.Row="4" Margin="0,0,0,0">
+            <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                <ui:Button x:Name="PlayButton"
+                           Appearance="Primary"
+                           Click="PlayButton_Click"
+                           IsEnabled="False"
+                           Padding="24,8"
+                           FontWeight="Medium">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="Play24" Margin="0,0,6,0" />
+                        <TextBlock Text="Speak" VerticalAlignment="Center" />
+                    </StackPanel>
+                </ui:Button>
+                <ui:Button x:Name="StopButton"
+                           Appearance="Danger"
+                           Click="StopButton_Click"
+                           IsEnabled="False"
+                           Margin="8,0,0,0"
+                           Padding="24,8"
+                           FontWeight="Medium">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="Stop24" Margin="0,0,6,0" />
+                        <TextBlock Text="Stop" VerticalAlignment="Center" />
+                    </StackPanel>
+                </ui:Button>
+            </StackPanel>
+            <TextBlock x:Name="StatusText"
+                       DockPanel.Dock="Right"
+                       HorizontalAlignment="Right"
+                       VerticalAlignment="Center"
+                       FontSize="12"
+                       Opacity="0.7"
+                       TextWrapping="Wrap" />
+        </DockPanel>
+    </Grid>
+</UserControl>

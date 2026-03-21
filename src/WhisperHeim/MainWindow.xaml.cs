@@ -17,6 +17,7 @@ using WhisperHeim.Services.Models;
 using WhisperHeim.Services.Orchestration;
 using WhisperHeim.Services.Settings;
 using WhisperHeim.Services.Templates;
+using WhisperHeim.Services.TextToSpeech;
 using WhisperHeim.Views;
 using WhisperHeim.Views.Pages;
 using Wpf.Ui.Controls;
@@ -53,6 +54,9 @@ public partial class MainWindow : FluentWindow
     // High-quality mic recorder for voice cloning
     private readonly IHighQualityRecorderService _highQualityRecorderService;
 
+    // Text-to-speech for the TTS page
+    private readonly ITextToSpeechService _textToSpeechService;
+
     // Hotkey and orchestration
     private readonly GlobalHotkeyService _hotkeyService = new();
     private DictationOrchestrator? _orchestrator;
@@ -84,7 +88,8 @@ public partial class MainWindow : FluentWindow
         CallRecordingHotkeyService callRecordingHotkeyService,
         ITranscriptStorageService transcriptStorageService,
         IHighQualityLoopbackService highQualityLoopbackService,
-        IHighQualityRecorderService highQualityRecorderService)
+        IHighQualityRecorderService highQualityRecorderService,
+        ITextToSpeechService textToSpeechService)
     {
         _settingsService = settingsService;
         _audioCaptureService = audioCaptureService;
@@ -99,6 +104,7 @@ public partial class MainWindow : FluentWindow
         _transcriptStorageService = transcriptStorageService;
         _highQualityLoopbackService = highQualityLoopbackService;
         _highQualityRecorderService = highQualityRecorderService;
+        _textToSpeechService = textToSpeechService;
 
         InitializeComponent();
 
@@ -530,6 +536,7 @@ public partial class MainWindow : FluentWindow
                 "Transcripts" => new TranscriptsPage(_transcriptStorageService),
                 "VoiceCloning" => new VoiceCloningPage(_highQualityRecorderService),
                 "VoiceLoopback" => new VoiceLoopbackCapturePage(_highQualityLoopbackService),
+                "TextToSpeech" => new TextToSpeechPage(_textToSpeechService),
                 "About" => new AboutPage(_modelManager),
                 _ => null
             };

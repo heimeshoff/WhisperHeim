@@ -2,6 +2,32 @@
 
 ---
 
+## 2026-03-21 21:15 -- Task Completed: 035 - TTS settings + hotkey configuration
+
+**Type:** Task Completion
+**Task:** 035 - TTS settings + hotkey configuration
+**Summary:** Added TtsSettings model with DefaultVoiceId, ReadAloudHotkey, PlaybackDeviceId persisted via SettingsService. ReadAloudHotkeyService now reads hotkey config from settings with live re-registration. SpeakAsync accepts playback device parameter.
+**Files changed:** 6 files
+
+---
+
+## 2026-03-21 21:12 -- Task Completed: 033 - TTS UI page
+
+**Type:** Task Completion
+**Task:** 033 - TTS UI page
+**Summary:** Created TextToSpeechPage with multi-line text input, voice selector (built-in + custom), Play/Stop with CancellationTokenSource, indeterminate progress bar, and voice preview button. Wired into MainWindow sidebar navigation.
+**Files changed:** 5 files
+
+---
+
+## 2026-03-21 21:05 -- Batch Started: [033, 035]
+
+**Type:** Batch Start
+**Tasks:** 033 - TTS UI page, 035 - TTS settings + hotkey configuration
+**Mode:** Parallel (batch of 2)
+
+---
+
 ## 2026-03-21 21:00 -- Task Completed: 032 - Read selected text via global hotkey
 
 **Type:** Task Completion

@@ -105,6 +105,12 @@
                         <TextBlock Text="Voice Capture" VerticalAlignment="Center" />
                     </StackPanel>
                 </ListBoxItem>
+                <ListBoxItem Tag="TextToSpeech">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="ReadAloud24" Margin="0,0,8,0" />
+                        <TextBlock Text="Text to Speech" VerticalAlignment="Center" />
+                    </StackPanel>
+                </ListBoxItem>
                 <ListBoxItem Tag="About">
                     <StackPanel Orientation="Horizontal">
                         <ui:SymbolIcon Symbol="Info24" Margin="0,0,8,0" />

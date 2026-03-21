@@ -158,7 +158,7 @@ public partial class App : Application
 
         // Create read-aloud services (selected text capture + hotkey)
         var selectedTextService = new SelectedTextService();
-        var readAloudHotkeyService = new ReadAloudHotkeyService(selectedTextService, textToSpeechService);
+        var readAloudHotkeyService = new ReadAloudHotkeyService(selectedTextService, textToSpeechService, _settingsService);
         readAloudHotkeyService.Register();
 
         // Determine whether we were launched via auto-start (--minimized flag)
@@ -178,7 +178,8 @@ public partial class App : Application
             callRecordingHotkeyService,
             transcriptStorageService,
             highQualityLoopbackService,
-            highQualityRecorderService);
+            highQualityRecorderService,
+            textToSpeechService);
         MainWindow = mainWindow;
 
         if (!startMinimized)
