@@ -183,7 +183,8 @@ public partial class App : Application
             transcriptStorageService,
             highQualityLoopbackService,
             highQualityRecorderService,
-            textToSpeechService);
+            textToSpeechService,
+            _readAloudHotkeyService);
         MainWindow = mainWindow;
 
         if (!startMinimized)

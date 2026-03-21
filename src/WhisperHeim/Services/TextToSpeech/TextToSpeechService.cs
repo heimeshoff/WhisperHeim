@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using NAudio.Wave;
 using SherpaOnnx;
 using WhisperHeim.Services.Models;
@@ -18,6 +19,12 @@ public sealed class TextToSpeechService : ITextToSpeechService
 
     /// <summary>Maximum reference audio length in seconds for voice cloning.</summary>
     private const int MaxReferenceAudioLenSeconds = 12;
+
+    /// <summary>
+    /// Duration of silence to insert between generated chunks (at 500-char sentence breaks).
+    /// 300ms at 24kHz = 7200 silence samples. Provides a natural breathing pause.
+    /// </summary>
+    private const int InterChunkSilenceSamples = 7200; // 300ms
 
     private OfflineTts? _tts;
     private readonly object _lock = new();
@@ -44,12 +51,14 @@ public sealed class TextToSpeechService : ITextToSpeechService
         if (_tts is not null)
             return;
 
-        var modelDir = ModelManagerService.GetModelDirectory(ModelManagerService.PocketTtsInt8);
+        var activeModel = ModelManagerService.ActivePocketTtsModel;
+        var modelDir = ModelManagerService.GetModelDirectory(activeModel);
+        var isFp32 = activeModel == ModelManagerService.PocketTtsFp32;
 
-        var lmFlowPath = Path.Combine(modelDir, "lm_flow.int8.onnx");
-        var lmMainPath = Path.Combine(modelDir, "lm_main.int8.onnx");
+        var lmFlowPath = Path.Combine(modelDir, isFp32 ? "lm_flow.onnx" : "lm_flow.int8.onnx");
+        var lmMainPath = Path.Combine(modelDir, isFp32 ? "lm_main.onnx" : "lm_main.int8.onnx");
         var encoderPath = Path.Combine(modelDir, "encoder.onnx");
-        var decoderPath = Path.Combine(modelDir, "decoder.int8.onnx");
+        var decoderPath = Path.Combine(modelDir, isFp32 ? "decoder.onnx" : "decoder.int8.onnx");
         var textConditionerPath = Path.Combine(modelDir, "text_conditioner.onnx");
         var vocabPath = Path.Combine(modelDir, "vocab.json");
         var tokenScoresPath = Path.Combine(modelDir, "token_scores.json");
@@ -75,9 +84,10 @@ public sealed class TextToSpeechService : ITextToSpeechService
         config.Model.Debug = 0;
         config.Model.Provider = "cpu";
 
-        Trace.TraceInformation("[TTS] Loading Pocket TTS model from {0}...", modelDir);
+        var variant = isFp32 ? "FP32" : "int8";
+        Trace.TraceInformation("[TTS] Loading Pocket TTS model ({0}) from {1}...", variant, modelDir);
         _tts = new OfflineTts(config);
-        Trace.TraceInformation("[TTS] Pocket TTS model loaded. SampleRate={0}", _tts.SampleRate);
+        Trace.TraceInformation("[TTS] Pocket TTS model ({0}) loaded. SampleRate={1}", variant, _tts.SampleRate);
     }
 
     /// <inheritdoc />
@@ -86,7 +96,7 @@ public sealed class TextToSpeechService : ITextToSpeechService
         var voices = new List<TtsVoice>();
 
         // Built-in voices from the model's test_wavs directory
-        var modelDir = ModelManagerService.GetModelDirectory(ModelManagerService.PocketTtsInt8);
+        var modelDir = ModelManagerService.GetModelDirectory(ModelManagerService.ActivePocketTtsModel);
         var testWavsDir = Path.Combine(modelDir, "test_wavs");
 
         if (Directory.Exists(testWavsDir))
@@ -135,28 +145,40 @@ public sealed class TextToSpeechService : ITextToSpeechService
         {
             cancellationToken.ThrowIfCancellationRequested();
 
+            var chunks = SplitTextIntoChunks(text);
             var genConfig = CreateGenerationConfig(voiceId, speed);
             var sw = Stopwatch.StartNew();
 
-            // Use a no-op callback that supports cancellation instead of null
-            // (null delegate can cause native crash in some sherpa-onnx versions)
             OfflineTtsCallbackProgressWithArg callback = (IntPtr samples, int n, float progress, IntPtr arg) =>
             {
                 return cancellationToken.IsCancellationRequested ? 0 : 1;
             };
 
-            var audio = _tts.GenerateWithConfig(text, genConfig, callback);
-            GC.KeepAlive(callback);
+            var allSamples = new List<float>();
+
+            for (int i = 0; i < chunks.Count; i++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                // Insert silence between chunks for a natural pause
+                if (i > 0)
+                    allSamples.AddRange(new float[InterChunkSilenceSamples]);
+
+                var audio = _tts.GenerateWithConfig(chunks[i], genConfig, callback);
+                GC.KeepAlive(callback);
+                allSamples.AddRange(audio.Samples);
+            }
+
             sw.Stop();
 
-            var samples = audio.Samples;
             Trace.TraceInformation(
-                "[TTS] Generated {0} samples ({1:F1}s audio) in {2:F1}s",
-                samples.Length,
-                (double)samples.Length / PocketTtsSampleRate,
+                "[TTS] Generated {0} samples ({1:F1}s audio) from {2} chunk(s) in {3:F1}s",
+                allSamples.Count,
+                (double)allSamples.Count / PocketTtsSampleRate,
+                chunks.Count,
                 sw.Elapsed.TotalSeconds);
 
-            return new TtsGenerationResult(samples, audio.SampleRate);
+            return new TtsGenerationResult(allSamples.ToArray(), PocketTtsSampleRate);
         }, cancellationToken);
     }
 
@@ -177,38 +199,48 @@ public sealed class TextToSpeechService : ITextToSpeechService
         {
             cancellationToken.ThrowIfCancellationRequested();
 
+            var chunks = SplitTextIntoChunks(text);
             var genConfig = CreateGenerationConfig(voiceId, speed);
 
-            // IMPORTANT: The delegate must be prevented from garbage collection while
-            // native code holds a reference to it. Store in a local and use GC.KeepAlive
-            // after the native call completes.
-            OfflineTtsCallbackProgressWithArg callback = (IntPtr samples, int n, float progress, IntPtr arg) =>
+            for (int i = 0; i < chunks.Count; i++)
             {
-                try
-                {
-                    if (cancellationToken.IsCancellationRequested)
-                        return 0; // Stop generating
+                cancellationToken.ThrowIfCancellationRequested();
 
-                    if (n > 0)
+                // Insert silence between chunks for a natural pause
+                if (i > 0)
+                    onChunk(new float[InterChunkSilenceSamples], (float)i / chunks.Count);
+
+                // IMPORTANT: The delegate must be prevented from garbage collection while
+                // native code holds a reference to it. Store in a local and use GC.KeepAlive
+                // after the native call completes.
+                OfflineTtsCallbackProgressWithArg callback = (IntPtr samples, int n, float progress, IntPtr arg) =>
+                {
+                    try
                     {
-                        var chunk = new float[n];
-                        Marshal.Copy(samples, chunk, 0, n);
-                        onChunk(chunk, progress);
+                        if (cancellationToken.IsCancellationRequested)
+                            return 0;
+
+                        if (n > 0)
+                        {
+                            var chunk = new float[n];
+                            Marshal.Copy(samples, chunk, 0, n);
+                            // Scale progress to account for multiple chunks
+                            float overallProgress = ((float)i + progress) / chunks.Count;
+                            onChunk(chunk, overallProgress);
+                        }
+
+                        return 1;
                     }
+                    catch (Exception ex)
+                    {
+                        Trace.TraceError("[TTS] Error in streaming callback: {0}", ex);
+                        return 0;
+                    }
+                };
 
-                    return 1; // Continue generating
-                }
-                catch (Exception ex)
-                {
-                    Trace.TraceError("[TTS] Error in streaming callback: {0}", ex);
-                    return 0; // Stop on error
-                }
-            };
-
-            _tts.GenerateWithConfig(text, genConfig, callback);
-
-            // Prevent GC from collecting the delegate while native code is using it
-            GC.KeepAlive(callback);
+                _tts.GenerateWithConfig(chunks[i], genConfig, callback);
+                GC.KeepAlive(callback);
+            }
         }, cancellationToken);
     }
 
@@ -218,7 +250,8 @@ public sealed class TextToSpeechService : ITextToSpeechService
         string voiceId,
         float speed = 1.0f,
         int playbackDeviceNumber = -1,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        Action? onPlaybackStarted = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -269,6 +302,7 @@ public sealed class TextToSpeechService : ITextToSpeechService
                     {
                         playbackStarted = true;
                         waveOut.Play();
+                        onPlaybackStarted?.Invoke();
                     }
                 }
                 catch (Exception ex)
@@ -315,11 +349,23 @@ public sealed class TextToSpeechService : ITextToSpeechService
         var genConfig = new OfflineTtsGenerationConfig();
         genConfig.Speed = speed;
 
+        // More diffusion steps = smoother audio, fewer artifacts (default 5, max ~10)
+        genConfig.NumSteps = 8;
+
+        // Expand existing silent regions for more breathing room between sentences
+        genConfig.SilenceScale = 0.8f;
+
         // Load reference audio for voice cloning using NAudio
         var (samples, sampleRate) = LoadWavSamples(voice.ReferenceAudioPath);
         genConfig.ReferenceAudio = samples;
         genConfig.ReferenceSampleRate = sampleRate;
         genConfig.Extra["max_reference_audio_len"] = MaxReferenceAudioLenSeconds;
+
+        // Lower temperature for more stable, less glitchy output (default 0.7)
+        genConfig.Extra["temperature"] = 0.6f;
+
+        // More frames after end-of-speech = natural trailing silence per sentence (default 3)
+        genConfig.Extra["frames_after_eos"] = 12;
 
         return genConfig;
     }
@@ -374,6 +420,73 @@ public sealed class TextToSpeechService : ITextToSpeechService
             Array.Resize(ref buffer, read);
 
         return (buffer, sampleRate);
+    }
+
+    /// <summary>
+    /// Max characters per chunk before forcing a split.
+    /// The native code has a max_frames limit that can cut off very long text.
+    /// </summary>
+    private const int MaxCharsPerChunk = 500;
+
+    /// <summary>
+    /// Splits text into generation chunks. Within each chunk, sentence-ending punctuation
+    /// is replaced with commas so the native code generates one continuous utterance.
+    /// Chunks are split at ~500 character boundaries at natural sentence breaks.
+    /// The caller is responsible for inserting silence between chunks.
+    /// </summary>
+    private static List<string> SplitTextIntoChunks(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return [text];
+
+        // Find all mid-text sentence boundaries: .!? followed by whitespace and uppercase letter
+        var boundaries = Regex.Matches(text, @"[.!?]\s+(?=[A-Z])");
+        if (boundaries.Count == 0)
+            return [text];
+
+        // First pass: decide which boundaries become chunk splits vs comma replacements
+        var chunkTexts = new List<string>();
+        var currentChunk = new System.Text.StringBuilder();
+        int lastCopyPos = 0;
+        int charsSinceLastSplit = 0;
+
+        foreach (Match match in boundaries)
+        {
+            int textBeforeLen = match.Index - lastCopyPos;
+            charsSinceLastSplit += textBeforeLen + match.Length;
+
+            currentChunk.Append(text, lastCopyPos, textBeforeLen);
+
+            if (charsSinceLastSplit >= MaxCharsPerChunk)
+            {
+                // End the current chunk here (keep the sentence-ending punctuation)
+                currentChunk.Append(text[match.Index]); // just the . or ! or ?
+                chunkTexts.Add(currentChunk.ToString().Trim());
+                currentChunk.Clear();
+                charsSinceLastSplit = 0;
+            }
+            else
+            {
+                // Merge: replace punctuation with comma, lowercase the next letter
+                currentChunk.Append(", ");
+                int nextCharIndex = match.Index + match.Length;
+                currentChunk.Append(char.ToLower(text[nextCharIndex]));
+                lastCopyPos = nextCharIndex + 1;
+                continue;
+            }
+
+            lastCopyPos = match.Index + match.Length;
+        }
+
+        // Append remaining text as the final chunk
+        if (lastCopyPos < text.Length)
+            currentChunk.Append(text, lastCopyPos, text.Length - lastCopyPos);
+
+        var finalChunk = currentChunk.ToString().Trim();
+        if (finalChunk.Length > 0)
+            chunkTexts.Add(finalChunk);
+
+        return chunkTexts;
     }
 
     private static void ValidateModelFile(string path, string description)

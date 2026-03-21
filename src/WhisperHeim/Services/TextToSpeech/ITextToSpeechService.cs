@@ -76,10 +76,12 @@ public interface ITextToSpeechService : IDisposable
     /// <param name="speed">Speech speed multiplier (1.0 = normal).</param>
     /// <param name="playbackDeviceNumber">NAudio playback device number (-1 = system default).</param>
     /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="onPlaybackStarted">Optional callback invoked when audio playback actually begins (first chunk).</param>
     Task SpeakAsync(
         string text,
         string voiceId,
         float speed = 1.0f,
         int playbackDeviceNumber = -1,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        Action? onPlaybackStarted = null);
 }

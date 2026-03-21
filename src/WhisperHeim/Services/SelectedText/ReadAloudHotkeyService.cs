@@ -9,16 +9,17 @@ namespace WhisperHeim.Services.SelectedText;
 /// <summary>
 /// Registers a global hotkey that captures selected text from any application
 /// and reads it aloud using the text-to-speech engine.
-/// Default hotkey: Ctrl + Shift + R (user-configurable via TTS settings).
+/// Default hotkey: Shift + Win + Ä (user-configurable via TTS settings).
 /// </summary>
 public sealed class ReadAloudHotkeyService : IDisposable
 {
     /// <summary>
-    /// Default read-aloud hotkey: Ctrl + Shift + R.
+    /// Default read-aloud hotkey: Shift + Win + Ä.
+    /// Avoids Ctrl+Alt which triggers AltGr on German keyboards.
     /// </summary>
     public static readonly HotkeyRegistration DefaultHotkey = new(
-        ModifierKeys.Control | ModifierKeys.Shift,
-        VirtualKey: 0x52 // 'R' key
+        ModifierKeys.Shift | ModifierKeys.Win,
+        VirtualKey: 0xDE // VK_OEM_7 — ä key on German keyboard
     );
 
     private readonly ISelectedTextService _selectedTextService;
@@ -26,7 +27,32 @@ public sealed class ReadAloudHotkeyService : IDisposable
     private readonly SettingsService _settingsService;
     private readonly GlobalHotkeyService _hotkeyService = new();
     private CancellationTokenSource? _currentReadCts;
+    private volatile bool _isReading;
     private bool _disposed;
+
+    /// <summary>
+    /// Raised immediately when the read-aloud hotkey is pressed and processing begins.
+    /// Indicates the overlay should appear in "Thinking" state.
+    /// </summary>
+    public event EventHandler? ReadAloudStarted;
+
+    /// <summary>
+    /// Raised when audio playback actually begins (first audio chunk is playing).
+    /// Indicates the overlay should transition to "Playing" state.
+    /// </summary>
+    public event EventHandler? ReadAloudPlaying;
+
+    /// <summary>
+    /// Raised when read-aloud finishes naturally (playback complete).
+    /// Indicates the overlay should fade out.
+    /// </summary>
+    public event EventHandler? ReadAloudCompleted;
+
+    /// <summary>
+    /// Raised when read-aloud is cancelled (user toggled hotkey or error).
+    /// Indicates the overlay should be dismissed instantly.
+    /// </summary>
+    public event EventHandler? ReadAloudCancelled;
 
     /// <summary>
     /// The default voice ID to use for reading aloud.
@@ -62,7 +88,7 @@ public sealed class ReadAloudHotkeyService : IDisposable
 
     /// <summary>
     /// Registers the read-aloud hotkey. Reads the hotkey from settings if available,
-    /// otherwise uses the provided hotkey or the default (Ctrl+Shift+R).
+    /// otherwise uses the provided hotkey or the default (Ctrl+Alt+Ä).
     /// </summary>
     public bool Register(HotkeyRegistration? hotkey = null)
     {
@@ -118,19 +144,35 @@ public sealed class ReadAloudHotkeyService : IDisposable
 
     private async void OnHotkeyPressed(object? sender, EventArgs e)
     {
-        try
+        // If already reading, cancel and dismiss (toggle behavior)
+        if (_isReading)
         {
-            // Cancel any ongoing read-aloud
             _currentReadCts?.Cancel();
             _currentReadCts?.Dispose();
+            _currentReadCts = null;
+            _isReading = false;
+            ReadAloudCancelled?.Invoke(this, EventArgs.Empty);
+            Trace.TraceInformation("[ReadAloudHotkeyService] Read-aloud toggled off");
+            return;
+        }
+
+        try
+        {
+            _currentReadCts?.Dispose();
             _currentReadCts = new CancellationTokenSource();
+            _isReading = true;
             var ct = _currentReadCts.Token;
+
+            // Signal overlay to show in thinking state immediately
+            ReadAloudStarted?.Invoke(this, EventArgs.Empty);
 
             // Capture selected text
             var text = await _selectedTextService.CaptureSelectedTextAsync(ct);
             if (string.IsNullOrWhiteSpace(text))
             {
                 Trace.TraceInformation("[ReadAloudHotkeyService] No text selected, nothing to read");
+                _isReading = false;
+                ReadAloudCancelled?.Invoke(this, EventArgs.Empty);
                 return;
             }
 
@@ -152,6 +194,8 @@ public sealed class ReadAloudHotkeyService : IDisposable
             if (voiceId == null)
             {
                 Trace.TraceWarning("[ReadAloudHotkeyService] No voices available for TTS");
+                _isReading = false;
+                ReadAloudCancelled?.Invoke(this, EventArgs.Empty);
                 return;
             }
 
@@ -166,15 +210,24 @@ public sealed class ReadAloudHotkeyService : IDisposable
             Trace.TraceInformation("[ReadAloudHotkeyService] Reading aloud: \"{0}\" (voice={1}, speed={2}, device={3})",
                 text.Length > 50 ? text[..50] + "..." : text, voiceId, Speed, deviceNumber);
 
-            await _textToSpeechService.SpeakAsync(text, voiceId, Speed, deviceNumber, ct);
+            await _textToSpeechService.SpeakAsync(text, voiceId, Speed, deviceNumber, ct,
+                onPlaybackStarted: () => ReadAloudPlaying?.Invoke(this, EventArgs.Empty));
+
+            // Playback completed naturally
+            _isReading = false;
+            ReadAloudCompleted?.Invoke(this, EventArgs.Empty);
         }
         catch (OperationCanceledException)
         {
             Trace.TraceInformation("[ReadAloudHotkeyService] Read-aloud cancelled");
+            _isReading = false;
+            ReadAloudCancelled?.Invoke(this, EventArgs.Empty);
         }
         catch (Exception ex)
         {
             Trace.TraceError("[ReadAloudHotkeyService] Error during read-aloud: {0}", ex);
+            _isReading = false;
+            ReadAloudCancelled?.Invoke(this, EventArgs.Empty);
         }
     }
 }

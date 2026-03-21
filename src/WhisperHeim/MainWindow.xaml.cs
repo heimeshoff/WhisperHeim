@@ -17,6 +17,7 @@ using WhisperHeim.Services.Models;
 using WhisperHeim.Services.Orchestration;
 using WhisperHeim.Services.Settings;
 using WhisperHeim.Services.Templates;
+using WhisperHeim.Services.SelectedText;
 using WhisperHeim.Services.TextToSpeech;
 using WhisperHeim.Views;
 using WhisperHeim.Views.Pages;
@@ -57,6 +58,9 @@ public partial class MainWindow : FluentWindow
     // Text-to-speech for the TTS page
     private readonly ITextToSpeechService _textToSpeechService;
 
+    // Read-aloud hotkey service (for overlay lifecycle events)
+    private readonly ReadAloudHotkeyService _readAloudHotkeyService;
+
     // Hotkey and orchestration
     private readonly GlobalHotkeyService _hotkeyService = new();
     private DictationOrchestrator? _orchestrator;
@@ -71,6 +75,9 @@ public partial class MainWindow : FluentWindow
 
     // Dictation overlay indicator
     private DictationOverlayWindow? _overlayWindow;
+
+    // Read-aloud overlay indicator
+    private ReadAloudOverlayWindow? _readAloudOverlayWindow;
 
     // Cache pages so they are not recreated on every navigation
     private readonly Dictionary<string, object> _pageCache = new();
@@ -89,7 +96,8 @@ public partial class MainWindow : FluentWindow
         ITranscriptStorageService transcriptStorageService,
         IHighQualityLoopbackService highQualityLoopbackService,
         IHighQualityRecorderService highQualityRecorderService,
-        ITextToSpeechService textToSpeechService)
+        ITextToSpeechService textToSpeechService,
+        ReadAloudHotkeyService readAloudHotkeyService)
     {
         _settingsService = settingsService;
         _audioCaptureService = audioCaptureService;
@@ -105,6 +113,7 @@ public partial class MainWindow : FluentWindow
         _highQualityLoopbackService = highQualityLoopbackService;
         _highQualityRecorderService = highQualityRecorderService;
         _textToSpeechService = textToSpeechService;
+        _readAloudHotkeyService = readAloudHotkeyService;
 
         InitializeComponent();
 
@@ -152,6 +161,9 @@ public partial class MainWindow : FluentWindow
         // Initialize the dictation overlay if enabled in settings
         InitializeOverlay();
 
+        // Initialize the read-aloud overlay and wire up lifecycle events
+        InitializeReadAloudOverlay();
+
         Trace.TraceInformation(
             "[MainWindow] Orchestrator started. Dictation hotkey: {0}",
             registered);
@@ -188,6 +200,62 @@ public partial class MainWindow : FluentWindow
 
         Trace.TraceInformation("[MainWindow] Overlay initialized. Position: {0}, Size: {1}",
             overlaySettings.Position, overlaySettings.Size);
+    }
+
+    /// <summary>
+    /// Creates and configures the read-aloud overlay window and wires up lifecycle events.
+    /// </summary>
+    private void InitializeReadAloudOverlay()
+    {
+        var overlaySettings = _settingsService.Current.Overlay;
+        if (!overlaySettings.Enabled)
+        {
+            Trace.TraceInformation("[MainWindow] Read-aloud overlay disabled (overlay disabled in settings).");
+            return;
+        }
+
+        _readAloudOverlayWindow = new ReadAloudOverlayWindow();
+        _readAloudOverlayWindow.ApplySettings(overlaySettings);
+
+        // Subscribe to read-aloud lifecycle events
+        _readAloudHotkeyService.ReadAloudStarted += OnReadAloudStarted;
+        _readAloudHotkeyService.ReadAloudPlaying += OnReadAloudPlaying;
+        _readAloudHotkeyService.ReadAloudCompleted += OnReadAloudCompleted;
+        _readAloudHotkeyService.ReadAloudCancelled += OnReadAloudCancelled;
+
+        Trace.TraceInformation("[MainWindow] Read-aloud overlay initialized.");
+    }
+
+    private void OnReadAloudStarted(object? sender, EventArgs e)
+    {
+        Application.Current?.Dispatcher?.BeginInvoke(() =>
+        {
+            _readAloudOverlayWindow?.ShowOverlay();
+        });
+    }
+
+    private void OnReadAloudPlaying(object? sender, EventArgs e)
+    {
+        Application.Current?.Dispatcher?.BeginInvoke(() =>
+        {
+            _readAloudOverlayWindow?.SetState(Views.ReadAloudOverlayState.Playing);
+        });
+    }
+
+    private void OnReadAloudCompleted(object? sender, EventArgs e)
+    {
+        Application.Current?.Dispatcher?.BeginInvoke(() =>
+        {
+            _readAloudOverlayWindow?.HideOverlay();
+        });
+    }
+
+    private void OnReadAloudCancelled(object? sender, EventArgs e)
+    {
+        Application.Current?.Dispatcher?.BeginInvoke(() =>
+        {
+            _readAloudOverlayWindow?.DismissOverlay();
+        });
     }
 
     /// <summary>
@@ -459,8 +527,15 @@ public partial class MainWindow : FluentWindow
             _callRecordingService.DurationUpdated -= OnCallRecordingDurationUpdated;
             _callRecordingService.StreamFailed -= OnCallRecordingStreamFailed;
 
+            // Unsubscribe from read-aloud events
+            _readAloudHotkeyService.ReadAloudStarted -= OnReadAloudStarted;
+            _readAloudHotkeyService.ReadAloudPlaying -= OnReadAloudPlaying;
+            _readAloudHotkeyService.ReadAloudCompleted -= OnReadAloudCompleted;
+            _readAloudHotkeyService.ReadAloudCancelled -= OnReadAloudCancelled;
+
             // Clean up orchestrator, overlay, hotkey, and call recording services on actual exit
             _overlayWindow?.Close();
+            _readAloudOverlayWindow?.Close();
             _orchestrator?.Dispose();
             _hotkeyService.Dispose();
             _callRecordingHotkeyService.Dispose();
