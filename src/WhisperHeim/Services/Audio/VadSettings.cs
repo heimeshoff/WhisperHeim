@@ -32,7 +32,7 @@ public sealed class VadSettings
 
     /// <summary>
     /// Number of audio samples per VAD inference chunk.
-    /// Silero VAD supports 512 or 1536 at 16kHz. Default: 512.
+    /// Silero VAD via sherpa-onnx uses 512 at 16kHz (~32ms per frame). Default: 512.
     /// </summary>
     public int ChunkSamples { get; set; } = 512;
 

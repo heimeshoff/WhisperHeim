@@ -27,5 +27,34 @@
                    Margin="0,4,0,8"
                    Visibility="Collapsed"
                    TextWrapping="Wrap" />
+
+        <!-- Hotkey info -->
+        <ui:CardControl Margin="0,8,0,8">
+            <ui:CardControl.Header>
+                <StackPanel>
+                    <TextBlock Text="Hotkeys" FontWeight="Medium" />
+                    <TextBlock Text="Keyboard shortcuts for voice features"
+                               Opacity="0.6" FontSize="12" />
+                </StackPanel>
+            </ui:CardControl.Header>
+            <StackPanel>
+                <TextBlock Text="Ctrl+Win — Toggle dictation" FontSize="13" />
+                <TextBlock Text="Alt+Win — Trigger template" FontSize="13" Opacity="0.7" />
+            </StackPanel>
+        </ui:CardControl>
+
+        <!-- Test area -->
+        <TextBlock Text="Test Area"
+                   FontSize="16"
+                   FontWeight="Medium"
+                   Margin="0,16,0,8" />
+        <TextBlock Text="Click the text box below and press Ctrl+Alt+Space to test dictation."
+                   Opacity="0.6" FontSize="12" Margin="0,0,0,8" />
+        <TextBox x:Name="TestTextBox"
+                 MinHeight="120"
+                 AcceptsReturn="True"
+                 TextWrapping="Wrap"
+                 VerticalScrollBarVisibility="Auto"
+                 FontSize="14" />
     </StackPanel>
 </UserControl>

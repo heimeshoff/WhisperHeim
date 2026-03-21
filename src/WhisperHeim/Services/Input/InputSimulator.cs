@@ -71,7 +71,9 @@ public sealed class InputSimulator : IInputSimulator
         if (sent != inputs.Length)
         {
             var error = Marshal.GetLastWin32Error();
-            throw new Win32Exception(error, $"SendInput failed for character U+{(int)c:X4}. Sent {sent}/{inputs.Length} events.");
+            System.Diagnostics.Trace.TraceWarning(
+                "[InputSimulator] SendInput sent {0}/{1} events for U+{2:X4}, Win32 error={3}",
+                sent, inputs.Length, (int)c, error);
         }
     }
 

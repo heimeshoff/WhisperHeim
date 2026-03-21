@@ -31,7 +31,7 @@ public partial class MainWindow : FluentWindow
     private readonly SettingsService _settingsService;
     private readonly IAudioCaptureService _audioCaptureService;
     private readonly ModelManagerService _modelManager;
-    private readonly IDictationPipeline _dictationPipeline;
+    private readonly ITranscriptionService _transcriptionService;
     private readonly IInputSimulator _inputSimulator;
     private readonly ITemplateService _templateService;
 
@@ -45,9 +45,8 @@ public partial class MainWindow : FluentWindow
     private readonly GlobalHotkeyService _hotkeyService = new();
     private DictationOrchestrator? _orchestrator;
 
-    // Template hotkey and orchestration (separate from dictation)
-    private readonly GlobalHotkeyService _templateHotkeyService = new();
-    private TemplateOrchestrator? _templateOrchestrator;
+    // Template hotkey and orchestration (separate from dictation) -- disabled for now
+    // TODO: re-enable template orchestrator with hold-to-talk pattern
 
     // Tray icon images
     private ImageSource? _idleIcon;
@@ -55,7 +54,6 @@ public partial class MainWindow : FluentWindow
 
     // Dictation overlay indicator
     private DictationOverlayWindow? _overlayWindow;
-    private System.Windows.Threading.DispatcherTimer? _speechPauseTimer;
 
     // Cache pages so they are not recreated on every navigation
     private readonly Dictionary<string, object> _pageCache = new();
@@ -64,7 +62,7 @@ public partial class MainWindow : FluentWindow
         SettingsService settingsService,
         IAudioCaptureService audioCaptureService,
         ModelManagerService modelManager,
-        IDictationPipeline dictationPipeline,
+        ITranscriptionService transcriptionService,
         IInputSimulator inputSimulator,
         IFileTranscriptionService fileTranscriptionService,
         ITemplateService templateService)
@@ -72,7 +70,7 @@ public partial class MainWindow : FluentWindow
         _settingsService = settingsService;
         _audioCaptureService = audioCaptureService;
         _modelManager = modelManager;
-        _dictationPipeline = dictationPipeline;
+        _transcriptionService = transcriptionService;
         _inputSimulator = inputSimulator;
         _fileTranscriptionService = fileTranscriptionService;
         _templateService = templateService;
@@ -88,16 +86,14 @@ public partial class MainWindow : FluentWindow
         Visibility = Visibility.Hidden;
         ShowInTaskbar = false;
 
-        // Register global hotkey and start orchestration once the window handle is available
-        Loaded += OnWindowLoaded;
+        // Low-level keyboard hooks don't need an HWND, so we can set up immediately
+        SetupHotkeysAndOrchestration();
     }
 
-    private void OnWindowLoaded(object sender, RoutedEventArgs e)
+    private void SetupHotkeysAndOrchestration()
     {
-        Loaded -= OnWindowLoaded;
-
-        // Register the global hotkey (needs HWND)
-        bool registered = _hotkeyService.Register(this);
+        // Register the global dictation hotkey (low-level keyboard hook, no HWND needed)
+        bool registered = _hotkeyService.Register();
         if (!registered)
         {
             Trace.TraceWarning(
@@ -105,44 +101,21 @@ public partial class MainWindow : FluentWindow
                 "Another application may own the combination.");
         }
 
-        // Wire up the orchestrator
+        // Wire up the hold-to-talk orchestrator
         _orchestrator = new DictationOrchestrator(
             _hotkeyService,
-            _dictationPipeline,
+            _audioCaptureService,
+            _transcriptionService,
             _inputSimulator,
             OnDictationStateChanged);
         _orchestrator.Start();
 
-        // Register the template hotkey (Alt+Win, separate from dictation hotkey)
-        var templateHotkey = new HotkeyRegistration(
-            ModifierKeys.Alt | ModifierKeys.Win,
-            VirtualKey: NativeMethods.VK_LWIN);
-        bool templateRegistered = _templateHotkeyService.Register(this, templateHotkey);
-        if (!templateRegistered)
-        {
-            Trace.TraceWarning(
-                "[MainWindow] Failed to register template hotkey. " +
-                "Another application may own the combination.");
-        }
-
-        // Wire up the template orchestrator
-        _templateOrchestrator = new TemplateOrchestrator(
-            _templateHotkeyService,
-            _dictationPipeline,
-            _inputSimulator,
-            _templateService,
-            ShowTemplateNotification);
-        _templateOrchestrator.Start();
-
         // Initialize the dictation overlay if enabled in settings
         InitializeOverlay();
 
-        // Listen for partial results to trigger speech animation on the overlay
-        _dictationPipeline.PartialResult += OnPartialResultForOverlay;
-
         Trace.TraceInformation(
-            "[MainWindow] Orchestrator started. Dictation hotkey: {0}, Template hotkey: {1}",
-            registered, templateRegistered);
+            "[MainWindow] Orchestrator started. Dictation hotkey: {0}",
+            registered);
     }
 
     /// <summary>
@@ -160,35 +133,8 @@ public partial class MainWindow : FluentWindow
         _overlayWindow = new DictationOverlayWindow();
         _overlayWindow.ApplySettings(overlaySettings);
 
-        // Timer to revert from speech-active animation back to listening pulse
-        _speechPauseTimer = new System.Windows.Threading.DispatcherTimer
-        {
-            Interval = TimeSpan.FromMilliseconds(1500)
-        };
-        _speechPauseTimer.Tick += (_, _) =>
-        {
-            _speechPauseTimer.Stop();
-            _overlayWindow?.NotifySpeechPause();
-        };
-
         Trace.TraceInformation("[MainWindow] Overlay initialized. Position: {0}, Size: {1}",
             overlaySettings.Position, overlaySettings.Size);
-    }
-
-    /// <summary>
-    /// When partial transcription results arrive, switch the overlay to the
-    /// faster speech animation.
-    /// </summary>
-    private void OnPartialResultForOverlay(object? sender, DictationResultEventArgs e)
-    {
-        if (_overlayWindow is null || string.IsNullOrEmpty(e.Text)) return;
-
-        Dispatcher.BeginInvoke(() =>
-        {
-            _overlayWindow.NotifySpeechActivity();
-            _speechPauseTimer?.Stop();
-            _speechPauseTimer?.Start();
-        });
     }
 
     /// <summary>
@@ -201,14 +147,12 @@ public partial class MainWindow : FluentWindow
         TrayIcon.Icon = (isActive ? _recordingIcon : _idleIcon)!;
         TrayIcon.TooltipText = isActive ? "WhisperHeim - Recording..." : "WhisperHeim";
 
-        // Show or hide the overlay indicator
         if (isActive)
         {
             _overlayWindow?.ShowOverlay();
         }
         else
         {
-            _speechPauseTimer?.Stop();
             _overlayWindow?.HideOverlay();
         }
 
@@ -291,8 +235,6 @@ public partial class MainWindow : FluentWindow
         {
             // Clean up orchestrator, overlay, and hotkey on actual exit
             _overlayWindow?.Close();
-            _templateOrchestrator?.Dispose();
-            _templateHotkeyService.Dispose();
             _orchestrator?.Dispose();
             _hotkeyService.Dispose();
         }
@@ -344,6 +286,9 @@ public partial class MainWindow : FluentWindow
 
     private void NavList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        // Guard: SelectionChanged fires during InitializeComponent before controls are ready
+        if (PageContent is null) return;
+
         if (NavList.SelectedItem is ListBoxItem item && item.Tag is string tag)
         {
             NavigateTo(tag);

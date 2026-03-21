@@ -73,9 +73,19 @@ public sealed class AudioCaptureService : IAudioCaptureService
         if (_isCapturing)
             return;
 
-        // Resolve default device
+        // Resolve default device (-1 means system default, which NAudio maps to device 0)
         if (deviceIndex < 0)
             deviceIndex = 0;
+
+        int deviceCount = WaveInEvent.DeviceCount;
+        System.Diagnostics.Trace.TraceInformation(
+            "[AudioCaptureService] Starting capture on device {0} (of {1} available)",
+            deviceIndex, deviceCount);
+
+        if (deviceCount == 0)
+        {
+            throw new InvalidOperationException("No audio input devices found.");
+        }
 
         _ringBuffer.Clear();
 
@@ -95,10 +105,14 @@ public sealed class AudioCaptureService : IAudioCaptureService
         {
             _waveIn.StartRecording();
             _isCapturing = true;
+            System.Diagnostics.Trace.TraceInformation(
+                "[AudioCaptureService] Recording started successfully.");
             CaptureStarted?.Invoke(this, EventArgs.Empty);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            System.Diagnostics.Trace.TraceError(
+                "[AudioCaptureService] StartRecording failed: {0}", ex);
             CleanupWaveIn();
             throw;
         }
@@ -170,6 +184,17 @@ public sealed class AudioCaptureService : IAudioCaptureService
         _isCapturing = false;
 
         bool deviceDisconnected = e.Exception is not null;
+
+        if (e.Exception is not null)
+        {
+            System.Diagnostics.Trace.TraceError(
+                "[AudioCaptureService] RecordingStopped with exception: {0}", e.Exception);
+        }
+        else
+        {
+            System.Diagnostics.Trace.TraceInformation(
+                "[AudioCaptureService] RecordingStopped normally. wasCapturing={0}", wasCapturing);
+        }
 
         CleanupWaveIn();
 

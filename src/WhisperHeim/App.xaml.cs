@@ -1,7 +1,7 @@
+using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using WhisperHeim.Services.Audio;
-using WhisperHeim.Services.Dictation;
 using WhisperHeim.Services.Input;
 using WhisperHeim.Services.Models;
 using WhisperHeim.Services.Settings;
@@ -24,6 +24,55 @@ public partial class App : Application
 
     private void OnStartup(object sender, StartupEventArgs e)
     {
+        // Global exception handler for diagnostics
+        DispatcherUnhandledException += (_, args) =>
+        {
+            System.Diagnostics.Trace.TraceError("[App] Unhandled UI exception: {0}", args.Exception);
+            MessageBox.Show(
+                $"WhisperHeim encountered an error:\n\n{args.Exception.Message}\n\n{args.Exception.StackTrace}",
+                "WhisperHeim Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            args.Handled = true;
+        };
+
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+        {
+            var ex = args.ExceptionObject as Exception;
+            System.Diagnostics.Trace.TraceError("[App] Unhandled domain exception: {0}", ex);
+            MessageBox.Show(
+                $"WhisperHeim fatal error:\n\n{ex?.Message}\n\n{ex?.StackTrace}",
+                "WhisperHeim Fatal Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        };
+
+        try
+        {
+            StartupCore(e);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Trace.TraceError("[App] Startup failed: {0}", ex);
+            MessageBox.Show(
+                $"WhisperHeim failed to start:\n\n{ex.Message}\n\n{ex.StackTrace}",
+                "WhisperHeim Startup Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            Shutdown(1);
+        }
+    }
+
+    private void StartupCore(StartupEventArgs e)
+    {
+        // Enable trace output to a log file for diagnostics
+        var logPath = System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "WhisperHeim", "whisperheim.log");
+        System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(logPath)!);
+        Trace.Listeners.Add(new TextWriterTraceListener(logPath) { TraceOutputOptions = TraceOptions.DateTime });
+        Trace.AutoFlush = true;
+        Trace.TraceInformation("[App] WhisperHeim starting...");
         // Load settings (creates file with defaults on first run)
         _settingsService.Load();
 
@@ -44,12 +93,9 @@ public partial class App : Application
             }
         }
 
-        // Create services for the dictation pipeline
-        var vadService = new SileroVadService(ModelManagerService.SileroVadModelPath);
+        // Create services
         var transcriptionService = new TranscriptionService();
         transcriptionService.LoadModel();
-        var dictationPipeline = new DictationPipeline(
-            _audioCaptureService, vadService, transcriptionService);
         var inputSimulator = new InputSimulator();
         var fileTranscriptionService = new FileTranscriptionService(transcriptionService);
         var templateService = new TemplateService(_settingsService);
@@ -62,7 +108,7 @@ public partial class App : Application
             _settingsService,
             _audioCaptureService,
             _modelManager,
-            dictationPipeline,
+            transcriptionService,
             inputSimulator,
             fileTranscriptionService,
             templateService);

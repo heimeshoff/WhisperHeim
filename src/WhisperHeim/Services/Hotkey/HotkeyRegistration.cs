@@ -6,10 +6,11 @@ namespace WhisperHeim.Services.Hotkey;
 public sealed record HotkeyRegistration(ModifierKeys Modifiers, int VirtualKey)
 {
     /// <summary>
-    /// Default hotkey: Ctrl + Left Windows key.
+    /// Default dictation hotkey: Ctrl + Left Windows key.
+    /// Uses low-level keyboard hook (not RegisterHotKey) to capture Win key combos.
     /// </summary>
     public static HotkeyRegistration Default { get; } = new(
-        ModifierKeys.Control | ModifierKeys.Win,
+        ModifierKeys.Control,
         VirtualKey: NativeMethods.VK_LWIN
     );
 }

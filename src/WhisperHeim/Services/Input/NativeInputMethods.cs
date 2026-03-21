@@ -23,11 +23,13 @@ internal static class NativeInputMethods
     [StructLayout(LayoutKind.Sequential)]
     internal struct INPUT
     {
-        public int type;
+        public uint type;
         public INPUTUNION u;
     }
 
-    [StructLayout(LayoutKind.Explicit)]
+    // The INPUT union must be the size of the largest member (MOUSEINPUT = 32 bytes on x64).
+    // KEYBDINPUT is only 24 bytes on x64, so we pad to match MOUSEINPUT.
+    [StructLayout(LayoutKind.Explicit, Size = 32)]
     internal struct INPUTUNION
     {
         [FieldOffset(0)]

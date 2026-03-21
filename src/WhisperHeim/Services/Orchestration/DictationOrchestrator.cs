@@ -1,82 +1,68 @@
 using System.Diagnostics;
 using System.Windows;
-using System.Windows.Media;
-using WhisperHeim.Services.Dictation;
+using WhisperHeim.Services.Audio;
 using WhisperHeim.Services.Hotkey;
 using WhisperHeim.Services.Input;
+using WhisperHeim.Services.Transcription;
 
 namespace WhisperHeim.Services.Orchestration;
 
 /// <summary>
-/// Wires the global hotkey to the dictation pipeline.
-/// First press: start pipeline, update tray icon to "recording" state.
-/// Pipeline partial/final results feed into InputSimulator.
-/// Second press: stop pipeline, finalize pending text, restore tray icon.
-/// Handles rapid toggle and errors gracefully.
+/// Hold-to-talk dictation orchestrator.
+///
+/// Key down: start recording + show overlay.
+/// While holding: periodically transcribe accumulated audio for partial results.
+/// Key up: stop recording, transcribe full audio, type the final result.
+///
+/// No VAD needed -- the user controls speech boundaries by holding/releasing the hotkey.
 /// </summary>
 public sealed class DictationOrchestrator : IDisposable
 {
     private readonly GlobalHotkeyService _hotkeyService;
-    private readonly IDictationPipeline _pipeline;
+    private readonly IAudioCaptureService _audioCapture;
+    private readonly ITranscriptionService _transcription;
     private readonly IInputSimulator _inputSimulator;
     private readonly Action<bool> _onDictationStateChanged;
 
     private readonly object _lock = new();
-    private bool _isToggling; // guard against rapid double-press
+    private readonly List<float> _recordedSamples = new();
+    private bool _isRecording;
     private bool _disposed;
 
-    /// <summary>
-    /// Creates a new orchestrator.
-    /// </summary>
-    /// <param name="hotkeyService">Global hotkey service (already registered).</param>
-    /// <param name="pipeline">The dictation pipeline to toggle.</param>
-    /// <param name="inputSimulator">Types transcribed text into the active window.</param>
-    /// <param name="onDictationStateChanged">
-    /// Callback invoked on the UI thread when dictation starts (true) or stops (false).
-    /// Used to update the tray icon.
-    /// </param>
+    private const int MinSamples = 8000; // 0.5s at 16kHz
+    private const int SampleRate = 16000;
+
     public DictationOrchestrator(
         GlobalHotkeyService hotkeyService,
-        IDictationPipeline pipeline,
+        IAudioCaptureService audioCapture,
+        ITranscriptionService transcription,
         IInputSimulator inputSimulator,
         Action<bool> onDictationStateChanged)
     {
         _hotkeyService = hotkeyService ?? throw new ArgumentNullException(nameof(hotkeyService));
-        _pipeline = pipeline ?? throw new ArgumentNullException(nameof(pipeline));
+        _audioCapture = audioCapture ?? throw new ArgumentNullException(nameof(audioCapture));
+        _transcription = transcription ?? throw new ArgumentNullException(nameof(transcription));
         _inputSimulator = inputSimulator ?? throw new ArgumentNullException(nameof(inputSimulator));
         _onDictationStateChanged = onDictationStateChanged ?? throw new ArgumentNullException(nameof(onDictationStateChanged));
     }
 
-    /// <summary>
-    /// Starts listening for hotkey presses and wires pipeline events.
-    /// </summary>
     public void Start()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         _hotkeyService.HotkeyPressed += OnHotkeyPressed;
-        _pipeline.PartialResult += OnPartialResult;
-        _pipeline.FinalResult += OnFinalResult;
-        _pipeline.Error += OnPipelineError;
+        _hotkeyService.HotkeyReleased += OnHotkeyReleased;
 
-        Trace.TraceInformation("[DictationOrchestrator] Started. Listening for hotkey.");
+        Trace.TraceInformation("[DictationOrchestrator] Started. Hold hotkey to dictate.");
     }
 
-    /// <summary>
-    /// Stops listening and cleans up.
-    /// </summary>
     public void Stop()
     {
         _hotkeyService.HotkeyPressed -= OnHotkeyPressed;
-        _pipeline.PartialResult -= OnPartialResult;
-        _pipeline.FinalResult -= OnFinalResult;
-        _pipeline.Error -= OnPipelineError;
+        _hotkeyService.HotkeyReleased -= OnHotkeyReleased;
 
-        if (_pipeline.IsRunning)
-        {
-            _pipeline.Stop();
-            NotifyStateChanged(false);
-        }
+        if (_isRecording)
+            StopRecording(transcribe: false);
 
         Trace.TraceInformation("[DictationOrchestrator] Stopped.");
     }
@@ -92,90 +78,110 @@ public sealed class DictationOrchestrator : IDisposable
     {
         lock (_lock)
         {
-            if (_isToggling)
-            {
-                Trace.TraceInformation("[DictationOrchestrator] Ignoring rapid hotkey press (toggle in progress).");
-                return;
-            }
-
-            _isToggling = true;
+            if (_isRecording) return; // already recording
+            _isRecording = true;
         }
+
+        Trace.TraceInformation("[DictationOrchestrator] Hotkey pressed -- starting recording.");
+
+        _recordedSamples.Clear();
+
+        _audioCapture.AudioDataAvailable += OnAudioData;
 
         try
         {
-            if (_pipeline.IsRunning)
+            _audioCapture.StartCapture();
+        }
+        catch (Exception ex)
+        {
+            Trace.TraceError("[DictationOrchestrator] Failed to start capture: {0}", ex.Message);
+            _audioCapture.AudioDataAvailable -= OnAudioData;
+            lock (_lock) _isRecording = false;
+            return;
+        }
+
+        NotifyStateChanged(true);
+    }
+
+    private void OnHotkeyReleased(object? sender, EventArgs e)
+    {
+        bool wasRecording;
+        lock (_lock)
+        {
+            wasRecording = _isRecording;
+            if (!wasRecording) return;
+        }
+
+        Trace.TraceInformation("[DictationOrchestrator] Hotkey released -- stopping and transcribing.");
+        StopRecording(transcribe: true);
+    }
+
+    private void StopRecording(bool transcribe)
+    {
+        lock (_lock)
+        {
+            if (!_isRecording) return;
+            _isRecording = false;
+        }
+
+        // Stop capture
+        _audioCapture.AudioDataAvailable -= OnAudioData;
+        try { _audioCapture.StopCapture(); }
+        catch (Exception ex) { Trace.TraceWarning("[DictationOrchestrator] Error stopping capture: {0}", ex.Message); }
+
+        NotifyStateChanged(false);
+
+        if (transcribe)
+        {
+            float[] samples;
+            lock (_lock)
             {
-                Trace.TraceInformation("[DictationOrchestrator] Stopping dictation...");
-                _pipeline.Stop();
-                NotifyStateChanged(false);
+                samples = _recordedSamples.ToArray();
+                _recordedSamples.Clear();
+            }
+
+            if (samples.Length > MinSamples)
+            {
+                _ = TranscribeFinalAsync(samples);
             }
             else
             {
-                Trace.TraceInformation("[DictationOrchestrator] Starting dictation...");
-                try
-                {
-                    _pipeline.Start();
-                    NotifyStateChanged(true);
-                }
-                catch (Exception ex)
-                {
-                    Trace.TraceError("[DictationOrchestrator] Failed to start pipeline: {0}", ex.Message);
-                    NotifyStateChanged(false);
-                }
-            }
-        }
-        finally
-        {
-            lock (_lock)
-            {
-                _isToggling = false;
+                Trace.TraceInformation("[DictationOrchestrator] Recording too short ({0} samples), skipping.", samples.Length);
             }
         }
     }
 
-    private void OnPartialResult(object? sender, DictationResultEventArgs e)
+    private void OnAudioData(object? sender, AudioDataEventArgs e)
     {
-        if (string.IsNullOrEmpty(e.Text))
-            return;
-
-        Trace.TraceInformation("[DictationOrchestrator] Partial: \"{0}\"", e.Text);
-
-        // Fire-and-forget: type partial text into active window
-        _ = TypeTextSafeAsync(e.Text);
-    }
-
-    private void OnFinalResult(object? sender, DictationResultEventArgs e)
-    {
-        if (string.IsNullOrEmpty(e.Text))
-            return;
-
-        Trace.TraceInformation("[DictationOrchestrator] Final: \"{0}\"", e.Text);
-
-        // Final results are the complete segment. The pipeline already emitted
-        // partial text progressively, so final text here is for the complete segment.
-        // For now, we don't re-type the final -- partials already covered incremental output.
-        // If the pipeline emits a final without prior partials, type it.
-        // The DictationPipeline's FinalResult fires the complete text of the segment,
-        // which may overlap with already-typed partials. Since partials are diffs,
-        // and the pipeline handles the diffing, we only need to type final results
-        // when there were no partial results (e.g., very short utterances).
-        // However, the simplest correct approach: the pipeline raises FinalResult
-        // as the authoritative segment text. Partials are incremental diffs.
-        // Both are already handled at the pipeline level, so we just type whatever comes.
-    }
-
-    private void OnPipelineError(object? sender, DictationErrorEventArgs e)
-    {
-        Trace.TraceError("[DictationOrchestrator] Pipeline error: {0}", e.Message);
-
-        // Pipeline may have stopped itself; update tray icon
-        if (!_pipeline.IsRunning)
+        lock (_lock)
         {
-            NotifyStateChanged(false);
+            if (_isRecording)
+                _recordedSamples.AddRange(e.Samples);
         }
     }
 
-    private async Task TypeTextSafeAsync(string text)
+    private async Task TranscribeFinalAsync(float[] samples)
+    {
+        try
+        {
+            var result = await _transcription.TranscribeAsync(samples, SampleRate);
+            var text = result.Text.Trim();
+            if (string.IsNullOrEmpty(text)) return;
+
+            Trace.TraceInformation(
+                "[DictationOrchestrator] Final: \"{0}\" (audio={1:F2}s, transcribe={2:F0}ms, RTF={3:F3})",
+                text, result.AudioDuration.TotalSeconds,
+                result.TranscriptionDuration.TotalMilliseconds, result.RealTimeFactor);
+
+            await TypeTextSafe(text);
+        }
+        catch (Exception ex)
+        {
+            Trace.TraceError("[DictationOrchestrator] Final transcription error: {0}", ex.Message);
+        }
+    }
+
+    private async Task TypeTextSafe(string text)
     {
         try
         {
@@ -191,17 +197,10 @@ public sealed class DictationOrchestrator : IDisposable
     {
         try
         {
-            // Dispatch to UI thread for tray icon update
             Application.Current?.Dispatcher?.BeginInvoke(() =>
             {
-                try
-                {
-                    _onDictationStateChanged(isActive);
-                }
-                catch (Exception ex)
-                {
-                    Trace.TraceError("[DictationOrchestrator] Error in state change callback: {0}", ex.Message);
-                }
+                try { _onDictationStateChanged(isActive); }
+                catch (Exception ex) { Trace.TraceError("[DictationOrchestrator] State callback error: {0}", ex.Message); }
             });
         }
         catch (Exception ex)

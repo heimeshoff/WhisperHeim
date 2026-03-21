@@ -1,27 +1,29 @@
-using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Windows;
-using System.Windows.Interop;
 
 namespace WhisperHeim.Services.Hotkey;
 
 /// <summary>
-/// Manages a global hotkey using Win32 RegisterHotKey / UnregisterHotKey.
-/// Raises <see cref="HotkeyPressed"/> when the registered hotkey is pressed from any application.
+/// Manages a global hotkey using a low-level keyboard hook (WH_KEYBOARD_LL).
+/// This approach works with Win key combos (unlike RegisterHotKey which Windows intercepts).
+/// Raises <see cref="HotkeyPressed"/> when the configured key combination is pressed.
 /// </summary>
 public sealed class GlobalHotkeyService : IDisposable
 {
-    private const int HotkeyId = 0x7701; // arbitrary unique id within the app
-
-    private HwndSource? _hwndSource;
-    private IntPtr _windowHandle;
-    private bool _registered;
+    private IntPtr _hookId = IntPtr.Zero;
+    private NativeMethods.LowLevelKeyboardProc? _hookProc; // prevent GC
     private bool _disposed;
+    private bool _targetKeyDown; // tracks key-down state to suppress auto-repeat
 
     /// <summary>
-    /// Raised when the registered global hotkey is pressed.
+    /// Raised when the registered global hotkey is pressed (key down).
     /// </summary>
     public event EventHandler? HotkeyPressed;
+
+    /// <summary>
+    /// Raised when the registered global hotkey is released (key up).
+    /// </summary>
+    public event EventHandler? HotkeyReleased;
 
     /// <summary>
     /// The currently configured hotkey combination.
@@ -29,70 +31,54 @@ public sealed class GlobalHotkeyService : IDisposable
     public HotkeyRegistration Hotkey { get; private set; } = HotkeyRegistration.Default;
 
     /// <summary>
-    /// Registers the global hotkey using the given WPF window as the message sink.
-    /// Call this once during application startup (after the window handle is available).
+    /// Installs the low-level keyboard hook with the default or specified hotkey.
+    /// The <paramref name="window"/> parameter is accepted for API compatibility but not used
+    /// (low-level hooks don't need a window handle).
     /// </summary>
-    /// <param name="window">A WPF window whose HWND will receive WM_HOTKEY messages.</param>
-    /// <param name="hotkey">
-    /// Optional hotkey override. When <c>null</c>, <see cref="HotkeyRegistration.Default"/> is used.
-    /// </param>
-    /// <returns>
-    /// <c>true</c> if the hotkey was registered successfully;
-    /// <c>false</c> if registration failed (e.g., another app already owns the combination).
-    /// </returns>
-    public bool Register(Window window, HotkeyRegistration? hotkey = null)
+    public bool Register(System.Windows.Window? window = null, HotkeyRegistration? hotkey = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        if (_registered)
+        if (_hookId != IntPtr.Zero)
             Unregister();
 
         Hotkey = hotkey ?? HotkeyRegistration.Default;
 
-        var helper = new WindowInteropHelper(window);
-        _windowHandle = helper.EnsureHandle();
-        _hwndSource = HwndSource.FromHwnd(_windowHandle);
-        _hwndSource?.AddHook(WndProc);
+        _hookProc = HookCallback;
+        using var process = Process.GetCurrentProcess();
+        using var module = process.MainModule!;
+        _hookId = NativeMethods.SetWindowsHookEx(
+            NativeMethods.WH_KEYBOARD_LL,
+            _hookProc,
+            NativeMethods.GetModuleHandle(module.ModuleName!),
+            0);
 
-        bool success = NativeMethods.RegisterHotKey(
-            _windowHandle,
-            HotkeyId,
-            (uint)Hotkey.Modifiers,
-            (uint)Hotkey.VirtualKey
-        );
-
-        if (!success)
+        if (_hookId == IntPtr.Zero)
         {
             int error = Marshal.GetLastWin32Error();
-            System.Diagnostics.Debug.WriteLine(
-                $"[GlobalHotkeyService] RegisterHotKey failed – Win32 error {error} " +
-                $"(0x{error:X8}). The hotkey may be registered by another application."
-            );
-            // Clean up the hook since we failed
-            _hwndSource?.RemoveHook(WndProc);
-            _hwndSource = null;
-            _windowHandle = IntPtr.Zero;
+            Trace.TraceWarning(
+                "[GlobalHotkeyService] SetWindowsHookEx failed – Win32 error {0} (0x{0:X8})",
+                error);
             return false;
         }
 
-        _registered = true;
+        Trace.TraceInformation(
+            "[GlobalHotkeyService] Hook installed. Hotkey: modifiers=0x{0:X}, vk=0x{1:X}",
+            (int)Hotkey.Modifiers, Hotkey.VirtualKey);
         return true;
     }
 
     /// <summary>
-    /// Unregisters the hotkey and detaches from the window message loop.
-    /// Safe to call multiple times.
+    /// Removes the keyboard hook. Safe to call multiple times.
     /// </summary>
     public void Unregister()
     {
-        if (!_registered)
-            return;
-
-        NativeMethods.UnregisterHotKey(_windowHandle, HotkeyId);
-        _hwndSource?.RemoveHook(WndProc);
-        _hwndSource = null;
-        _windowHandle = IntPtr.Zero;
-        _registered = false;
+        if (_hookId != IntPtr.Zero)
+        {
+            NativeMethods.UnhookWindowsHookEx(_hookId);
+            _hookId = IntPtr.Zero;
+            Trace.TraceInformation("[GlobalHotkeyService] Hook removed.");
+        }
     }
 
     public void Dispose()
@@ -102,21 +88,64 @@ public sealed class GlobalHotkeyService : IDisposable
         Unregister();
     }
 
-    // ── private ────────────────────────────────────────────────────
-
-    private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    private IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
     {
-        if (msg == NativeMethods.WM_HOTKEY && wParam.ToInt32() == HotkeyId)
+        if (nCode >= 0)
         {
-            OnHotkeyPressed();
-            handled = true;
+            int vkCode = Marshal.ReadInt32(lParam);
+            int msg = wParam.ToInt32();
+
+            if (vkCode == Hotkey.VirtualKey)
+            {
+                if (msg is NativeMethods.WM_KEYDOWN or NativeMethods.WM_SYSKEYDOWN)
+                {
+                    // Only fire on the initial key-down, not auto-repeat
+                    if (!_targetKeyDown && AreModifiersPressed())
+                    {
+                        _targetKeyDown = true;
+                        HotkeyPressed?.Invoke(this, EventArgs.Empty);
+                    }
+                }
+                else if (msg is NativeMethods.WM_KEYUP or NativeMethods.WM_SYSKEYUP)
+                {
+                    if (_targetKeyDown)
+                    {
+                        _targetKeyDown = false;
+                        HotkeyReleased?.Invoke(this, EventArgs.Empty);
+                    }
+                }
+            }
         }
 
-        return IntPtr.Zero;
+        return NativeMethods.CallNextHookEx(_hookId, nCode, wParam, lParam);
     }
 
-    private void OnHotkeyPressed()
+    /// <summary>
+    /// Checks if the required modifier keys are currently pressed using GetAsyncKeyState.
+    /// Special case: if the target key IS a Win key, skip the Win modifier check
+    /// (the key itself being pressed would satisfy it, causing a false double-requirement).
+    /// </summary>
+    private bool AreModifiersPressed()
     {
-        HotkeyPressed?.Invoke(this, EventArgs.Empty);
+        var required = Hotkey.Modifiers;
+        bool isWinKey = Hotkey.VirtualKey is NativeMethods.VK_LWIN or NativeMethods.VK_RWIN;
+
+        bool ctrlRequired = required.HasFlag(ModifierKeys.Control);
+        bool shiftRequired = required.HasFlag(ModifierKeys.Shift);
+        bool altRequired = required.HasFlag(ModifierKeys.Alt);
+        bool winRequired = required.HasFlag(ModifierKeys.Win);
+
+        bool ctrlDown = IsKeyDown(NativeMethods.VK_CONTROL);
+        bool shiftDown = IsKeyDown(NativeMethods.VK_SHIFT);
+        bool altDown = IsKeyDown(NativeMethods.VK_MENU);
+        bool winDown = IsKeyDown(NativeMethods.VK_LWIN) || IsKeyDown(NativeMethods.VK_RWIN);
+
+        return (ctrlRequired == ctrlDown) &&
+               (shiftRequired == shiftDown) &&
+               (altRequired == altDown) &&
+               (isWinKey || (winRequired == winDown));
     }
+
+    private static bool IsKeyDown(int vk) =>
+        (NativeMethods.GetAsyncKeyState(vk) & 0x8000) != 0;
 }
