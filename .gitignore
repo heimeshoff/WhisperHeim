@@ -37,6 +37,6 @@ $RECYCLE.BIN/
 .idea/
 *.sln.iml
 
-## Models (large binary files)
-models/
-*.onnx
+## Models (large binary files downloaded at runtime)
+**/models/*.onnx
+**/models/*.bin
