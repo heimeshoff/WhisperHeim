@@ -2,13 +2,98 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
-    <StackPanel Margin="24">
-        <TextBlock Text="Templates"
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <TextBlock Grid.Row="0"
+                   Text="Templates"
                    FontSize="20"
                    FontWeight="SemiBold"
+                   Margin="0,0,0,8" />
+
+        <TextBlock Grid.Row="1"
+                   Text="Define named text templates triggered by the template hotkey (Alt+Win) + voice command. Supports {date}, {time}, {clipboard} placeholders."
+                   TextWrapping="Wrap"
+                   Opacity="0.6"
                    Margin="0,0,0,16" />
 
-        <TextBlock Text="Text templates for quick insertion will appear here."
-                   Opacity="0.6" />
-    </StackPanel>
+        <!-- Template list -->
+        <ListBox x:Name="TemplateList"
+                 Grid.Row="2"
+                 Margin="0,0,0,12"
+                 SelectionChanged="TemplateList_SelectionChanged">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Margin="4">
+                        <TextBlock Text="{Binding Name}"
+                                   FontWeight="SemiBold"
+                                   FontSize="14" />
+                        <TextBlock Text="{Binding Text}"
+                                   Opacity="0.6"
+                                   TextTrimming="CharacterEllipsis"
+                                   MaxWidth="400"
+                                   HorizontalAlignment="Left" />
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <!-- Edit area -->
+        <StackPanel Grid.Row="3">
+            <Grid Margin="0,0,0,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="80" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0"
+                           Text="Name:"
+                           VerticalAlignment="Center" />
+                <ui:TextBox x:Name="NameTextBox"
+                            Grid.Column="1"
+                            PlaceholderText="Template trigger name (e.g. 'greeting')" />
+            </Grid>
+
+            <Grid Margin="0,0,0,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="80" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0"
+                           Text="Text:"
+                           VerticalAlignment="Top"
+                           Margin="0,6,0,0" />
+                <ui:TextBox x:Name="TextTextBox"
+                            Grid.Column="1"
+                            AcceptsReturn="True"
+                            MinHeight="60"
+                            MaxHeight="120"
+                            PlaceholderText="Template text. Use {date}, {time}, {clipboard} for placeholders." />
+            </Grid>
+
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Right">
+                <ui:Button x:Name="AddButton"
+                           Content="Add"
+                           Appearance="Primary"
+                           Margin="0,0,8,0"
+                           Click="AddButton_Click" />
+                <ui:Button x:Name="UpdateButton"
+                           Content="Update"
+                           Margin="0,0,8,0"
+                           IsEnabled="False"
+                           Click="UpdateButton_Click" />
+                <ui:Button x:Name="DeleteButton"
+                           Content="Delete"
+                           Appearance="Danger"
+                           IsEnabled="False"
+                           Click="DeleteButton_Click" />
+            </StackPanel>
+        </StackPanel>
+    </Grid>
 </UserControl>

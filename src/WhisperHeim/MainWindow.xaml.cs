@@ -15,6 +15,7 @@ using WhisperHeim.Services.Input;
 using WhisperHeim.Services.Models;
 using WhisperHeim.Services.Orchestration;
 using WhisperHeim.Services.Settings;
+using WhisperHeim.Services.Templates;
 using WhisperHeim.Views;
 using WhisperHeim.Views.Pages;
 using Wpf.Ui.Controls;
@@ -32,6 +33,7 @@ public partial class MainWindow : FluentWindow
     private readonly ModelManagerService _modelManager;
     private readonly IDictationPipeline _dictationPipeline;
     private readonly IInputSimulator _inputSimulator;
+    private readonly ITemplateService _templateService;
 
     // Transcript storage for the Transcripts page
     private readonly ITranscriptStorageService _transcriptStorageService = new TranscriptStorageService();
@@ -42,6 +44,10 @@ public partial class MainWindow : FluentWindow
     // Hotkey and orchestration
     private readonly GlobalHotkeyService _hotkeyService = new();
     private DictationOrchestrator? _orchestrator;
+
+    // Template hotkey and orchestration (separate from dictation)
+    private readonly GlobalHotkeyService _templateHotkeyService = new();
+    private TemplateOrchestrator? _templateOrchestrator;
 
     // Tray icon images
     private ImageSource? _idleIcon;
@@ -60,7 +66,8 @@ public partial class MainWindow : FluentWindow
         ModelManagerService modelManager,
         IDictationPipeline dictationPipeline,
         IInputSimulator inputSimulator,
-        IFileTranscriptionService fileTranscriptionService)
+        IFileTranscriptionService fileTranscriptionService,
+        ITemplateService templateService)
     {
         _settingsService = settingsService;
         _audioCaptureService = audioCaptureService;
@@ -68,6 +75,7 @@ public partial class MainWindow : FluentWindow
         _dictationPipeline = dictationPipeline;
         _inputSimulator = inputSimulator;
         _fileTranscriptionService = fileTranscriptionService;
+        _templateService = templateService;
 
         InitializeComponent();
 
@@ -105,13 +113,36 @@ public partial class MainWindow : FluentWindow
             OnDictationStateChanged);
         _orchestrator.Start();
 
+        // Register the template hotkey (Alt+Win, separate from dictation hotkey)
+        var templateHotkey = new HotkeyRegistration(
+            ModifierKeys.Alt | ModifierKeys.Win,
+            VirtualKey: NativeMethods.VK_LWIN);
+        bool templateRegistered = _templateHotkeyService.Register(this, templateHotkey);
+        if (!templateRegistered)
+        {
+            Trace.TraceWarning(
+                "[MainWindow] Failed to register template hotkey. " +
+                "Another application may own the combination.");
+        }
+
+        // Wire up the template orchestrator
+        _templateOrchestrator = new TemplateOrchestrator(
+            _templateHotkeyService,
+            _dictationPipeline,
+            _inputSimulator,
+            _templateService,
+            ShowTemplateNotification);
+        _templateOrchestrator.Start();
+
         // Initialize the dictation overlay if enabled in settings
         InitializeOverlay();
 
         // Listen for partial results to trigger speech animation on the overlay
         _dictationPipeline.PartialResult += OnPartialResultForOverlay;
 
-        Trace.TraceInformation("[MainWindow] Orchestrator started. Hotkey registered: {0}", registered);
+        Trace.TraceInformation(
+            "[MainWindow] Orchestrator started. Dictation hotkey: {0}, Template hotkey: {1}",
+            registered, templateRegistered);
     }
 
     /// <summary>
@@ -223,6 +254,28 @@ public partial class MainWindow : FluentWindow
     }
 
     /// <summary>
+    /// Shows a brief notification when a template is matched (or not).
+    /// Called on the UI thread.
+    /// </summary>
+    private void ShowTemplateNotification(string message)
+    {
+        TrayIcon.TooltipText = message;
+        Trace.TraceInformation("[MainWindow] Template notification: {0}", message);
+
+        // Reset tooltip after a few seconds
+        var timer = new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(3)
+        };
+        timer.Tick += (_, _) =>
+        {
+            timer.Stop();
+            TrayIcon.TooltipText = "WhisperHeim";
+        };
+        timer.Start();
+    }
+
+    /// <summary>
     /// Intercept window closing to hide to tray instead of actually closing,
     /// unless the user chose Exit from the tray menu.
     /// </summary>
@@ -238,6 +291,8 @@ public partial class MainWindow : FluentWindow
         {
             // Clean up orchestrator, overlay, and hotkey on actual exit
             _overlayWindow?.Close();
+            _templateOrchestrator?.Dispose();
+            _templateHotkeyService.Dispose();
             _orchestrator?.Dispose();
             _hotkeyService.Dispose();
         }
@@ -303,7 +358,7 @@ public partial class MainWindow : FluentWindow
             {
                 "General" => new GeneralPage(_settingsService),
                 "Dictation" => new DictationPage(_settingsService, _audioCaptureService),
-                "Templates" => new TemplatesPage(_settingsService),
+                "Templates" => new TemplatesPage(_templateService),
                 "TranscribeFiles" => new TranscribeFilesPage(_fileTranscriptionService),
                 "Transcripts" => new TranscriptsPage(_transcriptStorageService),
                 "About" => new AboutPage(_modelManager),

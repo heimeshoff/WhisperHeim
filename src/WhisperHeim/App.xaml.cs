@@ -7,6 +7,7 @@ using WhisperHeim.Services.Models;
 using WhisperHeim.Services.Settings;
 using WhisperHeim.Services.Startup;
 using WhisperHeim.Services.FileTranscription;
+using WhisperHeim.Services.Templates;
 using WhisperHeim.Services.Transcription;
 using WhisperHeim.Views;
 
@@ -51,6 +52,7 @@ public partial class App : Application
             _audioCaptureService, vadService, transcriptionService);
         var inputSimulator = new InputSimulator();
         var fileTranscriptionService = new FileTranscriptionService(transcriptionService);
+        var templateService = new TemplateService(_settingsService);
 
         // Determine whether we were launched via auto-start (--minimized flag)
         var startMinimized = e.Args.Contains("--minimized");
@@ -62,7 +64,8 @@ public partial class App : Application
             _modelManager,
             dictationPipeline,
             inputSimulator,
-            fileTranscriptionService);
+            fileTranscriptionService,
+            templateService);
         MainWindow = mainWindow;
 
         if (!startMinimized)

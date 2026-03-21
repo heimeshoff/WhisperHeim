@@ -52,9 +52,21 @@ public sealed class DictationSettings
 
 public sealed class TemplateSettings
 {
-    /// <summary>User-defined text templates (future use).</summary>
+    /// <summary>User-defined text templates as name/text pairs.</summary>
     [JsonPropertyName("items")]
-    public List<string> Items { get; set; } = [];
+    public List<TemplateItem> Items { get; set; } = [];
+}
+
+/// <summary>
+/// A named text template that can be triggered by voice command.
+/// </summary>
+public sealed class TemplateItem
+{
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+
+    [JsonPropertyName("text")]
+    public string Text { get; set; } = string.Empty;
 }
 
 /// <summary>
