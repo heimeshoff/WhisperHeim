@@ -2,6 +2,15 @@
 
 ---
 
+## 2026-03-21 21:35 -- Milestone M4 Complete: Text-to-Speech (Kyutai Pocket TTS)
+
+**Type:** Milestone Completion
+**Milestone:** M4 - Text-to-Speech
+**Tasks completed:** 023, 029, 030, 031, 032, 033, 034, 035 (7 subtasks + parent)
+**Summary:** Full TTS milestone implemented — Pocket TTS engine via sherpa-onnx, voice cloning from mic and system audio, read-selected-text hotkey, TTS UI page, MP3/OGG/WAV export, configurable settings.
+
+---
+
 ## 2026-03-21 21:30 -- Task Completed: 034 - Audio export (MP3/OGG/WAV)
 
 **Type:** Task Completion
