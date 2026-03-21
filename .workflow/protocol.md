@@ -2,6 +2,112 @@
 
 ---
 
+## 2026-03-21 -- Task Completed: 024 - Windows Auto-Launch
+
+**Type:** Task Completion
+**Task:** 024 - Windows Auto-Launch
+**Summary:** StartupService manages HKCU Run registry, --minimized flag for tray-only auto-start, path refresh on each launch.
+**Files changed:** 5 files
+
+---
+
+## 2026-03-21 -- Task Completed: 014 - Microphone Selection
+
+**Type:** Task Completion
+**Task:** 014 - Microphone Selection
+**Summary:** Dropdown on Dictation page with NAudio device enumeration, persisted selection, fallback for missing devices.
+**Files changed:** 5 files
+
+---
+
+## 2026-03-21 -- Task Completed: 005 - Model Manager
+
+**Type:** Task Completion
+**Task:** 005 - Model Manager
+**Summary:** Auto-downloads Parakeet TDT 0.6B int8 (~661MB) and Silero VAD (~2MB) on first run with progress dialog and cancellation.
+**Files changed:** 9 files
+
+---
+
+## 2026-03-21 -- Task Completed: 007 - Silero VAD Integration
+
+**Type:** Task Completion
+**Task:** 007 - Silero VAD Integration
+**Summary:** ONNX Runtime-based Silero VAD with state machine, configurable thresholds, pre-speech padding, SpeechStarted/SpeechEnded events.
+**Files changed:** 4 files
+
+---
+
+## 2026-03-21 -- Task Completed: 004 - Global Hotkey
+
+**Type:** Task Completion
+**Task:** 004 - Global Hotkey
+**Summary:** Win32 RegisterHotKey/UnregisterHotKey with configurable Ctrl+LWin hotkey, event system, and conflict handling.
+**Files changed:** 4 files
+
+---
+
+## 2026-03-21 -- Task Completed: 003 - Settings Infrastructure
+
+**Type:** Task Completion
+**Task:** 003 - Settings Infrastructure
+**Summary:** JSON settings with AppSettings model, SettingsService for %APPDATA% persistence, and 4 navigable settings pages in MainWindow.
+**Files changed:** 13 files
+
+---
+
+## 2026-03-21 -- Batch Started: [003, 004, 007]
+
+**Type:** Batch Start
+**Tasks:** 003 - Settings Infrastructure, 004 - Global Hotkey, 007 - Silero VAD Integration
+**Mode:** Parallel (batch of 3)
+
+---
+
+## 2026-03-21 -- Task Completed: 010 - Input Simulation
+
+**Type:** Task Completion
+**Task:** 010 - Input Simulation
+**Summary:** Win32 SendInput P/Invoke with KEYEVENTF_UNICODE, backspace correction, configurable delay, cancellation support.
+**Files changed:** 4 files
+
+---
+
+## 2026-03-21 -- Task Completed: 006 - Audio Capture Service
+
+**Type:** Task Completion
+**Task:** 006 - Audio Capture Service
+**Summary:** NAudio WaveInEvent capture at 16kHz/mono, float32 conversion, thread-safe ring buffer, device enumeration. 8 passing unit tests.
+**Files changed:** 8 files
+
+---
+
+## 2026-03-21 -- Task Completed: 002 - Tray Icon and Window
+
+**Type:** Task Completion
+**Task:** 002 - Tray Icon and Window
+**Summary:** FluentWindow with Mica backdrop, tray icon with Segoe Fluent microphone glyph, show/hide toggle, right-click context menu.
+**Files changed:** 5 files
+
+---
+
+## 2026-03-21 -- Batch Started: [002, 006, 010]
+
+**Type:** Batch Start
+**Tasks:** 002 - Tray Icon and Window, 006 - Audio Capture Service, 010 - Input Simulation
+**Mode:** Parallel (batch of 3)
+
+---
+
+## 2026-03-21 -- Task Completed: 001 - Project Scaffolding
+
+**Type:** Task Completion
+**Task:** 001 - Project Scaffolding
+**Summary:** Created .NET 9 WPF solution with all core NuGet packages, x64-only config, and ShutdownMode=OnExplicitShutdown. Builds with 0 warnings.
+**Files changed:** 8 files
+
+---
+
 ## 2026-03-21 -- Task Started: 001 - Project Scaffolding
 
 **Type:** Task Start
