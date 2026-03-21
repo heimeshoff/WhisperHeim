@@ -11,6 +11,7 @@ using WhisperHeim.Services.Settings;
 using WhisperHeim.Services.Startup;
 using WhisperHeim.Services.FileTranscription;
 using WhisperHeim.Services.Templates;
+using WhisperHeim.Services.SelectedText;
 using WhisperHeim.Services.TextToSpeech;
 using WhisperHeim.Services.Transcription;
 using WhisperHeim.Views;
@@ -149,6 +150,17 @@ public partial class App : Application
         // Create text-to-speech service (lazy-loaded: model loads on first use)
         var textToSpeechService = new TextToSpeechService();
 
+        // Create high-quality loopback service for voice cloning from system audio
+        var highQualityLoopbackService = new HighQualityLoopbackService();
+
+        // Create high-quality mic recorder for voice cloning
+        var highQualityRecorderService = new HighQualityRecorderService();
+
+        // Create read-aloud services (selected text capture + hotkey)
+        var selectedTextService = new SelectedTextService();
+        var readAloudHotkeyService = new ReadAloudHotkeyService(selectedTextService, textToSpeechService);
+        readAloudHotkeyService.Register();
+
         // Determine whether we were launched via auto-start (--minimized flag)
         var startMinimized = e.Args.Contains("--minimized");
 
@@ -164,7 +176,9 @@ public partial class App : Application
             callRecordingService,
             callTranscriptionPipeline,
             callRecordingHotkeyService,
-            transcriptStorageService);
+            transcriptStorageService,
+            highQualityLoopbackService,
+            highQualityRecorderService);
         MainWindow = mainWindow;
 
         if (!startMinimized)

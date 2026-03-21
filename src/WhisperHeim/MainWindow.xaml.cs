@@ -47,6 +47,12 @@ public partial class MainWindow : FluentWindow
     // File transcription for the Transcribe Files page
     private readonly IFileTranscriptionService _fileTranscriptionService;
 
+    // High-quality loopback for voice cloning from system audio
+    private readonly IHighQualityLoopbackService _highQualityLoopbackService;
+
+    // High-quality mic recorder for voice cloning
+    private readonly IHighQualityRecorderService _highQualityRecorderService;
+
     // Hotkey and orchestration
     private readonly GlobalHotkeyService _hotkeyService = new();
     private DictationOrchestrator? _orchestrator;
@@ -76,7 +82,9 @@ public partial class MainWindow : FluentWindow
         ICallRecordingService callRecordingService,
         ICallTranscriptionPipeline callTranscriptionPipeline,
         CallRecordingHotkeyService callRecordingHotkeyService,
-        ITranscriptStorageService transcriptStorageService)
+        ITranscriptStorageService transcriptStorageService,
+        IHighQualityLoopbackService highQualityLoopbackService,
+        IHighQualityRecorderService highQualityRecorderService)
     {
         _settingsService = settingsService;
         _audioCaptureService = audioCaptureService;
@@ -89,6 +97,8 @@ public partial class MainWindow : FluentWindow
         _callTranscriptionPipeline = callTranscriptionPipeline;
         _callRecordingHotkeyService = callRecordingHotkeyService;
         _transcriptStorageService = transcriptStorageService;
+        _highQualityLoopbackService = highQualityLoopbackService;
+        _highQualityRecorderService = highQualityRecorderService;
 
         InitializeComponent();
 
@@ -518,6 +528,8 @@ public partial class MainWindow : FluentWindow
                 "Templates" => new TemplatesPage(_templateService),
                 "TranscribeFiles" => new TranscribeFilesPage(_fileTranscriptionService),
                 "Transcripts" => new TranscriptsPage(_transcriptStorageService),
+                "VoiceCloning" => new VoiceCloningPage(_highQualityRecorderService),
+                "VoiceLoopback" => new VoiceLoopbackCapturePage(_highQualityLoopbackService),
                 "About" => new AboutPage(_modelManager),
                 _ => null
             };

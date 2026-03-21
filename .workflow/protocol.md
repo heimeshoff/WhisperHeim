@@ -2,6 +2,41 @@
 
 ---
 
+## 2026-03-21 21:00 -- Task Completed: 032 - Read selected text via global hotkey
+
+**Type:** Task Completion
+**Task:** 032 - Read selected text via global hotkey
+**Summary:** Implemented SelectedTextService with cascading capture (UI Automation TextPattern first, then SendInput Ctrl+C with clipboard backup/restore) and ReadAloudHotkeyService (Ctrl+Shift+R default) that speaks captured text via ITextToSpeechService.
+**Files changed:** 5 files
+
+---
+
+## 2026-03-21 20:58 -- Task Completed: 031 - Voice cloning from system audio loopback
+
+**Type:** Task Completion
+**Task:** 031 - Voice cloning from system audio loopback
+**Summary:** Created HighQualityLoopbackService capturing system audio at native 48kHz via WasapiLoopbackCapture. Built VoiceLoopbackCapturePage UI with device selection, level meter, duration display, voice naming, and save to voices directory.
+**Files changed:** 6 files
+
+---
+
+## 2026-03-21 20:55 -- Task Completed: 030 - Voice cloning from microphone recording
+
+**Type:** Task Completion
+**Task:** 030 - Voice cloning from microphone recording
+**Summary:** Implemented HighQualityRecorderService recording mic at 44.1kHz and VoiceCloningPage UI with level meter, duration tracking, 5s minimum indicator, device selection, voice naming, and background noise warning.
+**Files changed:** 7 files
+
+---
+
+## 2026-03-21 20:50 -- Batch Started: [030, 031, 032]
+
+**Type:** Batch Start
+**Tasks:** 030 - Voice cloning from mic, 031 - Voice cloning from loopback, 032 - Read selected text via hotkey
+**Mode:** Parallel (batch of 3)
+
+---
+
 ## 2026-03-21 20:45 -- Task Completed: 029 - Pocket TTS engine service + model download
 
 **Type:** Task Completion

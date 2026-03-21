@@ -93,6 +93,18 @@
                         <TextBlock Text="Transcripts" VerticalAlignment="Center" />
                     </StackPanel>
                 </ListBoxItem>
+                <ListBoxItem Tag="VoiceCloning">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="PersonVoice24" Margin="0,0,8,0" />
+                        <TextBlock Text="Voice Cloning" VerticalAlignment="Center" />
+                    </StackPanel>
+                </ListBoxItem>
+                <ListBoxItem Tag="VoiceLoopback">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="Speaker224" Margin="0,0,8,0" />
+                        <TextBlock Text="Voice Capture" VerticalAlignment="Center" />
+                    </StackPanel>
+                </ListBoxItem>
                 <ListBoxItem Tag="About">
                     <StackPanel Orientation="Horizontal">
                         <ui:SymbolIcon Symbol="Info24" Margin="0,0,8,0" />
