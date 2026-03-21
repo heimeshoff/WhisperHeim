@@ -1,0 +1,166 @@
+<UserControl x:Class="WhisperHeim.Views.Pages.TranscriptsPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <TextBlock Grid.Row="0"
+                   Text="Transcripts"
+                   FontSize="20"
+                   FontWeight="SemiBold"
+                   Margin="0,0,0,12" />
+
+        <!-- Search bar -->
+        <Grid Grid.Row="1" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <ui:TextBox x:Name="SearchBox"
+                        Grid.Column="0"
+                        PlaceholderText="Search transcripts..."
+                        TextChanged="SearchBox_TextChanged"
+                        Margin="0,0,8,0" />
+            <ui:Button x:Name="ClearSearchButton"
+                       Grid.Column="1"
+                       Content="Clear"
+                       Click="ClearSearch_Click" />
+        </Grid>
+
+        <!-- Main content: list + viewer split -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="200" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Transcript list -->
+            <Grid Grid.Column="0" Margin="0,0,8,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <ListBox x:Name="TranscriptList"
+                         Grid.Row="0"
+                         SelectionChanged="TranscriptList_SelectionChanged"
+                         Background="Transparent"
+                         BorderThickness="1"
+                         BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Margin="4">
+                                <TextBlock Text="{Binding DateDisplay}"
+                                           FontWeight="Medium"
+                                           FontSize="12" />
+                                <TextBlock Text="{Binding DurationDisplay}"
+                                           FontSize="11"
+                                           Opacity="0.6" />
+                                <TextBlock Text="{Binding PreviewText}"
+                                           FontSize="11"
+                                           Opacity="0.4"
+                                           TextTrimming="CharacterEllipsis"
+                                           MaxWidth="170"
+                                           HorizontalAlignment="Left" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <ui:Button Grid.Row="1"
+                           Content="Delete Selected"
+                           Margin="0,8,0,0"
+                           HorizontalAlignment="Stretch"
+                           Click="DeleteTranscript_Click"
+                           x:Name="DeleteButton"
+                           IsEnabled="False" />
+            </Grid>
+
+            <!-- Transcript viewer -->
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- Viewer header with info -->
+                <StackPanel Grid.Row="0" x:Name="ViewerHeader" Visibility="Collapsed">
+                    <TextBlock x:Name="TranscriptTitle"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,4" />
+                    <TextBlock x:Name="TranscriptInfo"
+                               FontSize="11"
+                               Opacity="0.6"
+                               Margin="0,0,0,8" />
+                </StackPanel>
+
+                <!-- Transcript content -->
+                <ScrollViewer Grid.Row="1"
+                              VerticalScrollBarVisibility="Auto"
+                              x:Name="TranscriptScrollViewer">
+                    <ItemsControl x:Name="SegmentList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Margin="0,2,0,2"
+                                        Padding="8,4"
+                                        CornerRadius="4"
+                                        Background="{Binding Background}">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                                            <TextBlock Text="{Binding Speaker}"
+                                                       FontWeight="SemiBold"
+                                                       FontSize="11"
+                                                       Foreground="{Binding SpeakerColor}" />
+                                            <TextBlock Text="{Binding TimestampDisplay}"
+                                                       FontSize="10"
+                                                       Opacity="0.5"
+                                                       Margin="8,0,0,0"
+                                                       VerticalAlignment="Center" />
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding Text}"
+                                                   TextWrapping="Wrap"
+                                                   FontSize="13" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <!-- No transcript selected placeholder -->
+                <TextBlock x:Name="PlaceholderText"
+                           Grid.Row="1"
+                           Text="Select a transcript to view"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           Opacity="0.4"
+                           FontSize="14" />
+
+                <!-- Action buttons -->
+                <StackPanel Grid.Row="2"
+                            Orientation="Horizontal"
+                            Margin="0,8,0,0"
+                            x:Name="ActionPanel"
+                            Visibility="Collapsed">
+                    <ui:Button Content="Copy to Clipboard"
+                               Click="CopyToClipboard_Click"
+                               Margin="0,0,8,0" />
+                    <ui:Button Content="Export Markdown"
+                               Click="ExportMarkdown_Click"
+                               Margin="0,0,8,0" />
+                    <ui:Button Content="Export JSON"
+                               Click="ExportJson_Click"
+                               Margin="0,0,8,0" />
+                    <ui:Button Content="Export Text"
+                               Click="ExportText_Click" />
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Grid>
+</UserControl>
