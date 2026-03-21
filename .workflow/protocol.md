@@ -2,6 +2,23 @@
 
 ---
 
+## 2026-03-21 21:30 -- Task Completed: 034 - Audio export (MP3/OGG/WAV)
+
+**Type:** Task Completion
+**Task:** 034 - Audio export (MP3/OGG/WAV)
+**Summary:** Created AudioExportService with WAV, MP3 (resampled to 44.1kHz via MediaFoundationEncoder), and OGG/Opus (resampled to 48kHz via Concentus) export. Added "Save as..." button to TextToSpeechPage with SaveFileDialog and format selection.
+**Files changed:** 4 files
+
+---
+
+## 2026-03-21 21:20 -- Task Started: 034 - Audio export (MP3/OGG)
+
+**Type:** Task Start
+**Task:** 034 - Audio export (MP3/OGG/WAV)
+**Milestone:** M4 - Text-to-Speech
+
+---
+
 ## 2026-03-21 21:15 -- Task Completed: 035 - TTS settings + hotkey configuration
 
 **Type:** Task Completion

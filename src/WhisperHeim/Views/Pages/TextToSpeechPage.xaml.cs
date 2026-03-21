@@ -1,6 +1,8 @@
 using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using Microsoft.Win32;
 using WhisperHeim.Services.TextToSpeech;
 
 namespace WhisperHeim.Views.Pages;
@@ -13,8 +15,10 @@ public partial class TextToSpeechPage : UserControl
     private const string PreviewPhrase = "Hello, this is a voice preview.";
 
     private readonly ITextToSpeechService _ttsService;
+    private readonly AudioExportService _exportService = new();
     private CancellationTokenSource? _cts;
     private bool _isSpeaking;
+    private TtsGenerationResult? _lastGenerationResult;
 
     public TextToSpeechPage(ITextToSpeechService ttsService)
     {
@@ -88,6 +92,9 @@ public partial class TextToSpeechPage : UserControl
 
         if (PreviewVoiceButton is not null)
             PreviewVoiceButton.IsEnabled = hasVoice && !_isSpeaking;
+
+        if (SaveAsButton is not null)
+            SaveAsButton.IsEnabled = hasText && hasVoice && !_isSpeaking;
     }
 
     private async void PlayButton_Click(object sender, RoutedEventArgs e)
@@ -107,6 +114,68 @@ public partial class TextToSpeechPage : UserControl
     private void StopButton_Click(object sender, RoutedEventArgs e)
     {
         CancelPlayback();
+    }
+
+    private async void SaveAsButton_Click(object sender, RoutedEventArgs e)
+    {
+        var text = SpeechTextInput.Text.Trim();
+        if (string.IsNullOrEmpty(text))
+            return;
+
+        if (VoiceCombo.SelectedItem is not VoiceComboItem selectedVoice)
+            return;
+
+        // Show save dialog first so user can cancel before generation
+        var dialog = new SaveFileDialog
+        {
+            Title = "Save Audio As",
+            Filter = "WAV files (*.wav)|*.wav|MP3 files (*.mp3)|*.mp3|OGG files (*.ogg)|*.ogg",
+            DefaultExt = ".wav",
+            FileName = "speech"
+        };
+
+        if (dialog.ShowDialog() != true)
+            return;
+
+        SetSpeakingState(true);
+        StatusText.Text = "Generating audio...";
+
+        try
+        {
+            // Generate audio (or reuse last if text hasn't changed)
+            var result = await _ttsService.GenerateAudioAsync(text, selectedVoice.VoiceId);
+            _lastGenerationResult = result;
+
+            StatusText.Text = "Exporting...";
+
+            var ext = Path.GetExtension(dialog.FileName).ToLowerInvariant();
+            switch (ext)
+            {
+                case ".wav":
+                    await _exportService.ExportToWavAsync(result.Samples, result.SampleRate, dialog.FileName);
+                    break;
+                case ".mp3":
+                    await _exportService.ExportToMp3Async(result.Samples, result.SampleRate, dialog.FileName);
+                    break;
+                case ".ogg":
+                    await _exportService.ExportToOggAsync(result.Samples, result.SampleRate, dialog.FileName);
+                    break;
+                default:
+                    StatusText.Text = $"Unsupported format: {ext}";
+                    return;
+            }
+
+            StatusText.Text = $"Saved to {Path.GetFileName(dialog.FileName)}";
+        }
+        catch (Exception ex)
+        {
+            Trace.TraceError("[TextToSpeechPage] Export failed: {0}", ex.Message);
+            StatusText.Text = $"Export failed: {ex.Message}";
+        }
+        finally
+        {
+            SetSpeakingState(false);
+        }
     }
 
     private async Task SpeakTextAsync(string text)

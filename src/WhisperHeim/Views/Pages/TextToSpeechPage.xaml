@@ -98,6 +98,17 @@
                         <TextBlock Text="Stop" VerticalAlignment="Center" />
                     </StackPanel>
                 </ui:Button>
+                <ui:Button x:Name="SaveAsButton"
+                           Click="SaveAsButton_Click"
+                           IsEnabled="False"
+                           Margin="8,0,0,0"
+                           Padding="24,8"
+                           FontWeight="Medium">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="Save24" Margin="0,0,6,0" />
+                        <TextBlock Text="Save as..." VerticalAlignment="Center" />
+                    </StackPanel>
+                </ui:Button>
             </StackPanel>
             <TextBlock x:Name="StatusText"
                        DockPanel.Dock="Right"
