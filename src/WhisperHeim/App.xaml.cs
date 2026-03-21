@@ -11,6 +11,7 @@ using WhisperHeim.Services.Settings;
 using WhisperHeim.Services.Startup;
 using WhisperHeim.Services.FileTranscription;
 using WhisperHeim.Services.Templates;
+using WhisperHeim.Services.TextToSpeech;
 using WhisperHeim.Services.Transcription;
 using WhisperHeim.Views;
 
@@ -144,6 +145,9 @@ public partial class App : Application
         var callTranscriptionPipeline = new CallTranscriptionPipeline(
             speakerDiarizationService, transcriptionService, transcriptStorageService);
         var callRecordingHotkeyService = new CallRecordingHotkeyService(callRecordingService);
+
+        // Create text-to-speech service (lazy-loaded: model loads on first use)
+        var textToSpeechService = new TextToSpeechService();
 
         // Determine whether we were launched via auto-start (--minimized flag)
         var startMinimized = e.Args.Contains("--minimized");

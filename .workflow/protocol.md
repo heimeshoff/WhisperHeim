@@ -2,6 +2,23 @@
 
 ---
 
+## 2026-03-21 20:45 -- Task Completed: 029 - Pocket TTS engine service + model download
+
+**Type:** Task Completion
+**Task:** 029 - Pocket TTS engine service + model download + built-in voice playback
+**Summary:** Implemented ITextToSpeechService with Pocket TTS via sherpa-onnx C# bindings. Supports GenerateAudioAsync, streaming generation with callback, and SpeakAsync with NAudio WaveOutEvent playback at 24kHz. Added PocketTtsInt8 model (~200MB, 9 files) to ModelManagerService for auto-download from HuggingFace. Build succeeds.
+**Files changed:** 5 files
+
+---
+
+## 2026-03-21 19:15 -- Task Started: 029 - Pocket TTS engine service + model download
+
+**Type:** Task Start
+**Task:** 029 - Pocket TTS engine service + model download + built-in voice playback
+**Milestone:** M4 - Text-to-Speech
+
+---
+
 ## 2026-03-21 18:50 -- Idea Captured: Kyutai Pocket TTS Integration
 
 **Type:** Idea Capture

@@ -85,11 +85,56 @@ public sealed class ModelManagerService
                 ExpectedSizeBytes: 39_593_761), // ~38 MB
         });
 
+    /// <summary>Kyutai Pocket TTS int8 ONNX model for text-to-speech via sherpa-onnx.</summary>
+    public static readonly ModelDefinition PocketTtsInt8 = new(
+        Name: "Pocket TTS (int8)",
+        Description: "Kyutai Pocket TTS int8 — English text-to-speech with voice cloning (~200 MB)",
+        SubDirectory: "pocket-tts-int8",
+        Files: new[]
+        {
+            new ModelFileDefinition(
+                "lm_flow.int8.onnx",
+                "https://huggingface.co/csukuangfj2/sherpa-onnx-pocket-tts-int8-2026-01-26/resolve/main/lm_flow.int8.onnx",
+                ExpectedSizeBytes: 10_440_000), // ~10 MB
+            new ModelFileDefinition(
+                "lm_main.int8.onnx",
+                "https://huggingface.co/csukuangfj2/sherpa-onnx-pocket-tts-int8-2026-01-26/resolve/main/lm_main.int8.onnx",
+                ExpectedSizeBytes: 80_000_000), // ~76 MB
+            new ModelFileDefinition(
+                "encoder.onnx",
+                "https://huggingface.co/csukuangfj2/sherpa-onnx-pocket-tts-int8-2026-01-26/resolve/main/encoder.onnx",
+                ExpectedSizeBytes: 76_200_000), // ~73 MB
+            new ModelFileDefinition(
+                "decoder.int8.onnx",
+                "https://huggingface.co/csukuangfj2/sherpa-onnx-pocket-tts-int8-2026-01-26/resolve/main/decoder.int8.onnx",
+                ExpectedSizeBytes: 23_800_000), // ~23 MB
+            new ModelFileDefinition(
+                "text_conditioner.onnx",
+                "https://huggingface.co/csukuangfj2/sherpa-onnx-pocket-tts-int8-2026-01-26/resolve/main/text_conditioner.onnx",
+                ExpectedSizeBytes: 17_200_000), // ~16 MB
+            new ModelFileDefinition(
+                "vocab.json",
+                "https://huggingface.co/csukuangfj2/sherpa-onnx-pocket-tts-int8-2026-01-26/resolve/main/vocab.json",
+                ExpectedSizeBytes: 72_000), // ~70 KB
+            new ModelFileDefinition(
+                "token_scores.json",
+                "https://huggingface.co/csukuangfj2/sherpa-onnx-pocket-tts-int8-2026-01-26/resolve/main/token_scores.json",
+                ExpectedSizeBytes: 130_000), // ~124 KB
+            new ModelFileDefinition(
+                "test_wavs/bria.wav",
+                "https://huggingface.co/csukuangfj2/sherpa-onnx-pocket-tts-int8-2026-01-26/resolve/main/test_wavs/bria.wav",
+                ExpectedSizeBytes: 2_250_000), // ~2.15 MB
+            new ModelFileDefinition(
+                "test_wavs/loona.wav",
+                "https://huggingface.co/csukuangfj2/sherpa-onnx-pocket-tts-int8-2026-01-26/resolve/main/test_wavs/loona.wav",
+                ExpectedSizeBytes: 53_000), // ~50 KB
+        });
+
     /// <summary>
     /// All known model definitions.
     /// </summary>
     public static IReadOnlyList<ModelDefinition> KnownModels { get; } =
-        [ParakeetTdt06B, SileroVad, PyannoteSegmentation, SpeakerEmbedding];
+        [ParakeetTdt06B, SileroVad, PyannoteSegmentation, SpeakerEmbedding, PocketTtsInt8];
 
     /// <summary>
     /// Returns the directory where a given model's files are stored.
@@ -144,6 +189,12 @@ public sealed class ModelManagerService
     /// </summary>
     public static string SpeakerEmbeddingModelPath =>
         GetModelFilePath(SpeakerEmbedding, "3dspeaker_speech_eres2net_base_sv_zh-cn_3dspeaker_16k.onnx");
+
+    /// <summary>
+    /// Convenience: returns the Pocket TTS model directory.
+    /// </summary>
+    public static string PocketTtsModelDirectory =>
+        GetModelDirectory(PocketTtsInt8);
 
     /// <summary>
     /// Checks the status of all known models.
@@ -220,6 +271,9 @@ public sealed class ModelManagerService
         {
             var file = model.Files[i];
             var filePath = Path.Combine(dir, file.FileName);
+
+            // Ensure parent directory exists (for files in subdirectories like test_wavs/bria.wav)
+            Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
 
             // Skip if file already exists with correct size
             if (File.Exists(filePath))
