@@ -113,6 +113,7 @@
             <Grid Grid.Column="1">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
@@ -133,8 +134,46 @@
                                Margin="0,0,0,8" />
                 </StackPanel>
 
+                <!-- Audio playback controls (shown when audio is available) -->
+                <Border Grid.Row="1"
+                        x:Name="PlaybackPanel"
+                        Visibility="Collapsed"
+                        Padding="8,6"
+                        Margin="0,0,0,4"
+                        CornerRadius="4"
+                        Background="{DynamicResource ControlFillColorDefaultBrush}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ui:Button x:Name="PlayPauseButton"
+                                   Grid.Column="0"
+                                   Content="Play"
+                                   Click="PlayPause_Click"
+                                   Padding="8,4"
+                                   Margin="0,0,6,0"
+                                   FontSize="12" />
+                        <ui:Button x:Name="StopButton"
+                                   Grid.Column="1"
+                                   Content="Stop"
+                                   Click="Stop_Click"
+                                   Padding="8,4"
+                                   Margin="0,0,8,0"
+                                   FontSize="12" />
+                        <TextBlock x:Name="PlaybackPositionText"
+                                   Grid.Column="3"
+                                   Text="00:00 / 00:00"
+                                   FontSize="11"
+                                   Opacity="0.7"
+                                   VerticalAlignment="Center" />
+                    </Grid>
+                </Border>
+
                 <!-- Transcript content -->
-                <ScrollViewer Grid.Row="1"
+                <ScrollViewer Grid.Row="2"
                               VerticalScrollBarVisibility="Auto"
                               x:Name="TranscriptScrollViewer">
                     <ItemsControl x:Name="SegmentList">
@@ -143,7 +182,9 @@
                                 <Border Margin="0,2,0,2"
                                         Padding="8,4"
                                         CornerRadius="4"
-                                        Background="{Binding Background}">
+                                        Background="{Binding CurrentBackground}"
+                                        Cursor="Hand"
+                                        MouseLeftButtonDown="Segment_MouseLeftButtonDown">
                                     <StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
                                             <!-- Speaker label (click to edit) -->
@@ -171,6 +212,12 @@
                                                        Opacity="0.5"
                                                        Margin="8,0,0,0"
                                                        VerticalAlignment="Center" />
+                                            <!-- Play indicator for currently playing segment -->
+                                            <TextBlock Text="  playing"
+                                                       FontSize="10"
+                                                       Opacity="0.6"
+                                                       VerticalAlignment="Center"
+                                                       Visibility="{Binding IsCurrentlyPlaying, Converter={StaticResource BoolToVisibility}}" />
                                         </StackPanel>
                                         <TextBlock Text="{Binding Text}"
                                                    TextWrapping="Wrap"
@@ -184,7 +231,7 @@
 
                 <!-- No transcript selected placeholder -->
                 <TextBlock x:Name="PlaceholderText"
-                           Grid.Row="1"
+                           Grid.Row="2"
                            Text="Select a transcript to view"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Center"
@@ -192,7 +239,7 @@
                            FontSize="14" />
 
                 <!-- Action buttons -->
-                <StackPanel Grid.Row="2"
+                <StackPanel Grid.Row="3"
                             Orientation="Horizontal"
                             Margin="0,8,0,0"
                             x:Name="ActionPanel"

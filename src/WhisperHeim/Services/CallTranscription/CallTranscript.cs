@@ -1,3 +1,4 @@
+using System.IO;
 using System.Text.Json.Serialization;
 
 namespace WhisperHeim.Services.CallTranscription;
@@ -40,10 +41,49 @@ public sealed class CallTranscript
     public Dictionary<string, string> SpeakerNameMap { get; set; } = new();
 
     /// <summary>
+    /// Relative or absolute path to the preserved audio file (WAV) for playback.
+    /// Stored relative to the transcript JSON file for portability.
+    /// </summary>
+    [JsonPropertyName("audioFilePath")]
+    public string? AudioFilePath { get; set; }
+
+    /// <summary>
     /// Path to the stored transcript JSON file, or null if not yet persisted.
     /// </summary>
     [JsonIgnore]
     public string? FilePath { get; set; }
+
+    /// <summary>
+    /// Resolves the absolute path to the audio file, interpreting AudioFilePath
+    /// relative to the transcript JSON file's directory when necessary.
+    /// Returns null if no audio file is configured or the file doesn't exist.
+    /// </summary>
+    [JsonIgnore]
+    public string? ResolvedAudioFilePath
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(AudioFilePath))
+                return null;
+
+            // If it's already absolute and exists, use it directly
+            if (Path.IsPathRooted(AudioFilePath))
+                return File.Exists(AudioFilePath) ? AudioFilePath : null;
+
+            // Resolve relative to the transcript JSON file's directory
+            if (!string.IsNullOrEmpty(FilePath))
+            {
+                var dir = Path.GetDirectoryName(FilePath);
+                if (dir is not null)
+                {
+                    var resolved = Path.GetFullPath(Path.Combine(dir, AudioFilePath));
+                    return File.Exists(resolved) ? resolved : null;
+                }
+            }
+
+            return null;
+        }
+    }
 
     /// <summary>
     /// Returns the display name for a segment, considering per-segment overrides first,

@@ -9,24 +9,36 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using Microsoft.Win32;
+using WhisperHeim.Services.Audio;
 using WhisperHeim.Services.CallTranscription;
 
 namespace WhisperHeim.Views.Pages;
 
 /// <summary>
 /// Page for listing, viewing, searching, and exporting call transcripts.
+/// Supports audio playback from transcript segments with visual tracking.
 /// </summary>
 public partial class TranscriptsPage : UserControl
 {
     private readonly ITranscriptStorageService _storageService;
     private readonly List<TranscriptListItem> _allItems = new();
+    private readonly TranscriptAudioPlayer _audioPlayer = new();
     private CallTranscript? _selectedTranscript;
+    private List<SegmentViewModel>? _currentSegmentViewModels;
 
     public TranscriptsPage(ITranscriptStorageService storageService)
     {
         _storageService = storageService;
         InitializeComponent();
         LoadTranscriptList();
+
+        _audioPlayer.PositionChanged += OnAudioPositionChanged;
+        _audioPlayer.PlaybackStopped += OnAudioPlaybackStopped;
+
+        Unloaded += (_, _) =>
+        {
+            _audioPlayer.Dispose();
+        };
     }
 
     /// <summary>
@@ -133,6 +145,9 @@ public partial class TranscriptsPage : UserControl
 
     private void DisplayTranscript(CallTranscript transcript)
     {
+        // Stop any existing playback when switching transcripts
+        StopPlayback();
+
         PlaceholderText.Visibility = Visibility.Collapsed;
         ViewerHeader.Visibility = Visibility.Visible;
         ActionPanel.Visibility = Visibility.Visible;
@@ -146,7 +161,30 @@ public partial class TranscriptsPage : UserControl
             .Select(s => new SegmentViewModel(s, transcript))
             .ToList();
 
+        _currentSegmentViewModels = viewModels;
         SegmentList.ItemsSource = viewModels;
+
+        // Show playback panel if audio is available
+        var audioPath = transcript.ResolvedAudioFilePath;
+        if (audioPath is not null)
+        {
+            try
+            {
+                _audioPlayer.Open(audioPath);
+                PlaybackPanel.Visibility = Visibility.Visible;
+                UpdatePlaybackPositionText();
+                Trace.TraceInformation("[TranscriptsPage] Audio available for playback: {0}", audioPath);
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceWarning("[TranscriptsPage] Failed to open audio: {0}", ex.Message);
+                PlaybackPanel.Visibility = Visibility.Collapsed;
+            }
+        }
+        else
+        {
+            PlaybackPanel.Visibility = Visibility.Collapsed;
+        }
     }
 
     private async void TranscriptNameBox_LostFocus(object sender, RoutedEventArgs e)
@@ -203,6 +241,106 @@ public partial class TranscriptsPage : UserControl
         // The segment content search happens via the list filter
     }
 
+    // --- Audio playback ---
+
+    private void PlayPause_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_audioPlayer.IsLoaded)
+            return;
+
+        _audioPlayer.TogglePlayPause();
+        UpdatePlayPauseButton();
+    }
+
+    private void Stop_Click(object sender, RoutedEventArgs e)
+    {
+        StopPlayback();
+    }
+
+    private void Segment_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        // Only handle segment clicks if audio is available
+        if (!_audioPlayer.IsLoaded)
+            return;
+
+        // Don't intercept if already handled (e.g., speaker label click)
+        if (e.Handled)
+            return;
+
+        if (sender is FrameworkElement { DataContext: SegmentViewModel vm })
+        {
+            _audioPlayer.PlayFrom(vm.Segment.StartTime);
+            UpdatePlayPauseButton();
+            e.Handled = true;
+        }
+    }
+
+    private void OnAudioPositionChanged(object? sender, TimeSpan position)
+    {
+        Dispatcher.BeginInvoke(() =>
+        {
+            UpdatePlaybackPositionText();
+            UpdatePlayingSegmentHighlight(position);
+        });
+    }
+
+    private void OnAudioPlaybackStopped(object? sender, EventArgs e)
+    {
+        Dispatcher.BeginInvoke(() =>
+        {
+            UpdatePlayPauseButton();
+            ClearSegmentHighlights();
+        });
+    }
+
+    private void StopPlayback()
+    {
+        _audioPlayer.Stop();
+        UpdatePlayPauseButton();
+        ClearSegmentHighlights();
+        UpdatePlaybackPositionText();
+    }
+
+    private void UpdatePlayPauseButton()
+    {
+        PlayPauseButton.Content = _audioPlayer.IsPlaying ? "Pause" : "Play";
+    }
+
+    private void UpdatePlaybackPositionText()
+    {
+        if (!_audioPlayer.IsLoaded)
+        {
+            PlaybackPositionText.Text = "00:00 / 00:00";
+            return;
+        }
+
+        var current = _audioPlayer.CurrentPosition;
+        var total = _audioPlayer.TotalDuration;
+        PlaybackPositionText.Text =
+            $"{current:mm\\:ss} / {total:mm\\:ss}";
+    }
+
+    private void UpdatePlayingSegmentHighlight(TimeSpan position)
+    {
+        if (_currentSegmentViewModels is null)
+            return;
+
+        foreach (var vm in _currentSegmentViewModels)
+        {
+            var isPlaying = position >= vm.Segment.StartTime && position < vm.Segment.EndTime;
+            vm.IsCurrentlyPlaying = isPlaying;
+        }
+    }
+
+    private void ClearSegmentHighlights()
+    {
+        if (_currentSegmentViewModels is null)
+            return;
+
+        foreach (var vm in _currentSegmentViewModels)
+            vm.IsCurrentlyPlaying = false;
+    }
+
     // --- Speaker name editing ---
 
     private void SpeakerLabel_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -213,6 +351,7 @@ public partial class TranscriptsPage : UserControl
         // Shift+Click = per-segment override; plain click = global rename
         vm.IsPerSegmentEdit = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
         vm.BeginEditSpeaker();
+        e.Handled = true; // Prevent bubbling to segment click (playback)
     }
 
     private void SpeakerEditBox_Loaded(object sender, RoutedEventArgs e)
@@ -309,7 +448,12 @@ public partial class TranscriptsPage : UserControl
 
     private void ClearViewer()
     {
+        StopPlayback();
+        _audioPlayer.Close();
+        PlaybackPanel.Visibility = Visibility.Collapsed;
+
         _selectedTranscript = null;
+        _currentSegmentViewModels = null;
         DeleteButton.IsEnabled = false;
         PlaceholderText.Visibility = Visibility.Visible;
         ViewerHeader.Visibility = Visibility.Collapsed;
@@ -335,6 +479,14 @@ public partial class TranscriptsPage : UserControl
         {
             if (File.Exists(item.FilePath))
             {
+                // Also delete associated audio file if it exists
+                var audioPath = _selectedTranscript?.ResolvedAudioFilePath;
+                if (audioPath is not null && File.Exists(audioPath))
+                {
+                    File.Delete(audioPath);
+                    Trace.TraceInformation("[TranscriptsPage] Deleted audio: {0}", audioPath);
+                }
+
                 File.Delete(item.FilePath);
                 Trace.TraceInformation("[TranscriptsPage] Deleted transcript: {0}", item.FilePath);
             }
@@ -571,11 +723,14 @@ internal sealed class SegmentViewModel : INotifyPropertyChanged
     private static readonly Brush RemoteSpeakerColor = new SolidColorBrush(Color.FromRgb(206, 145, 120)); // Orange
     private static readonly Brush LocalBackground = new SolidColorBrush(Color.FromArgb(20, 86, 156, 214));
     private static readonly Brush RemoteBackground = new SolidColorBrush(Color.FromArgb(20, 206, 145, 120));
+    private static readonly Brush PlayingHighlight = new SolidColorBrush(Color.FromArgb(50, 255, 200, 50)); // Yellow highlight
 
     private readonly CallTranscript _transcript;
+    private readonly Brush _defaultBackground;
     private string _displaySpeaker;
     private bool _isEditingSpeaker;
     private string _editingSpeakerName = "";
+    private bool _isCurrentlyPlaying;
 
     static SegmentViewModel()
     {
@@ -583,6 +738,7 @@ internal sealed class SegmentViewModel : INotifyPropertyChanged
         RemoteSpeakerColor.Freeze();
         LocalBackground.Freeze();
         RemoteBackground.Freeze();
+        PlayingHighlight.Freeze();
     }
 
     public SegmentViewModel(TranscriptSegment segment, CallTranscript transcript)
@@ -594,7 +750,7 @@ internal sealed class SegmentViewModel : INotifyPropertyChanged
         TimestampDisplay = $"{segment.StartTime:hh\\:mm\\:ss}";
         // Colors are based on IsLocalSpeaker, which stays consistent after renames
         SpeakerColor = segment.IsLocalSpeaker ? LocalSpeakerColor : RemoteSpeakerColor;
-        Background = segment.IsLocalSpeaker ? LocalBackground : RemoteBackground;
+        _defaultBackground = segment.IsLocalSpeaker ? LocalBackground : RemoteBackground;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -612,7 +768,24 @@ internal sealed class SegmentViewModel : INotifyPropertyChanged
     public string Text { get; }
     public string TimestampDisplay { get; }
     public Brush SpeakerColor { get; }
-    public Brush Background { get; }
+
+    /// <summary>Background brush, changes when segment is currently playing.</summary>
+    public Brush CurrentBackground => _isCurrentlyPlaying ? PlayingHighlight : _defaultBackground;
+
+    /// <summary>Whether this segment is currently being played back.</summary>
+    public bool IsCurrentlyPlaying
+    {
+        get => _isCurrentlyPlaying;
+        set
+        {
+            if (_isCurrentlyPlaying != value)
+            {
+                _isCurrentlyPlaying = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CurrentBackground));
+            }
+        }
+    }
 
     /// <summary>Whether the speaker name edit box is shown.</summary>
     public bool IsEditingSpeaker

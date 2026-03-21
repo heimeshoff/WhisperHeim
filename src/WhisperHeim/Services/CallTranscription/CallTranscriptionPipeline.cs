@@ -230,7 +230,34 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
         // ── Stage 5: Save ───────────────────────────────────────────────
         ReportProgress(progress, PipelineStage.Saving, 0, "Saving transcript...");
 
+        // Save the transcript first to get the file path, then preserve audio alongside it
         var filePath = await _storage.SaveAsync(transcript, cancellationToken);
+
+        // Preserve audio: mix mic + loopback into a single WAV for playback
+        ReportProgress(progress, PipelineStage.Saving, 30, "Preserving audio file...");
+        try
+        {
+            var audioFileName = Path.GetFileNameWithoutExtension(filePath) + ".wav";
+            var audioFilePath = Path.Combine(
+                Path.GetDirectoryName(filePath)!, audioFileName);
+
+            await Task.Run(() =>
+                MixAndSaveWav(session.MicWavFilePath, session.SystemWavFilePath, audioFilePath),
+                cancellationToken);
+
+            // Store the relative path in the transcript
+            transcript.AudioFilePath = audioFileName;
+            await _storage.UpdateAsync(transcript, cancellationToken);
+
+            Trace.TraceInformation(
+                "[CallTranscriptionPipeline] Preserved audio to {0}", audioFilePath);
+        }
+        catch (Exception ex)
+        {
+            // Audio preservation is non-critical — log and continue
+            Trace.TraceWarning(
+                "[CallTranscriptionPipeline] Failed to preserve audio: {0}", ex.Message);
+        }
 
         ReportProgress(progress, PipelineStage.Saving, 100, $"Transcript saved to {filePath}");
 
@@ -398,6 +425,81 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
 
         merged.Add(current);
         return merged;
+    }
+
+    /// <summary>
+    /// Mixes mic and system WAV files into a single stereo WAV file for playback.
+    /// Left channel = mic, right channel = system audio.
+    /// Falls back to copying whichever file exists if only one is available.
+    /// </summary>
+    private static void MixAndSaveWav(string micWavPath, string systemWavPath, string outputPath)
+    {
+        var micExists = File.Exists(micWavPath);
+        var sysExists = File.Exists(systemWavPath);
+
+        if (!micExists && !sysExists)
+        {
+            Trace.TraceWarning("[CallTranscriptionPipeline] No audio files to preserve.");
+            return;
+        }
+
+        // If only one file exists, just copy it
+        if (!micExists || !sysExists)
+        {
+            var source = micExists ? micWavPath : systemWavPath;
+            File.Copy(source, outputPath, overwrite: true);
+            return;
+        }
+
+        // Mix both into a mono WAV (averaged) at the original sample rate of the mic file
+        using var micReader = new AudioFileReader(micWavPath);
+        using var sysReader = new AudioFileReader(systemWavPath);
+
+        var sampleRate = micReader.WaveFormat.SampleRate;
+        var micProvider = micReader.ToSampleProvider();
+        var sysProvider = sysReader.ToSampleProvider();
+
+        // Resample system audio to match mic sample rate if different
+        ISampleProvider sysSamples = sysProvider;
+        if (sysReader.WaveFormat.SampleRate != sampleRate)
+        {
+            sysSamples = new NAudio.Wave.SampleProviders.WdlResamplingSampleProvider(
+                sysProvider, sampleRate);
+        }
+
+        // Convert to mono if needed
+        ISampleProvider micMono = micReader.WaveFormat.Channels > 1
+            ? new NAudio.Wave.SampleProviders.StereoToMonoSampleProvider(micProvider)
+            : micProvider;
+
+        ISampleProvider sysMono = sysReader.WaveFormat.Channels > 1
+            ? new NAudio.Wave.SampleProviders.StereoToMonoSampleProvider(sysSamples)
+            : sysSamples;
+
+        // Write mixed mono WAV
+        var outFormat = WaveFormat.CreateIeeeFloatWaveFormat(sampleRate, 1);
+        using var writer = new WaveFileWriter(outputPath, outFormat);
+
+        var bufferSize = sampleRate; // 1 second at a time
+        var micBuf = new float[bufferSize];
+        var sysBuf = new float[bufferSize];
+
+        while (true)
+        {
+            var micRead = micMono.Read(micBuf, 0, bufferSize);
+            var sysRead = sysMono.Read(sysBuf, 0, bufferSize);
+            var maxRead = Math.Max(micRead, sysRead);
+
+            if (maxRead == 0)
+                break;
+
+            for (int i = 0; i < maxRead; i++)
+            {
+                float m = i < micRead ? micBuf[i] : 0f;
+                float s = i < sysRead ? sysBuf[i] : 0f;
+                writer.WriteSample((m + s) * 0.5f);
+            }
+        }
     }
 
     /// <summary>
