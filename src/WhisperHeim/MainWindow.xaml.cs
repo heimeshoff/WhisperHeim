@@ -277,7 +277,58 @@ public partial class MainWindow : FluentWindow
             TrayIcon.TooltipText = "WhisperHeim";
             CallRecordingMenuItem.Header = "Start Call Recording";
             Trace.TraceInformation("[MainWindow] Call recording stopped.");
+
+            // If recording stopped with an error, don't start transcription
+            if (e.Exception is not null)
+            {
+                Trace.TraceWarning(
+                    "[MainWindow] Call recording stopped with error, skipping transcription: {0}",
+                    e.Exception.Message);
+                return;
+            }
+
+            // Auto-trigger transcription pipeline with progress dialog
+            StartPostRecordingTranscription(e.Session);
         });
+    }
+
+    private void StartPostRecordingTranscription(CallRecordingSession session)
+    {
+        Trace.TraceInformation("[MainWindow] Starting post-recording transcription pipeline.");
+
+        var transcript = Views.TranscriptionProgressDialog.ShowAndProcess(
+            _callTranscriptionPipeline, session);
+
+        if (transcript is not null)
+        {
+            // Refresh the transcripts page and navigate to it
+            if (_pageCache.TryGetValue("Transcripts", out var page) &&
+                page is Views.Pages.TranscriptsPage transcriptsPage)
+            {
+                transcriptsPage.RefreshList();
+            }
+
+            NavigateTo("Transcripts");
+
+            // Sync the nav highlight to "Transcripts"
+            foreach (var item in NavList.Items)
+            {
+                if (item is System.Windows.Controls.ListBoxItem lbi && lbi.Tag is string tag && tag == "Transcripts")
+                {
+                    NavList.SelectedItem = lbi;
+                    break;
+                }
+            }
+
+            // Show the window if it was hidden (tray-only mode)
+            ShowWindow();
+
+            Trace.TraceInformation("[MainWindow] Navigated to Transcripts page after successful transcription.");
+        }
+        else
+        {
+            Trace.TraceInformation("[MainWindow] Transcription was cancelled or failed.");
+        }
     }
 
     private void OnCallRecordingDurationUpdated(object? sender, TimeSpan duration)

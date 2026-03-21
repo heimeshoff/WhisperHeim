@@ -2,6 +2,23 @@
 
 ---
 
+## 2026-03-21 -- Task Started: 028 - Post-recording transcription pipeline with progress UI
+
+**Type:** Task Start
+**Task:** 028 - Post-recording transcription pipeline with progress UI
+**Milestone:** M2 - Audio Capture + Call Transcription
+
+---
+
+## 2026-03-21 -- Task Completed: 027 - Tray context menu for start/stop call recording
+
+**Type:** Task Completion
+**Task:** 027 - Tray context menu for start/stop call recording
+**Summary:** Added "Start Call Recording" tray menu item with Record24 icon, Ctrl+Win+R hotkey, and live recording state feedback (orange tray icon, duration in menu text and tooltip). Added DurationUpdated to ICallRecordingService interface.
+**Files changed:** 4 files
+
+---
+
 ## 2026-03-21 -- Task Started: 027 - Tray context menu for start/stop call recording
 
 **Type:** Task Start
