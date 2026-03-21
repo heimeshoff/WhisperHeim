@@ -611,7 +611,8 @@ public partial class MainWindow : FluentWindow
                 "TextToSpeech" => new TextToSpeechPage(
                     _textToSpeechService,
                     _highQualityRecorderService,
-                    _highQualityLoopbackService),
+                    _highQualityLoopbackService,
+                    _settingsService),
                 "Settings" => new GeneralPage(_settingsService),
                 "Models" => new AboutPage(_modelManager),
                 _ => null

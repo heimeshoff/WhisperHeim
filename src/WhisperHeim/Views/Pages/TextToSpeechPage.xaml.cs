@@ -6,6 +6,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using Microsoft.Win32;
 using WhisperHeim.Services.Audio;
+using WhisperHeim.Services.Settings;
 using WhisperHeim.Services.TextToSpeech;
 
 namespace WhisperHeim.Views.Pages;
@@ -29,6 +30,7 @@ public partial class TextToSpeechPage : UserControl
 
     // ── TTS services ──
     private readonly ITextToSpeechService _ttsService;
+    private readonly SettingsService _settingsService;
     private readonly AudioExportService _exportService = new();
     private CancellationTokenSource? _cts;
     private bool _isSpeaking;
@@ -47,11 +49,13 @@ public partial class TextToSpeechPage : UserControl
     public TextToSpeechPage(
         ITextToSpeechService ttsService,
         IHighQualityRecorderService recorderService,
-        IHighQualityLoopbackService loopbackService)
+        IHighQualityLoopbackService loopbackService,
+        SettingsService settingsService)
     {
         _ttsService = ttsService;
         _recorderService = recorderService;
         _loopbackService = loopbackService;
+        _settingsService = settingsService;
 
         InitializeComponent();
 
@@ -108,7 +112,23 @@ public partial class TextToSpeechPage : UserControl
 
             if (VoiceCombo.Items.Count > 0)
             {
-                VoiceCombo.SelectedIndex = 0;
+                // Pre-select the saved default voice, or fall back to the first voice
+                var savedVoiceId = _settingsService.Current.Tts.DefaultVoiceId;
+                int selectedIndex = 0;
+
+                if (!string.IsNullOrEmpty(savedVoiceId))
+                {
+                    for (int i = 0; i < VoiceCombo.Items.Count; i++)
+                    {
+                        if (VoiceCombo.Items[i] is VoiceComboItem item && item.VoiceId == savedVoiceId)
+                        {
+                            selectedIndex = i;
+                            break;
+                        }
+                    }
+                }
+
+                VoiceCombo.SelectedIndex = selectedIndex;
             }
 
             StatusText.Text = "";
@@ -130,6 +150,13 @@ public partial class TextToSpeechPage : UserControl
     private void VoiceCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         UpdateButtonStates();
+
+        // Persist the selected voice as the default for read-aloud hotkey
+        if (VoiceCombo.SelectedItem is VoiceComboItem selected)
+        {
+            _settingsService.Current.Tts.DefaultVoiceId = selected.VoiceId;
+            _settingsService.Save();
+        }
     }
 
     private void UpdateButtonStates()
