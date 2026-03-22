@@ -17,7 +17,7 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid Background="{DynamicResource ApplicationBackgroundBrush}">
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />

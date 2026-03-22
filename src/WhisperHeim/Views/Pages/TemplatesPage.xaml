@@ -47,7 +47,7 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid Background="{DynamicResource ApplicationBackgroundBrush}">
+    <Grid>
         <!-- Main Content -->
         <Grid Margin="24,20,24,16" MaxWidth="900" HorizontalAlignment="Stretch">
             <Grid.RowDefinitions>

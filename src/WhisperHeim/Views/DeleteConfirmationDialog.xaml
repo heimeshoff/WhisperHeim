@@ -17,10 +17,11 @@
             <DropShadowEffect Color="#FF005FAA" Opacity="0.15" BlurRadius="48" ShadowDepth="12" Direction="270" />
         </Border.Effect>
         <Grid>
-            <!-- Semi-transparent tinted background (acrylic blur-behind provided by DWM) -->
-            <Border CornerRadius="16" Background="#CC202020" />
-            <!-- Subtle border for definition -->
-            <Border CornerRadius="16" BorderThickness="1" BorderBrush="#20FFFFFF" />
+            <!-- Solid themed background -->
+            <Border CornerRadius="16"
+                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                    BorderThickness="1"
+                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" />
 
             <!-- Content -->
             <StackPanel Margin="32">
