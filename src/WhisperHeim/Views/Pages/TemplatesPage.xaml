@@ -47,193 +47,193 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="200" MinWidth="160" MaxWidth="260" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
+    <Grid Background="{DynamicResource ApplicationBackgroundBrush}">
+        <!-- Main Content -->
+        <Grid Margin="24,20,24,16" MaxWidth="900" HorizontalAlignment="Stretch">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
 
-        <!-- ═══════ LEFT: Master Template List ═══════ -->
-        <Border Grid.Column="0" Background="{DynamicResource LayerFillColorDefaultBrush}">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-
-                <StackPanel Grid.Row="0" Margin="12,20,12,12">
-                    <TextBlock Text="Templates"
-                               FontSize="20" FontWeight="Bold"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                               Margin="0,0,0,16" />
-                    <ui:TextBox x:Name="SearchBox"
-                                PlaceholderText="Search templates..."
-                                TextChanged="SearchBox_TextChanged" />
-                </StackPanel>
-
-                <ListBox x:Name="TemplateList"
-                         Grid.Row="1"
-                         Margin="6,0,6,8"
-                         Background="Transparent"
-                         BorderThickness="0"
-                         SelectionChanged="TemplateList_SelectionChanged">
-                    <ListBox.ItemContainerStyle>
-                        <Style TargetType="ListBoxItem">
-                            <Setter Property="Padding" Value="0" />
-                            <Setter Property="Margin" Value="0,2" />
-                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="ListBoxItem">
-                                        <Border x:Name="Bd" CornerRadius="8" Padding="10,8"
-                                                Background="Transparent">
-                                            <ContentPresenter />
-                                        </Border>
-                                        <ControlTemplate.Triggers>
-                                            <Trigger Property="IsSelected" Value="True">
-                                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
-                                                <Setter TargetName="Bd" Property="BorderBrush" Value="#FF005FAA" />
-                                                <Setter TargetName="Bd" Property="BorderThickness" Value="4,0,0,0" />
-                                            </Trigger>
-                                            <MultiTrigger>
-                                                <MultiTrigger.Conditions>
-                                                    <Condition Property="IsMouseOver" Value="True" />
-                                                    <Condition Property="IsSelected" Value="False" />
-                                                </MultiTrigger.Conditions>
-                                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
-                                            </MultiTrigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                        </Style>
-                    </ListBox.ItemContainerStyle>
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel>
-                                <TextBlock Text="{Binding Name}"
-                                           FontWeight="SemiBold"
-                                           FontSize="13"
-                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                                <TextBlock Text="{Binding Text}"
-                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                           FontSize="11"
-                                           TextTrimming="CharacterEllipsis"
-                                           MaxHeight="32"
-                                           Margin="0,4,0,0" />
-                            </StackPanel>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-            </Grid>
-        </Border>
-
-        <!-- ═══════ RIGHT: Detail / Edit Area ═══════ -->
-        <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}">
-            <StackPanel Margin="40,36,40,32" MaxWidth="640">
-                <!-- Header -->
-                <TextBlock Text="Edit Template"
-                           FontSize="30" FontWeight="Bold"
+            <!-- Header -->
+            <StackPanel Grid.Row="0" Margin="0,0,0,20">
+                <TextBlock Text="Templates"
+                           FontSize="36" FontWeight="Bold"
                            Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                            Margin="0,0,0,6" />
-                <TextBlock Text="Craft reusable snippets for your voice dictations."
-                           Style="{StaticResource SubtleText}"
-                           Margin="0,0,0,28" />
-
-                <!-- Template Name -->
-                <TextBlock Text="TEMPLATE NAME"
-                           Style="{StaticResource SectionLabel}"
-                           Margin="0,0,0,8" />
-                <ui:TextBox x:Name="NameTextBox"
-                            PlaceholderText="Template trigger name (e.g. 'greeting')"
-                            Margin="0,0,0,24" />
-
-                <!-- Template Body -->
-                <DockPanel Margin="0,0,0,8">
-                    <TextBlock Text="TEMPLATE BODY"
-                               Style="{StaticResource SectionLabel}"
-                               DockPanel.Dock="Left" VerticalAlignment="Center" />
-                    <!-- Placeholder tag pills -->
-                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
-                        <Border Background="#FFD3E3FF" CornerRadius="12" Padding="10,5" Margin="4,0">
-                            <TextBlock Text="{}{date}" FontSize="10" FontWeight="SemiBold" Foreground="#FF004883" />
-                        </Border>
-                        <Border Background="#FFD3E3FF" CornerRadius="12" Padding="10,5" Margin="4,0">
-                            <TextBlock Text="{}{time}" FontSize="10" FontWeight="SemiBold" Foreground="#FF004883" />
-                        </Border>
-                    </StackPanel>
-                </DockPanel>
-                <ui:TextBox x:Name="TextTextBox"
-                            AcceptsReturn="True"
-                            MinHeight="200"
-                            MaxHeight="360"
-                            PlaceholderText="Template text. Use {date}, {time} for placeholders."
-                            Margin="0,0,0,32" />
-
-                <!-- Action Footer -->
-                <Border Padding="0,20,0,0"
-                        BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}" BorderThickness="0,1,0,0">
-                    <DockPanel>
-                        <Button x:Name="DeleteButton"
-                                Content="Delete Template"
-                                Background="Transparent" BorderThickness="0"
-                                Foreground="#FFBA1A1A" FontWeight="Medium"
-                                Padding="12,8" Cursor="Hand"
-                                IsEnabled="False"
-                                Click="DeleteButton_Click"
-                                DockPanel.Dock="Left" />
-                        <StackPanel Orientation="Horizontal"
-                                    DockPanel.Dock="Right"
-                                    HorizontalAlignment="Right">
-                            <Button x:Name="AddButton"
-                                    Margin="0,0,12,0"
-                                    Click="AddButton_Click"
-                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontWeight="Medium"
-                                    Padding="20,10" Cursor="Hand">
-                                <Button.Template>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border x:Name="Bd" CornerRadius="12" Padding="{TemplateBinding Padding}"
-                                                Background="{DynamicResource SubtleFillColorSecondaryBrush}">
-                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                        </Border>
-                                        <ControlTemplate.Triggers>
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
-                                            </Trigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </Button.Template>
-                                Add New
-                            </Button>
-                            <Button x:Name="UpdateButton"
-                                    Style="{StaticResource GradientButton}"
-                                    IsEnabled="False"
-                                    Click="UpdateButton_Click">
-                                <TextBlock Text="Update Template" Foreground="White" />
-                            </Button>
-                        </StackPanel>
-                    </DockPanel>
-                </Border>
-
-                <!-- New Template gradient card -->
-                <Border Margin="0,40,0,0" CornerRadius="16" Padding="24"
-                        Cursor="Hand" HorizontalAlignment="Right">
-                    <Border.Background>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                            <GradientStop Color="#FF0078D4" Offset="0" />
-                            <GradientStop Color="#FF1565C0" Offset="1" />
-                        </LinearGradientBrush>
-                    </Border.Background>
-                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <ui:SymbolIcon Symbol="Add24" Foreground="White" FontSize="28"
-                                      HorizontalAlignment="Center" Margin="0,0,0,8" />
-                        <TextBlock Text="NEW TEMPLATE"
-                                   FontSize="10" FontWeight="Bold"
-                                   Foreground="White"
-                                   HorizontalAlignment="Center" />
-                    </StackPanel>
-                </Border>
+                <TextBlock Text="Craft reusable snippets for your voice dictations. Hold Ctrl+Win+Alt and speak a template name."
+                           Style="{StaticResource SubtleText}" />
             </StackPanel>
-        </ScrollViewer>
+
+            <!-- Search -->
+            <Grid Grid.Row="1" Margin="0,0,0,20">
+                <ui:TextBox x:Name="SearchBox"
+                            PlaceholderText="Search templates..."
+                            TextChanged="SearchBox_TextChanged" />
+            </Grid>
+
+            <!-- Split: list + editor -->
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="200" MinWidth="160" MaxWidth="280" />
+                    <ColumnDefinition Width="24" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- LEFT: Template list -->
+                <Grid Grid.Column="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="TEMPLATES"
+                               Style="{StaticResource SectionLabel}"
+                               Margin="8,0,0,12" />
+
+                    <ListBox x:Name="TemplateList"
+                             Grid.Row="1"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             SelectionChanged="TemplateList_SelectionChanged">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Padding" Value="0" />
+                                <Setter Property="Margin" Value="0,3" />
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <Border x:Name="Bd" CornerRadius="12" Padding="16,14"
+                                                    ClipToBounds="True"
+                                                    Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}">
+                                                <ContentPresenter />
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+                                                </Trigger>
+                                                <MultiTrigger>
+                                                    <MultiTrigger.Conditions>
+                                                        <Condition Property="IsMouseOver" Value="True" />
+                                                        <Condition Property="IsSelected" Value="False" />
+                                                    </MultiTrigger.Conditions>
+                                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                                                </MultiTrigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Name}"
+                                               FontWeight="SemiBold"
+                                               FontSize="13"
+                                               TextWrapping="NoWrap"
+                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                               TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding Text}"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                               FontSize="10"
+                                               TextTrimming="CharacterEllipsis"
+                                               TextWrapping="NoWrap"
+                                               Margin="0,4,0,0" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+
+                <!-- RIGHT: Detail / Edit Area -->
+                <Border Grid.Column="2"
+                        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                        CornerRadius="12">
+                    <Border.Effect>
+                        <DropShadowEffect Color="#FF005FAA" Opacity="0.04" BlurRadius="32" ShadowDepth="8" Direction="270" />
+                    </Border.Effect>
+                    <StackPanel Margin="28,24">
+                        <!-- Template Name -->
+                        <TextBlock Text="TEMPLATE NAME"
+                                   Style="{StaticResource SectionLabel}"
+                                   Margin="0,0,0,8" />
+                        <ui:TextBox x:Name="NameTextBox"
+                                    PlaceholderText="Template trigger name (e.g. 'greeting')"
+                                    Margin="0,0,0,24" />
+
+                        <!-- Template Body -->
+                        <DockPanel Margin="0,0,0,8">
+                            <TextBlock Text="TEMPLATE BODY"
+                                       Style="{StaticResource SectionLabel}"
+                                       DockPanel.Dock="Left" VerticalAlignment="Center" />
+                            <!-- Placeholder tag pills -->
+                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
+                                <Border Background="#FFD3E3FF" CornerRadius="12" Padding="10,5" Margin="4,0">
+                                    <TextBlock Text="{}{date}" FontSize="10" FontWeight="SemiBold" Foreground="#FF004883" />
+                                </Border>
+                                <Border Background="#FFD3E3FF" CornerRadius="12" Padding="10,5" Margin="4,0">
+                                    <TextBlock Text="{}{time}" FontSize="10" FontWeight="SemiBold" Foreground="#FF004883" />
+                                </Border>
+                            </StackPanel>
+                        </DockPanel>
+                        <ui:TextBox x:Name="TextTextBox"
+                                    AcceptsReturn="True"
+                                    MinHeight="200"
+                                    MaxHeight="360"
+                                    PlaceholderText="Template text. Use {date}, {time} for placeholders."
+                                    Margin="0,0,0,32" />
+
+                        <!-- Action Footer -->
+                        <Border Padding="0,20,0,0"
+                                BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}" BorderThickness="0,1,0,0">
+                            <DockPanel>
+                                <Button x:Name="DeleteButton"
+                                        Content="Delete Template"
+                                        Background="Transparent" BorderThickness="0"
+                                        Foreground="#FFE81224" FontWeight="Medium"
+                                        Padding="12,8" Cursor="Hand"
+                                        IsEnabled="False"
+                                        Click="DeleteButton_Click"
+                                        DockPanel.Dock="Left" />
+                                <StackPanel Orientation="Horizontal"
+                                            DockPanel.Dock="Right"
+                                            HorizontalAlignment="Right">
+                                    <Button x:Name="AddButton"
+                                            Margin="0,0,12,0"
+                                            Click="AddButton_Click"
+                                            Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontWeight="Medium"
+                                            Padding="20,10" Cursor="Hand">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border x:Name="Bd" CornerRadius="12" Padding="{TemplateBinding Padding}"
+                                                        Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                        Add New
+                                    </Button>
+                                    <Button x:Name="UpdateButton"
+                                            Style="{StaticResource GradientButton}"
+                                            IsEnabled="False"
+                                            Click="UpdateButton_Click">
+                                        <TextBlock Text="Update Template" Foreground="White" />
+                                    </Button>
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
     </Grid>
 </UserControl>

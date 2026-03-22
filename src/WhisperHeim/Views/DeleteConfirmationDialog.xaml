@@ -11,57 +11,65 @@
         ResizeMode="NoResize"
         ShowInTaskbar="False">
 
-    <!-- Outer border with shadow -->
-    <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" CornerRadius="16" Padding="32" Margin="24">
+    <!-- Outer border with shadow and frosted glass effect -->
+    <Border CornerRadius="16" Margin="24" ClipToBounds="True">
         <Border.Effect>
             <DropShadowEffect Color="#FF005FAA" Opacity="0.15" BlurRadius="48" ShadowDepth="12" Direction="270" />
         </Border.Effect>
-        <StackPanel>
-            <!-- Icon + Title -->
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
-                <Border Width="40" Height="40" CornerRadius="10"
-                        Background="#20BA1A1A" Margin="0,0,14,0">
-                    <ui:SymbolIcon Symbol="Delete24" Foreground="#FFBA1A1A"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+        <Grid>
+            <!-- Semi-transparent tinted background (acrylic blur-behind provided by DWM) -->
+            <Border CornerRadius="16" Background="#CC202020" />
+            <!-- Subtle border for definition -->
+            <Border CornerRadius="16" BorderThickness="1" BorderBrush="#20FFFFFF" />
+
+            <!-- Content -->
+            <StackPanel Margin="32">
+                <!-- Icon + Title -->
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                    <Border Width="40" Height="40" CornerRadius="10"
+                            Background="#20E81224" Margin="0,0,14,0">
+                        <ui:SymbolIcon Symbol="Delete24" Foreground="#FFE81224"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock x:Name="TitleText"
+                                   FontSize="16" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        <TextBlock Text="This action cannot be undone."
+                                   FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="0,2,0,0" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Transcript name -->
+                <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="8" Padding="16,12" Margin="0,0,0,24">
+                    <TextBlock x:Name="TranscriptNameText"
+                               FontSize="13" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                               TextWrapping="Wrap" />
                 </Border>
-                <StackPanel VerticalAlignment="Center">
-                    <TextBlock x:Name="TitleText"
-                               FontSize="16" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                    <TextBlock Text="This action cannot be undone."
-                               FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="0,2,0,0" />
+
+                <!-- Buttons -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="Cancel" Padding="20,10"
+                            Background="Transparent" BorderThickness="0"
+                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontWeight="Medium"
+                            Cursor="Hand" FontSize="13"
+                            Click="Cancel_Click" />
+                    <Button Padding="20,10" Cursor="Hand" FontSize="13"
+                            Foreground="White" FontWeight="SemiBold"
+                            BorderThickness="0"
+                            Click="Delete_Click">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border CornerRadius="10" Padding="{TemplateBinding Padding}"
+                                        Background="#FFE81224">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                        Delete
+                    </Button>
                 </StackPanel>
             </StackPanel>
-
-            <!-- Transcript name -->
-            <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="8" Padding="16,12" Margin="0,0,0,24">
-                <TextBlock x:Name="TranscriptNameText"
-                           FontSize="13" FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                           TextWrapping="Wrap" />
-            </Border>
-
-            <!-- Buttons -->
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="Cancel" Padding="20,10"
-                        Background="Transparent" BorderThickness="0"
-                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontWeight="Medium"
-                        Cursor="Hand" FontSize="13"
-                        Click="Cancel_Click" />
-                <Button Padding="20,10" Cursor="Hand" FontSize="13"
-                        Foreground="White" FontWeight="SemiBold"
-                        BorderThickness="0"
-                        Click="Delete_Click">
-                    <Button.Template>
-                        <ControlTemplate TargetType="Button">
-                            <Border CornerRadius="10" Padding="{TemplateBinding Padding}"
-                                    Background="#FFBA1A1A">
-                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-                            </Border>
-                        </ControlTemplate>
-                    </Button.Template>
-                    Delete
-                </Button>
-            </StackPanel>
-        </StackPanel>
+        </Grid>
     </Border>
 </Window>
