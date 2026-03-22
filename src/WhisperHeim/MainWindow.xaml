@@ -124,11 +124,6 @@
                                    VerticalAlignment="Center"
                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                     </StackPanel>
-                    <TextBlock x:Name="BrandingSubtitle" Text="LOCAL-FIRST AI"
-                               FontSize="9" FontWeight="Medium"
-                               Margin="42,0,0,0"
-                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                               Opacity="0.6" />
                 </StackPanel>
 
                 <!-- Navigation items -->

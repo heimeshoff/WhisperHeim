@@ -37,3 +37,11 @@ Remove the `BrandingSubtitle` TextBlock that shows "LOCAL-FIRST AI" below the lo
 
 ## Work Log
 <!-- Appended by /work during execution -->
+
+### 2026-03-22
+- **TranscriptsPage.xaml**: Changed main content grid `HorizontalAlignment` from `Center` to `Stretch` so the page fills available width up to MaxWidth even when no transcript is selected.
+- **TranscriptsPage.xaml**: Added `ClipToBounds="True"` to the ItemRoot Grid in the transcript list card DataTemplate to prevent card content from overflowing its column bounds.
+- **TextToSpeechPage.xaml**: Changed main content grid `HorizontalAlignment` from `Center` to `Stretch` so the page fills available width up to MaxWidth even when text input is empty.
+- **MainWindow.xaml**: Removed the `BrandingSubtitle` TextBlock ("LOCAL-FIRST AI") from the sidebar.
+- **MainWindow.xaml.cs**: Removed the corresponding `BrandingSubtitle.Visibility` assignment in the sidebar collapse handler.
+- Build verified: 0 errors, 0 warnings.

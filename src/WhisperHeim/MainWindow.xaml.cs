@@ -698,7 +698,6 @@ public partial class MainWindow : FluentWindow
 
         // Show/hide text labels in nav items
         BrandingTitle.Visibility = labelVisibility;
-        BrandingSubtitle.Visibility = labelVisibility;
         NavLabelDictation.Visibility = labelVisibility;
         NavLabelTemplates.Visibility = labelVisibility;
         NavLabelRecordings.Visibility = labelVisibility;

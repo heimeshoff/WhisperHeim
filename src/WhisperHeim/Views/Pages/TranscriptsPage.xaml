@@ -48,7 +48,7 @@
         </Border>
 
         <!-- Main Content -->
-        <Grid Grid.Row="1" Margin="24,20,24,16" MaxWidth="900" HorizontalAlignment="Center">
+        <Grid Grid.Row="1" Margin="24,20,24,16" MaxWidth="900" HorizontalAlignment="Stretch">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -156,7 +156,7 @@
                         </ListBox.ItemContainerStyle>
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <Grid x:Name="ItemRoot">
+                                <Grid x:Name="ItemRoot" ClipToBounds="True">
                                     <StackPanel>
                                         <DockPanel Margin="0,0,0,4">
                                             <TextBlock Text="{Binding DateDisplay}"

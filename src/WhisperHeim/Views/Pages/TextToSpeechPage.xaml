@@ -74,7 +74,7 @@
     </UserControl.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}">
-        <Grid Margin="40,36,40,32" MaxWidth="900" HorizontalAlignment="Center">
+        <Grid Margin="40,36,40,32" MaxWidth="900" HorizontalAlignment="Stretch">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="8*" MinWidth="300" />
                 <ColumnDefinition Width="32" />

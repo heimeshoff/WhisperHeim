@@ -2,6 +2,23 @@
 
 ---
 
+## 2026-03-22 -- Task Completed: 058 - Layout Fixes and Branding Cleanup
+
+**Type:** Task Completion
+**Task:** 058 - Layout Fixes and Branding Cleanup
+**Summary:** Fixed transcript list card overflow with ClipToBounds, made Transcripts and TTS pages stretch to fill available width, removed "LOCAL-FIRST AI" subtitle from sidebar.
+**Files changed:** 4 files
+
+---
+
+## 2026-03-22 -- Task Started: 058 - Layout Fixes and Branding Cleanup
+
+**Type:** Task Start
+**Task:** 058 - Layout Fixes and Branding Cleanup
+**Milestone:** --
+
+---
+
 ## 2026-03-22 -- Task Completed: 059 - Rework Read-Aloud Hotkey to Navigate to TTS Page
 
 **Type:** Task Completion
