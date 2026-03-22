@@ -25,10 +25,17 @@ When the sidebar collapses to 60px, the 32px logo with 16px margins on each side
 - `MainWindow.xaml.cs` — `SidebarCollapsedWidth` constant, `ApplySidebarCollapsedState` method
 
 ## Acceptance Criteria
-- [ ] Logo is fully visible and centered when sidebar is collapsed
-- [ ] App name ("WhisperHeim") is hidden when collapsed, visible when expanded
-- [ ] No clipping of the logo at collapsed width
-- [ ] Works correctly in both light and dark themes
+- [x] Logo is fully visible and centered when sidebar is collapsed
+- [x] App name ("WhisperHeim") is hidden when collapsed, visible when expanded
+- [x] No clipping of the logo at collapsed width
+- [x] Works correctly in both light and dark themes
 
 ## Work Log
 <!-- Appended by /work during execution -->
+### 2026-03-22
+- Increased `SidebarCollapsedWidth` from 60px to 64px in `MainWindow.xaml.cs` (16px margin + 32px logo + 16px margin = 64px)
+- Added `x:Name="BrandingHeader"` and `x:Name="BrandingLogo"` to XAML elements for code-behind access
+- In `ApplySidebarCollapsedState`: remove logo right margin (10px) when collapsed so it fits exactly in the content area
+- BrandingTitle was already hidden via `labelVisibility` — no change needed there
+- Theme-independent: only layout margins changed, no color/brush changes
+- Build verified: 0 warnings, 0 errors

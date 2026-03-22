@@ -99,10 +99,10 @@
                 </Grid.RowDefinitions>
 
                 <!-- Branding header -->
-                <StackPanel Grid.Row="0" Margin="16,12,16,24">
+                <StackPanel x:Name="BrandingHeader" Grid.Row="0" Margin="16,12,16,24">
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                         <!-- Logo icon -->
-                        <Border Width="32" Height="32"
+                        <Border x:Name="BrandingLogo" Width="32" Height="32"
                                 CornerRadius="7" Margin="0,0,10,0"
                                 BorderThickness="1.5"
                                 BorderBrush="#FF25abfe"

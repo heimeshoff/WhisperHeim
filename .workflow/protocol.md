@@ -2,6 +2,23 @@
 
 ---
 
+## 2026-03-22 -- Task Completed: 060 - Show Full Logo in Collapsed Sidebar
+
+**Type:** Task Completion
+**Task:** 060 - Show Full Logo in Collapsed Sidebar
+**Summary:** Increased SidebarCollapsedWidth from 60px to 64px and adjusted logo margin to 0 when collapsed, ensuring the 32px logo fits perfectly centered with no clipping.
+**Files changed:** 2 files
+
+---
+
+## 2026-03-22 -- Task Started: 060 - Show Full Logo in Collapsed Sidebar
+
+**Type:** Task Start
+**Task:** 060 - Show Full Logo in Collapsed Sidebar
+**Milestone:** --
+
+---
+
 ## 2026-03-22 -- Task Completed: 058 - Layout Fixes and Branding Cleanup
 
 **Type:** Task Completion

@@ -85,7 +85,7 @@ public partial class MainWindow : FluentWindow
     // Sidebar collapsed state
     private bool _isSidebarCollapsed;
     private const double SidebarExpandedWidth = 200;
-    private const double SidebarCollapsedWidth = 60;
+    private const double SidebarCollapsedWidth = 64;
 
     public MainWindow(
         SettingsService settingsService,
@@ -696,8 +696,9 @@ public partial class MainWindow : FluentWindow
         SidebarToggleLabel.Visibility = labelVisibility;
         SidebarToggleButton.ToolTip = collapsed ? "Expand sidebar" : "Collapse sidebar";
 
-        // Show/hide text labels in nav items
+        // Show/hide text labels and adjust branding layout
         BrandingTitle.Visibility = labelVisibility;
+        BrandingLogo.Margin = collapsed ? new Thickness(0) : new Thickness(0, 0, 10, 0);
         NavLabelDictation.Visibility = labelVisibility;
         NavLabelTemplates.Visibility = labelVisibility;
         NavLabelRecordings.Visibility = labelVisibility;
