@@ -75,7 +75,10 @@ public static class FuzzyMatcher
 
     private static string Normalize(string input)
     {
-        return input.Trim().ToLowerInvariant();
+        // Strip everything except letters and digits, then lowercase.
+        // This makes matching ignore case, spaces, punctuation, and hyphens.
+        var chars = input.Where(char.IsLetterOrDigit).ToArray();
+        return new string(chars).ToLowerInvariant();
     }
 
     /// <summary>

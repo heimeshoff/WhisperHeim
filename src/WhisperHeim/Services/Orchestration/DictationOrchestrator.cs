@@ -3,6 +3,7 @@ using System.Windows;
 using WhisperHeim.Services.Audio;
 using WhisperHeim.Services.Hotkey;
 using WhisperHeim.Services.Input;
+using WhisperHeim.Services.Templates;
 using WhisperHeim.Services.Transcription;
 
 namespace WhisperHeim.Services.Orchestration;
@@ -11,8 +12,12 @@ namespace WhisperHeim.Services.Orchestration;
 /// Hold-to-talk dictation orchestrator.
 ///
 /// Key down: start recording + show overlay.
-/// While holding: periodically transcribe accumulated audio for partial results.
+/// While holding: accumulate audio samples.
 /// Key up: stop recording, transcribe full audio, type the final result.
+///
+/// Template mode: if Alt is held during recording (Ctrl+Win+Alt), the transcribed
+/// text is fuzzy-matched against templates. If a match is found, the template's
+/// expanded text is typed instead. If no match, the raw transcription is typed.
 ///
 /// No VAD needed -- the user controls speech boundaries by holding/releasing the hotkey.
 /// </summary>
@@ -22,11 +27,13 @@ public sealed class DictationOrchestrator : IDisposable
     private readonly IAudioCaptureService _audioCapture;
     private readonly ITranscriptionService _transcription;
     private readonly IInputSimulator _inputSimulator;
+    private readonly ITemplateService? _templateService;
     private readonly Action<bool> _onDictationStateChanged;
 
     private readonly object _lock = new();
     private readonly List<float> _recordedSamples = new();
     private bool _isRecording;
+    private bool _isTemplateMode;
     private bool _disposed;
 
     private const int MinSamples = 8000; // 0.5s at 16kHz
@@ -43,18 +50,26 @@ public sealed class DictationOrchestrator : IDisposable
     /// </summary>
     public event Action<Exception>? PipelineError;
 
+    /// <summary>
+    /// Raised when template mode is active but no template matched the spoken text.
+    /// The string parameter contains the transcribed text that failed to match.
+    /// </summary>
+    public event Action<string>? TemplateNoMatch;
+
     public DictationOrchestrator(
         GlobalHotkeyService hotkeyService,
         IAudioCaptureService audioCapture,
         ITranscriptionService transcription,
         IInputSimulator inputSimulator,
-        Action<bool> onDictationStateChanged)
+        Action<bool> onDictationStateChanged,
+        ITemplateService? templateService = null)
     {
         _hotkeyService = hotkeyService ?? throw new ArgumentNullException(nameof(hotkeyService));
         _audioCapture = audioCapture ?? throw new ArgumentNullException(nameof(audioCapture));
         _transcription = transcription ?? throw new ArgumentNullException(nameof(transcription));
         _inputSimulator = inputSimulator ?? throw new ArgumentNullException(nameof(inputSimulator));
         _onDictationStateChanged = onDictationStateChanged ?? throw new ArgumentNullException(nameof(onDictationStateChanged));
+        _templateService = templateService;
     }
 
     public void Start()
@@ -64,7 +79,7 @@ public sealed class DictationOrchestrator : IDisposable
         _hotkeyService.HotkeyPressed += OnHotkeyPressed;
         _hotkeyService.HotkeyReleased += OnHotkeyReleased;
 
-        Trace.TraceInformation("[DictationOrchestrator] Started. Hold hotkey to dictate.");
+        Trace.TraceInformation("[DictationOrchestrator] Started. Hold hotkey to dictate. Hold Alt additionally for template mode.");
     }
 
     public void Stop()
@@ -91,6 +106,7 @@ public sealed class DictationOrchestrator : IDisposable
         {
             if (_isRecording) return; // already recording
             _isRecording = true;
+            _isTemplateMode = false;
             _recordedSamples.Clear();
         }
 
@@ -129,10 +145,12 @@ public sealed class DictationOrchestrator : IDisposable
 
     private void StopRecording(bool transcribe)
     {
+        bool templateMode;
         lock (_lock)
         {
             if (!_isRecording) return;
             _isRecording = false;
+            templateMode = _isTemplateMode;
         }
 
         // Stop capture
@@ -153,7 +171,7 @@ public sealed class DictationOrchestrator : IDisposable
 
             if (samples.Length > MinSamples)
             {
-                _ = TranscribeFinalAsync(samples);
+                _ = TranscribeFinalAsync(samples, templateMode);
             }
             else
             {
@@ -169,7 +187,17 @@ public sealed class DictationOrchestrator : IDisposable
             lock (_lock)
             {
                 if (_isRecording)
+                {
                     _recordedSamples.AddRange(e.Samples);
+
+                    // Continuously check if Alt is held during recording.
+                    // Once detected, template mode stays on for the rest of this session.
+                    if (!_isTemplateMode && _templateService is not null && IsKeyDown(NativeMethods.VK_MENU))
+                    {
+                        _isTemplateMode = true;
+                        Trace.TraceInformation("[DictationOrchestrator] Alt detected during recording -- template mode.");
+                    }
+                }
             }
 
             // Calculate RMS amplitude and notify listeners
@@ -199,7 +227,7 @@ public sealed class DictationOrchestrator : IDisposable
         return Math.Sqrt(sumSquares / samples.Length);
     }
 
-    private async Task TranscribeFinalAsync(float[] samples)
+    private async Task TranscribeFinalAsync(float[] samples, bool templateMode)
     {
         try
         {
@@ -208,9 +236,27 @@ public sealed class DictationOrchestrator : IDisposable
             if (string.IsNullOrEmpty(text)) return;
 
             Trace.TraceInformation(
-                "[DictationOrchestrator] Final: \"{0}\" (audio={1:F2}s, transcribe={2:F0}ms, RTF={3:F3})",
+                "[DictationOrchestrator] Final: \"{0}\" (audio={1:F2}s, transcribe={2:F0}ms, RTF={3:F3}, template={4})",
                 text, result.AudioDuration.TotalSeconds,
-                result.TranscriptionDuration.TotalMilliseconds, result.RealTimeFactor);
+                result.TranscriptionDuration.TotalMilliseconds, result.RealTimeFactor, templateMode);
+
+            if (templateMode && _templateService is not null)
+            {
+                var match = _templateService.MatchAndExpand(text);
+                if (match is not null)
+                {
+                    Trace.TraceInformation(
+                        "[DictationOrchestrator] Template matched: \"{0}\" (score={1:F2}), typing expanded text.",
+                        match.TemplateName, match.MatchScore);
+                    await TypeTextSafe(match.ExpandedText);
+                    return;
+                }
+
+                Trace.TraceInformation(
+                    "[DictationOrchestrator] No template match for \"{0}\".", text);
+                TemplateNoMatch?.Invoke(text);
+                return;
+            }
 
             await TypeTextSafe(text);
         }
@@ -248,4 +294,7 @@ public sealed class DictationOrchestrator : IDisposable
             Trace.TraceError("[DictationOrchestrator] Failed to dispatch state change: {0}", ex.Message);
         }
     }
+
+    private static bool IsKeyDown(int vk) =>
+        (NativeMethods.GetAsyncKeyState(vk) & 0x8000) != 0;
 }
