@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using NAudio.Wave;
 using SherpaOnnx;
 using WhisperHeim.Services.Models;
+using WhisperHeim.Services.Settings;
 
 namespace WhisperHeim.Services.TextToSpeech;
 
@@ -38,14 +39,22 @@ public sealed class TextToSpeechService : ITextToSpeechService
     private readonly Dictionary<string, (float[] Samples, int SampleRate)> _wavSampleCache = new();
 
     /// <summary>
-    /// Directory for custom voice reference .wav files.
-    /// Users can drop .wav files here to add custom voices.
+    /// Directory for custom voice reference .wav files (synced).
+    /// Initialized from DataPathService; falls back to %APPDATA%\WhisperHeim\voices.
     /// </summary>
-    private static readonly string CustomVoicesDir =
+    private static string CustomVoicesDir =
         Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "WhisperHeim",
             "voices");
+
+    /// <summary>
+    /// Initializes the custom voices directory from the data path service.
+    /// </summary>
+    public static void Initialize(DataPathService dataPathService)
+    {
+        CustomVoicesDir = dataPathService.VoicesPath;
+    }
 
     /// <inheritdoc />
     public bool IsLoaded => _tts is not null;

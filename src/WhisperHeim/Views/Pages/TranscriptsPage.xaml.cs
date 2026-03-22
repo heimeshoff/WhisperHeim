@@ -487,16 +487,25 @@ public partial class TranscriptsPage : UserControl
 
             if (File.Exists(item.FilePath))
             {
-                // Delete associated audio file if it exists
-                var audioPath = _selectedTranscript?.ResolvedAudioFilePath;
-                if (audioPath is not null && File.Exists(audioPath))
+                // Delete the entire session folder (transcript + WAV files)
+                if (_storageService is TranscriptStorageService concreteStorage)
                 {
-                    File.Delete(audioPath);
-                    Trace.TraceInformation("[TranscriptsPage] Deleted audio: {0}", audioPath);
+                    concreteStorage.DeleteSession(item.FilePath);
+                    Trace.TraceInformation("[TranscriptsPage] Deleted session for: {0}", item.FilePath);
                 }
+                else
+                {
+                    // Fallback: delete individual files
+                    var audioPath = _selectedTranscript?.ResolvedAudioFilePath;
+                    if (audioPath is not null && File.Exists(audioPath))
+                    {
+                        File.Delete(audioPath);
+                        Trace.TraceInformation("[TranscriptsPage] Deleted audio: {0}", audioPath);
+                    }
 
-                File.Delete(item.FilePath);
-                Trace.TraceInformation("[TranscriptsPage] Deleted transcript: {0}", item.FilePath);
+                    File.Delete(item.FilePath);
+                    Trace.TraceInformation("[TranscriptsPage] Deleted transcript: {0}", item.FilePath);
+                }
             }
 
             ClearViewer();

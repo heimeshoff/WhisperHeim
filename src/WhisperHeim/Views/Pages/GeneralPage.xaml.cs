@@ -21,6 +21,7 @@ public partial class GeneralPage : UserControl
         DataContext = _settingsService.Current.General;
         InitializeComponent();
         LoadModelStatus(modelManager);
+        UpdateDataPathDisplay();
 
         // Highlight the active theme card once the visual tree is ready,
         // so that Background assignments are applied after layout.
@@ -75,6 +76,52 @@ public partial class GeneralPage : UserControl
         {
             Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
         }
+    }
+
+    private void UpdateDataPathDisplay()
+    {
+        var dataPath = _settingsService.DataPathService.DataPath;
+        DataPathDisplay.Text = dataPath;
+    }
+
+    private void BrowseDataPath_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFolderDialog
+        {
+            Title = "Select data folder for WhisperHeim",
+            InitialDirectory = _settingsService.DataPathService.DataPath,
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            var newPath = dialog.FolderName;
+
+            if (!DataPathService.ValidatePath(newPath))
+            {
+                MessageBox.Show(
+                    $"The selected folder is not writable:\n\n{newPath}\n\nPlease choose a different folder.",
+                    "Invalid Folder",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
+            if (_settingsService.DataPathService.SetDataPath(newPath))
+            {
+                UpdateDataPathDisplay();
+                MessageBox.Show(
+                    "Data folder changed. Please restart WhisperHeim for the change to take full effect.",
+                    "Restart Required",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+        }
+    }
+
+    private void ResetDataPath_Click(object sender, RoutedEventArgs e)
+    {
+        _settingsService.DataPathService.SetDataPath(null);
+        UpdateDataPathDisplay();
     }
 
     private void HighlightActiveTheme()

@@ -237,7 +237,7 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
         ReportProgress(progress, PipelineStage.Saving, 30, "Preserving audio file...");
         try
         {
-            var audioFileName = Path.GetFileNameWithoutExtension(filePath) + ".wav";
+            var audioFileName = "recording.wav";
             var audioFilePath = Path.Combine(
                 Path.GetDirectoryName(filePath)!, audioFileName);
 

@@ -100,6 +100,63 @@
                 </DockPanel>
             </Border>
 
+            <!-- ═══════ Data Storage Section ═══════ -->
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                <ui:SymbolIcon Symbol="Folder24" Foreground="#FF005FAA" Margin="0,0,10,0" />
+                <TextBlock Text="DATA STORAGE"
+                           FontSize="10" FontWeight="Bold"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                           VerticalAlignment="Center" />
+            </StackPanel>
+
+            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" CornerRadius="12" Padding="24" Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock Text="Data folder"
+                               FontSize="15" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                    <TextBlock Text="Choose where your recordings, settings, and voice samples are stored. Use a cloud-synced folder (Google Drive, OneDrive) to share data across devices."
+                               FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               Margin="0,4,0,16"
+                               TextWrapping="Wrap" />
+                    <DockPanel>
+                        <ui:Button x:Name="BrowseDataPath"
+                                   Content="Browse..."
+                                   Appearance="Primary"
+                                   DockPanel.Dock="Right"
+                                   Margin="12,0,0,0"
+                                   VerticalAlignment="Center"
+                                   Click="BrowseDataPath_Click" />
+                        <ui:Button x:Name="ResetDataPath"
+                                   Content="Reset"
+                                   DockPanel.Dock="Right"
+                                   Margin="8,0,0,0"
+                                   VerticalAlignment="Center"
+                                   Click="ResetDataPath_Click" />
+                        <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                                CornerRadius="8" Padding="12,8">
+                            <TextBlock x:Name="DataPathDisplay"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                       TextTrimming="CharacterEllipsis"
+                                       VerticalAlignment="Center" />
+                        </Border>
+                    </DockPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" CornerRadius="12" Padding="24" Margin="0,0,0,40">
+                <StackPanel>
+                    <TextBlock FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}">
+                        <Run FontWeight="SemiBold">Synced:</Run>
+                        <Run>settings, recordings, voice samples</Run>
+                    </TextBlock>
+                    <TextBlock FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="0,4,0,0">
+                        <Run FontWeight="SemiBold">Local only:</Run>
+                        <Run>AI models (~800 MB), window position, audio devices, logs</Run>
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+
             <!-- ═══════ Appearance Section ═══════ -->
             <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
                 <ui:SymbolIcon Symbol="PaintBrush24" Foreground="#FF005FAA" Margin="0,0,10,0" />

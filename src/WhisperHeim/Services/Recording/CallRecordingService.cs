@@ -3,13 +3,14 @@ using System.IO;
 using System.Windows.Threading;
 using NAudio.Wave;
 using WhisperHeim.Services.Audio;
+using WhisperHeim.Services.Settings;
 
 namespace WhisperHeim.Services.Recording;
 
 /// <summary>
 /// Orchestrates simultaneous microphone (AudioCaptureService) and system audio
 /// (LoopbackCaptureService) capture for call recording. Each stream is saved to
-/// a separate temporary WAV file with synchronized timestamps. If one stream fails,
+/// WAV files in the recording session directory. If one stream fails,
 /// the other continues recording independently.
 /// </summary>
 public sealed class CallRecordingService : ICallRecordingService
@@ -19,6 +20,7 @@ public sealed class CallRecordingService : ICallRecordingService
 
     private readonly object _lock = new();
     private readonly DispatcherTimer _durationTimer;
+    private readonly DataPathService? _dataPathService;
 
     private AudioCaptureService? _micCapture;
     private LoopbackCaptureService? _loopbackCapture;
@@ -30,8 +32,9 @@ public sealed class CallRecordingService : ICallRecordingService
     private bool _systemStreamActive;
     private bool _disposed;
 
-    public CallRecordingService()
+    public CallRecordingService(DataPathService? dataPathService = null)
     {
+        _dataPathService = dataPathService;
         _durationTimer = new DispatcherTimer
         {
             Interval = TimeSpan.FromSeconds(1),
@@ -73,12 +76,34 @@ public sealed class CallRecordingService : ICallRecordingService
             var startTimestamp = DateTimeOffset.UtcNow;
             var sessionId = $"{startTimestamp:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}";
 
-            // Create temp WAV file paths
-            var tempDir = Path.Combine(Path.GetTempPath(), "WhisperHeim");
-            Directory.CreateDirectory(tempDir);
+            // Create WAV file paths — use the data path recordings directory if available,
+            // otherwise fall back to %TEMP%
+            string recordingDir;
+            if (_dataPathService is not null)
+            {
+                var sessionName = startTimestamp.LocalDateTime.ToString("yyyyMMdd_HHmmss");
+                recordingDir = Path.Combine(_dataPathService.RecordingsPath, sessionName);
+                // Avoid collision
+                if (Directory.Exists(recordingDir))
+                {
+                    var suffix = 1;
+                    string candidate;
+                    do
+                    {
+                        candidate = $"{recordingDir}_{suffix}";
+                        suffix++;
+                    } while (Directory.Exists(candidate));
+                    recordingDir = candidate;
+                }
+            }
+            else
+            {
+                recordingDir = Path.Combine(Path.GetTempPath(), "WhisperHeim");
+            }
+            Directory.CreateDirectory(recordingDir);
 
-            _micWavFilePath = Path.Combine(tempDir, $"call_mic_{sessionId}.wav");
-            var systemWavFilePath = Path.Combine(tempDir, $"call_system_{sessionId}.wav");
+            _micWavFilePath = Path.Combine(recordingDir, "mic.wav");
+            var systemWavFilePath = Path.Combine(recordingDir, "system.wav");
 
             _currentSession = new CallRecordingSession(
                 _micWavFilePath, systemWavFilePath, startTimestamp);

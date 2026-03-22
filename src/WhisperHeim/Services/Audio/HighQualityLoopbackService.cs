@@ -13,13 +13,22 @@ namespace WhisperHeim.Services.Audio;
 public sealed class HighQualityLoopbackService : IHighQualityLoopbackService
 {
     /// <summary>
-    /// Directory for custom voice reference .wav files.
+    /// Directory for custom voice reference .wav files (synced).
+    /// Initialized from DataPathService; falls back to %APPDATA%\WhisperHeim\voices.
     /// </summary>
-    private static readonly string CustomVoicesDir =
+    private static string CustomVoicesDir =
         Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "WhisperHeim",
             "voices");
+
+    /// <summary>
+    /// Initializes the custom voices directory from the data path service.
+    /// </summary>
+    public static void Initialize(Settings.DataPathService dataPathService)
+    {
+        CustomVoicesDir = dataPathService.VoicesPath;
+    }
 
     private WasapiLoopbackCapture? _capture;
     private WaveFileWriter? _waveFileWriter;

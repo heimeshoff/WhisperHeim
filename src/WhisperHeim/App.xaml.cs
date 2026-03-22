@@ -24,7 +24,8 @@ namespace WhisperHeim;
 /// </summary>
 public partial class App : Application
 {
-    private readonly SettingsService _settingsService = new();
+    private readonly DataPathService _dataPathService = new();
+    private SettingsService? _settingsService;
     private readonly AudioCaptureService _audioCaptureService = new();
     private readonly ModelManagerService _modelManager = new();
     private ReadAloudHotkeyService? _readAloudHotkeyService;
@@ -108,15 +109,27 @@ public partial class App : Application
 
     private void StartupCore(StartupEventArgs e)
     {
+        // Load bootstrap config (data path pointer + machine-local settings)
+        _dataPathService.Load();
+
         // Enable trace output to a log file for diagnostics
-        var logPath = System.IO.Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "WhisperHeim", "whisperheim.log");
+        var logPath = _dataPathService.LogPath;
         System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(logPath)!);
         Trace.Listeners.Add(new TextWriterTraceListener(logPath) { TraceOutputOptions = TraceOptions.DateTime });
         Trace.AutoFlush = true;
         Trace.TraceInformation("[App] WhisperHeim starting...");
+        Trace.TraceInformation("[App] Data path: {0}", _dataPathService.DataPath);
+
+        // Run migration from old flat structure to new per-session structure
+        _dataPathService.MigrateIfNeeded();
+
+        // Initialize path-dependent static services
+        ModelManagerService.Initialize(_dataPathService);
+        TextToSpeechService.Initialize(_dataPathService);
+        HighQualityLoopbackService.Initialize(_dataPathService);
+
         // Load settings (creates file with defaults on first run)
+        _settingsService = new SettingsService(_dataPathService);
         _settingsService.Load();
 
         // Apply the persisted theme so the UI matches the user's last choice
@@ -155,9 +168,9 @@ public partial class App : Application
         var fileTranscriptionService = new FileTranscriptionService(transcriptionService);
         var templateService = new TemplateService(_settingsService);
 
-        // Create call recording services
-        var callRecordingService = new CallRecordingService();
-        var transcriptStorageService = new TranscriptStorageService();
+        // Create call recording services — recordings go directly to the data path
+        var callRecordingService = new CallRecordingService(_dataPathService);
+        var transcriptStorageService = new TranscriptStorageService(_dataPathService);
         var speakerDiarizationService = new SpeakerDiarizationService();
         var callTranscriptionPipeline = new CallTranscriptionPipeline(
             speakerDiarizationService, transcriptionService, transcriptStorageService);

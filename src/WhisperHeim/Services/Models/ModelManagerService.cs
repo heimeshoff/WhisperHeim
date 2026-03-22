@@ -1,20 +1,30 @@
 using System.IO;
 using System.Net.Http;
 using System.Security.Cryptography;
+using WhisperHeim.Services.Settings;
 
 namespace WhisperHeim.Services.Models;
 
 /// <summary>
 /// Manages downloading, verifying, and locating AI model files.
-/// Models are stored in %APPDATA%/WhisperHeim/models/.
+/// Models are stored locally (not synced) in the models/ subdirectory.
 /// </summary>
 public sealed class ModelManagerService
 {
-    private static readonly string ModelsRoot =
+    private static string ModelsRoot =
         Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "WhisperHeim",
             "models");
+
+    /// <summary>
+    /// Initializes the models root path from the data path service.
+    /// Models stay local (not synced) so they use the local root.
+    /// </summary>
+    public static void Initialize(DataPathService dataPathService)
+    {
+        ModelsRoot = dataPathService.ModelsPath;
+    }
 
     private static readonly HttpClient SharedHttpClient = new()
     {
