@@ -208,6 +208,23 @@
                                 </StackPanel>
                             </DockPanel>
 
+                            <!-- Shortcut: Template Dictation -->
+                            <DockPanel Margin="0,0,0,14">
+                                <TextBlock Text="Template Dictation" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           VerticalAlignment="Center" DockPanel.Dock="Left" />
+                                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
+                                    <Border Style="{StaticResource KbdPill}">
+                                        <TextBlock Text="Ctrl" Style="{StaticResource KbdText}" />
+                                    </Border>
+                                    <Border Style="{StaticResource KbdPill}">
+                                        <TextBlock Text="Win" Style="{StaticResource KbdText}" />
+                                    </Border>
+                                    <Border Style="{StaticResource KbdPill}">
+                                        <TextBlock Text="Alt" Style="{StaticResource KbdText}" />
+                                    </Border>
+                                </StackPanel>
+                            </DockPanel>
+
                             <!-- Shortcut: Call Recording -->
                             <DockPanel Margin="0,0,0,14">
                                 <TextBlock Text="Call Recording" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"

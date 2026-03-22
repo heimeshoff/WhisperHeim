@@ -13,12 +13,12 @@ namespace WhisperHeim.Services.SelectedText;
 public sealed class ReadAloudHotkeyService : IDisposable
 {
     /// <summary>
-    /// Default read-aloud hotkey: Ctrl + Win + Ä.
+    /// Default read-aloud hotkey: Ctrl + Win + ^.
     /// Avoids Ctrl+Alt which triggers AltGr on German keyboards.
     /// </summary>
     public static readonly HotkeyRegistration DefaultHotkey = new(
         ModifierKeys.Control | ModifierKeys.Win,
-        VirtualKey: 0xDE // VK_OEM_7 — ä key on German keyboard
+        VirtualKey: 0xDC // VK_OEM_5 — ^ key on German keyboard (left of 1)
     );
 
     private readonly ISelectedTextService _selectedTextService;

@@ -692,7 +692,7 @@ public partial class MainWindow : FluentWindow
                     _highQualityRecorderService,
                     _highQualityLoopbackService,
                     _settingsService),
-                "Settings" => new GeneralPage(_settingsService, _modelManager),
+                "Settings" => new GeneralPage(_settingsService),
                 "About" => new AboutPage(_modelManager),
                 _ => null
             };

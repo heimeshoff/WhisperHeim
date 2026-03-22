@@ -1,10 +1,8 @@
-using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using Wpf.Ui.Appearance;
-using WhisperHeim.Services.Models;
 using WhisperHeim.Services.Settings;
 using WhisperHeim.Services.Startup;
 
@@ -15,24 +13,16 @@ public partial class GeneralPage : UserControl
     private readonly SettingsService _settingsService;
     private readonly StartupService _startupService = new();
 
-    public GeneralPage(SettingsService settingsService, ModelManagerService modelManager)
+    public GeneralPage(SettingsService settingsService)
     {
         _settingsService = settingsService;
         DataContext = _settingsService.Current.General;
         InitializeComponent();
-        LoadModelStatus(modelManager);
         UpdateDataPathDisplay();
 
         // Highlight the active theme card once the visual tree is ready,
         // so that Background assignments are applied after layout.
         Loaded += (_, _) => HighlightActiveTheme();
-    }
-
-    private void LoadModelStatus(ModelManagerService modelManager)
-    {
-        var statuses = modelManager.CheckAllModels();
-        var items = statuses.Select(s => new ModelStatusViewModel(s)).ToList();
-        ModelList.ItemsSource = items;
     }
 
     private void OnSettingChanged(object sender, RoutedEventArgs e)
@@ -68,14 +58,6 @@ public partial class GeneralPage : UserControl
         }
 
         HighlightActiveTheme();
-    }
-
-    private void ModelCard_Click(object sender, MouseButtonEventArgs e)
-    {
-        if (sender is FrameworkElement { Tag: string url } && !string.IsNullOrEmpty(url))
-        {
-            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
-        }
     }
 
     private void UpdateDataPathDisplay()
@@ -134,44 +116,4 @@ public partial class GeneralPage : UserControl
         ThemeDark.Background = current == "Dark" ? selectedBrush : transparentBrush;
         ThemeSystem.Background = current == "System" ? selectedBrush : transparentBrush;
     }
-}
-
-/// <summary>
-/// View model for displaying a model's status on the Settings page.
-/// </summary>
-internal sealed class ModelStatusViewModel
-{
-    public ModelStatusViewModel(ModelStatusInfo info)
-    {
-        Name = info.Definition.Name;
-        Description = info.Definition.Description;
-        ProjectUrl = info.Definition.ProjectUrl;
-
-        StatusText = info.Status switch
-        {
-            ModelStatus.Ready => "Ready",
-            ModelStatus.Incomplete => "Incomplete",
-            ModelStatus.Missing => "Missing",
-            _ => "Unknown"
-        };
-
-        StatusBrush = info.Status switch
-        {
-            ModelStatus.Ready => Brushes.LimeGreen,
-            ModelStatus.Incomplete => Brushes.Orange,
-            _ => Brushes.Red
-        };
-
-        var sizeMB = info.DownloadedBytes / (1024.0 * 1024.0);
-        SizeText = info.Status == ModelStatus.Ready
-            ? $"{sizeMB:F0} MB"
-            : $"~{info.Definition.TotalSizeBytes / (1024.0 * 1024.0):F0} MB";
-    }
-
-    public string Name { get; }
-    public string Description { get; }
-    public string? ProjectUrl { get; }
-    public string StatusText { get; }
-    public Brush StatusBrush { get; }
-    public string SizeText { get; }
 }
