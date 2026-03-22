@@ -10,76 +10,70 @@
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
         <Style x:Key="SubtleText" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontSize" Value="13" />
             <Setter Property="Foreground" Value="#FF404752" />
         </Style>
         <Style x:Key="SectionLabel" TargetType="TextBlock">
             <Setter Property="FontSize" Value="10" />
             <Setter Property="FontWeight" Value="Bold" />
             <Setter Property="Foreground" Value="#FF404752" />
-
         </Style>
     </UserControl.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" Background="#FFF9F9F9">
-        <StackPanel Margin="32,32,32,24" MaxWidth="800"
+        <StackPanel Margin="40,36,40,32" MaxWidth="860"
                     HorizontalAlignment="Left">
             <!-- Header -->
-            <TextBlock Text="Transcriptions"
-                       FontSize="28" FontWeight="Bold"
+            <TextBlock Text="Transcribe Files"
+                       FontSize="36" FontWeight="Bold"
                        Foreground="#FF1A1C1C"
-                       Margin="0,0,0,4" />
+                       Margin="0,0,0,6" />
             <TextBlock Text="Convert your audio and video recordings into text locally. Your data never leaves this machine."
                        Style="{StaticResource SubtleText}"
                        TextWrapping="Wrap"
-                       Margin="0,0,0,32" />
+                       MaxWidth="600"
+                       HorizontalAlignment="Left"
+                       Margin="0,0,0,36" />
 
             <!-- Drop Zone with glow effect -->
             <Border x:Name="DropZone"
-                    MinHeight="160"
+                    MinHeight="200"
                     CornerRadius="12"
                     Background="#FFF3F3F3"
-                    BorderBrush="#80C0C7D4"
+                    BorderBrush="#40C0C7D4"
                     BorderThickness="2"
-                    Margin="0,0,0,24">
-                <Border.Style>
-                    <Style TargetType="Border">
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsDragOver, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
-                                <Setter Property="BorderBrush" Value="#FF005FAA" />
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </Border.Style>
+                    Margin="0,0,0,36">
                 <StackPanel HorizontalAlignment="Center"
                             VerticalAlignment="Center"
-                            Margin="24">
-                    <Border Width="56" Height="56"
-                            CornerRadius="28"
+                            Margin="32">
+                    <!-- Upload icon circle -->
+                    <Border Width="64" Height="64"
+                            CornerRadius="32"
                             Background="#FFD3E3FF"
                             HorizontalAlignment="Center"
-                            Margin="0,0,0,16">
-                        <ui:SymbolIcon Symbol="ArrowDownload24"
-                                       FontSize="24"
+                            Margin="0,0,0,20">
+                        <ui:SymbolIcon Symbol="ArrowUpload24"
+                                       FontSize="28"
                                        Foreground="#FF005FAA"
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Center" />
                     </Border>
                     <TextBlock Text="Drop audio or video files here"
                                HorizontalAlignment="Center"
-                               FontSize="16" FontWeight="SemiBold"
+                               FontSize="18" FontWeight="SemiBold"
                                Foreground="#FF1A1C1C"
-                               Margin="0,0,0,4" />
-                    <TextBlock Text="Supported formats: OGG, MP3, M4A, WAV"
+                               Margin="0,0,0,6" />
+                    <TextBlock Text="Supported formats: MP3, WAV, M4A, MP4, MOV (Max 500MB)"
                                HorizontalAlignment="Center"
-                               Style="{StaticResource SubtleText}"
-                               Margin="0,0,0,16" />
+                               FontSize="12" Foreground="#FF404752"
+                               Margin="0,0,0,24" />
+                    <!-- Browse Files gradient CTA -->
                     <Button x:Name="PickFilesButton"
                             Click="OnPickFilesClick"
                             HorizontalAlignment="Center"
                             Foreground="White"
                             FontWeight="SemiBold"
-                            Padding="24,10"
+                            Padding="28,12"
                             Cursor="Hand">
                         <Button.Template>
                             <ControlTemplate TargetType="Button">
@@ -91,11 +85,12 @@
                                         </LinearGradientBrush>
                                     </Border.Background>
                                     <Border.Effect>
-                                        <DropShadowEffect Color="#FF005FAA" Opacity="0.2" BlurRadius="16" ShadowDepth="4" />
+                                        <DropShadowEffect Color="#FF005FAA" Opacity="0.2" BlurRadius="20" ShadowDepth="6" Direction="270" />
                                     </Border.Effect>
                                     <StackPanel Orientation="Horizontal">
-                                        <ui:SymbolIcon Symbol="Add24" Foreground="White" Margin="0,0,6,0" />
-                                        <TextBlock Text="Browse Files" Foreground="White" VerticalAlignment="Center" />
+                                        <ui:SymbolIcon Symbol="Add24" Foreground="White" Margin="0,0,8,0" />
+                                        <TextBlock Text="Browse Files" Foreground="White" VerticalAlignment="Center"
+                                                   FontWeight="Medium" />
                                     </StackPanel>
                                 </Border>
                             </ControlTemplate>
@@ -107,7 +102,7 @@
             <!-- Results Header -->
             <TextBlock Text="RECENT TRANSCRIPTIONS"
                        Style="{StaticResource SectionLabel}"
-                       Margin="0,0,0,12" />
+                       Margin="0,0,0,16" />
 
             <!-- Results List -->
             <ItemsControl x:Name="ResultsList"
@@ -116,10 +111,11 @@
                     <DataTemplate>
                         <Border Background="#FFFFFFFF"
                                 CornerRadius="12"
-                                Padding="20"
-                                Margin="0,0,0,12"
-                                BorderBrush="#19C0C7D4"
-                                BorderThickness="1">
+                                Padding="24"
+                                Margin="0,0,0,16">
+                            <Border.Effect>
+                                <DropShadowEffect Color="#FF005FAA" Opacity="0.03" BlurRadius="16" ShadowDepth="4" Direction="270" />
+                            </Border.Effect>
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
@@ -129,22 +125,35 @@
                                 </Grid.RowDefinitions>
 
                                 <!-- File name and status -->
-                                <DockPanel Grid.Row="0" Margin="0,0,0,8">
-                                    <TextBlock Text="{Binding FileName}"
-                                               FontWeight="SemiBold"
-                                               FontSize="14"
-                                               DockPanel.Dock="Left"
-                                               VerticalAlignment="Center" />
+                                <DockPanel Grid.Row="0" Margin="0,0,0,10">
+                                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
+                                        <Border Width="40" Height="40" CornerRadius="8"
+                                                Background="#FFE8E8E8" Margin="0,0,14,0">
+                                            <ui:SymbolIcon Symbol="MusicNote124" Foreground="#FF404752"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Border>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding FileName}"
+                                                       FontWeight="SemiBold"
+                                                       FontSize="14"
+                                                       Foreground="#FF1A1C1C" />
+                                            <TextBlock Text="{Binding StatusText}"
+                                                       FontSize="11"
+                                                       Foreground="#FF404752"
+                                                       Margin="0,2,0,0" />
+                                        </StackPanel>
+                                    </StackPanel>
                                     <TextBlock Text="{Binding StatusText}"
                                                DockPanel.Dock="Right"
                                                HorizontalAlignment="Right"
-                                               Foreground="#FF404752"
-                                               FontSize="12"
+                                               Foreground="#FF005FAA"
+                                               FontWeight="Bold"
+                                               FontSize="13"
                                                VerticalAlignment="Center" />
                                 </DockPanel>
 
                                 <!-- Progress bar -->
-                                <Grid Grid.Row="1" Height="4" Margin="0,0,0,8"
+                                <Grid Grid.Row="1" Height="4" Margin="0,0,0,12"
                                       Visibility="{Binding IsTranscribing, Converter={StaticResource BoolToVisibility}}">
                                     <Border Background="#FFE8E8E8" CornerRadius="2" />
                                     <Border CornerRadius="2" HorizontalAlignment="Left"
@@ -159,12 +168,17 @@
                                 </Grid>
 
                                 <!-- Transcript text -->
-                                <TextBlock Grid.Row="2"
-                                           Text="{Binding TranscriptText}"
-                                           TextWrapping="Wrap"
-                                           FontSize="13"
-                                           Margin="0,0,0,8"
-                                           Visibility="{Binding HasResult, Converter={StaticResource BoolToVisibility}}" />
+                                <Border Grid.Row="2"
+                                        Background="#FFF3F3F3" CornerRadius="8"
+                                        Padding="16,12"
+                                        Margin="0,0,0,12"
+                                        Visibility="{Binding HasResult, Converter={StaticResource BoolToVisibility}}">
+                                    <TextBlock Text="{Binding TranscriptText}"
+                                               TextWrapping="Wrap"
+                                               FontSize="13"
+                                               Foreground="#FF1A1C1C"
+                                               LineHeight="20" />
+                                </Border>
 
                                 <!-- Duration and buttons -->
                                 <DockPanel Grid.Row="3"
@@ -172,20 +186,22 @@
                                     <TextBlock Text="{Binding DurationText}"
                                                DockPanel.Dock="Left"
                                                Foreground="#FF404752"
-                                               FontSize="12"
+                                               FontSize="11"
                                                VerticalAlignment="Center" />
                                     <StackPanel DockPanel.Dock="Right"
                                                 Orientation="Horizontal"
                                                 HorizontalAlignment="Right">
-                                        <ui:Button Content="Copy"
-                                                   Appearance="Secondary"
-                                                   Click="OnCopyClick"
-                                                   Tag="{Binding}"
-                                                   Margin="0,0,4,0" />
-                                        <ui:Button Content="Save"
-                                                   Appearance="Secondary"
-                                                   Click="OnSaveClick"
-                                                   Tag="{Binding}" />
+                                        <Button Click="OnCopyClick"
+                                                Tag="{Binding}"
+                                                Margin="0,0,8,0" Padding="10,6"
+                                                Background="Transparent" BorderThickness="0"
+                                                Foreground="#FF005FAA" FontSize="11" FontWeight="SemiBold"
+                                                Cursor="Hand" Content="Copy Transcript" />
+                                        <Button Click="OnSaveClick"
+                                                Tag="{Binding}" Padding="10,6"
+                                                Background="Transparent" BorderThickness="0"
+                                                Foreground="#FF005FAA" FontSize="11" FontWeight="SemiBold"
+                                                Cursor="Hand" Content="Save as .txt" />
                                     </StackPanel>
                                 </DockPanel>
 
@@ -194,12 +210,30 @@
                                            Text="{Binding ErrorText}"
                                            Foreground="#FFBA1A1A"
                                            TextWrapping="Wrap"
+                                           FontSize="13"
                                            Visibility="{Binding HasError, Converter={StaticResource BoolToVisibility}}" />
                             </Grid>
                         </Border>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
+
+            <!-- Model info card at bottom -->
+            <Border Background="#FFF3F3F3" CornerRadius="16" Padding="24" Margin="0,16,0,0">
+                <StackPanel Orientation="Horizontal">
+                    <ui:SymbolIcon Symbol="Info24" Foreground="#FF005FAA" Margin="0,0,16,0"
+                                   VerticalAlignment="Top" />
+                    <StackPanel>
+                        <TextBlock Text="Model: Whisper (Local)"
+                                   FontSize="13" FontWeight="Bold"
+                                   Foreground="#FF1A1C1C"
+                                   Margin="0,0,0,4" />
+                        <TextBlock Text="WhisperHeim uses Whisper models running natively on your hardware. For faster results, try the Base or Small models in settings."
+                                   FontSize="12" Foreground="#FF404752"
+                                   TextWrapping="Wrap" LineHeight="18" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

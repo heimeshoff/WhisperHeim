@@ -3,176 +3,292 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
     <UserControl.Resources>
+        <!-- Quiet Engine: Subtle body text -->
         <Style x:Key="SubtleText" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontSize" Value="13" />
             <Setter Property="Foreground" Value="#FF404752" />
+            <Setter Property="LineHeight" Value="20" />
         </Style>
+        <!-- Quiet Engine: Section label — 10px uppercase bold tracking -->
         <Style x:Key="SectionLabel" TargetType="TextBlock">
             <Setter Property="FontSize" Value="10" />
             <Setter Property="FontWeight" Value="Bold" />
             <Setter Property="Foreground" Value="#FF404752" />
-
+        </Style>
+        <!-- Quiet Engine: Kbd pill key cap -->
+        <Style x:Key="KbdPill" TargetType="Border">
+            <Setter Property="Background" Value="#FFE8E8E8" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Margin" Value="2,0" />
+            <Setter Property="BorderBrush" Value="#FF9CA3AF" />
+            <Setter Property="BorderThickness" Value="0,0,0,2" />
+        </Style>
+        <Style x:Key="KbdText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="#FF1A1C1C" />
         </Style>
     </UserControl.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto" Background="#FFF3F3F3">
-        <Grid Margin="32,32,32,24">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" MinWidth="300" />
-                <ColumnDefinition Width="24" />
-                <ColumnDefinition Width="260" />
-            </Grid.ColumnDefinitions>
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Background="#FFF9F9F9">
+        <Grid Margin="40,36,40,32" MaxWidth="960">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
 
-            <!-- ═══════ LEFT: Main Content ═══════ -->
-            <StackPanel Grid.Column="0">
-                <!-- Page Header -->
+            <!-- ═══════ Header Section ═══════ -->
+            <StackPanel Grid.Row="0" Margin="0,0,0,32">
                 <TextBlock Text="Dictation"
-                           FontSize="28"
+                           FontSize="36"
                            FontWeight="Bold"
                            Foreground="#FF1A1C1C"
-                           Margin="0,0,0,4" />
-                <TextBlock Text="Transform your voice into text locally and securely. Near-instant transcription with zero data leakage."
+                           Margin="0,0,0,6" />
+                <TextBlock Text="Transform your voice into text locally and securely. Experience near-instant transcription with zero data leakage."
                            Style="{StaticResource SubtleText}"
                            TextWrapping="Wrap"
-                           Margin="0,0,0,24" />
+                           MaxWidth="520"
+                           HorizontalAlignment="Left" />
+            </StackPanel>
+
+            <!-- ═══════ Top Controls Row (2-col) ═══════ -->
+            <Grid Grid.Row="1" Margin="0,0,0,32">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="24" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
 
                 <!-- Microphone Selector Card -->
-                <Border Background="#FFFFFFFF" CornerRadius="12" Padding="24" Margin="0,0,0,16">
+                <Border Grid.Column="0" Background="#FFF3F3F3" CornerRadius="12" Padding="24">
                     <StackPanel>
                         <TextBlock Text="AUDIO INPUT DEVICE"
                                    Style="{StaticResource SectionLabel}"
-                                   Margin="0,0,0,12" />
+                                   Margin="0,0,0,16" />
                         <ComboBox x:Name="MicrophoneCombo"
                                   HorizontalAlignment="Stretch"
                                   SelectionChanged="MicrophoneCombo_SelectionChanged" />
+                        <!-- Audio level indicators -->
+                        <StackPanel Orientation="Horizontal" Margin="4,16,0,0">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,8,0">
+                                <Border Width="3" Height="12" Background="#FF005FAA" CornerRadius="2" Margin="1,0" />
+                                <Border Width="3" Height="12" Background="#66005FAA" CornerRadius="2" Margin="1,0" />
+                                <Border Width="3" Height="12" Background="#33005FAA" CornerRadius="2" Margin="1,0" />
+                                <Border Width="3" Height="12" Background="#1A005FAA" CornerRadius="2" Margin="1,0" />
+                            </StackPanel>
+                            <TextBlock Text="Input Levels: Nominal"
+                                       FontSize="10" Foreground="#FF404752"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
                     </StackPanel>
                 </Border>
 
-                <!-- Device Warning -->
-                <TextBlock x:Name="DeviceWarning"
-                           Foreground="#FFFFA500"
-                           FontSize="12"
-                           Margin="0,0,0,12"
-                           Visibility="Collapsed"
-                           TextWrapping="Wrap" />
+                <!-- Device Warning Card -->
+                <Border x:Name="DeviceWarningCard" Grid.Column="2"
+                        Background="#FFFFDBC8" CornerRadius="12" Padding="24"
+                        Visibility="Collapsed">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="Warning24" Foreground="#FF974700" Margin="0,0,12,0"
+                                       VerticalAlignment="Top" />
+                        <StackPanel>
+                            <TextBlock Text="Action Required"
+                                       FontSize="13" FontWeight="Bold"
+                                       Foreground="#FF311300"
+                                       Margin="0,0,0,4" />
+                            <TextBlock x:Name="DeviceWarning"
+                                       FontSize="13" Foreground="#DD311300"
+                                       TextWrapping="Wrap"
+                                       LineHeight="20" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
 
-                <!-- Test Area Card -->
-                <Border Background="#FFFFFFFF" CornerRadius="12" Padding="24" Margin="0,0,0,0">
-                    <Border.Effect>
-                        <DropShadowEffect Color="#FF005FAA" Opacity="0.03" BlurRadius="24" ShadowDepth="4" />
-                    </Border.Effect>
-                    <StackPanel>
-                        <DockPanel Margin="0,0,0,12">
-                            <TextBlock Text="SPEAK NOW"
-                                       FontSize="12" FontWeight="SemiBold"
-                                       Foreground="#FF005FAA"
-                                       VerticalAlignment="Center"
-                                       DockPanel.Dock="Left" />
-                        </DockPanel>
+            <!-- ═══════ Bento Grid (8-col + 4-col) ═══════ -->
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="8*" />
+                    <ColumnDefinition Width="32" />
+                    <ColumnDefinition Width="4*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- LEFT: Transcription Canvas -->
+                <StackPanel Grid.Column="0">
+                    <!-- Status bar -->
+                    <DockPanel Margin="0,0,0,12">
+                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
+                            <!-- Pulsing dot -->
+                            <Ellipse Width="10" Height="10" Fill="#FF005FAA" Margin="0,0,10,0" />
+                            <TextBlock Text="Speak now"
+                                       FontSize="13" FontWeight="SemiBold"
+                                       Foreground="#FF005FAA" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
+                            <Button Content="Copy" FontSize="11"
+                                    Background="Transparent" BorderThickness="0"
+                                    Padding="10,6" Margin="4,0"
+                                    Foreground="#FF404752" />
+                            <Button Content="Clear" FontSize="11"
+                                    Background="Transparent" BorderThickness="0"
+                                    Padding="10,6" Margin="4,0"
+                                    Foreground="#FF404752" />
+                        </StackPanel>
+                    </DockPanel>
+
+                    <!-- Transcription text area -->
+                    <Border Background="#FFFFFFFF" CornerRadius="12" Padding="0" Margin="0,0,0,24">
+                        <Border.Effect>
+                            <DropShadowEffect Color="#FF005FAA" Opacity="0.02" BlurRadius="24" ShadowDepth="4" Direction="270" />
+                        </Border.Effect>
                         <TextBox x:Name="TestTextBox"
-                                 MinHeight="180"
+                                 MinHeight="280"
                                  AcceptsReturn="True"
                                  TextWrapping="Wrap"
                                  VerticalScrollBarVisibility="Auto"
-                                 FontSize="16"
-                                 Background="#08E2E2E2"
+                                 FontSize="18"
+                                 Background="Transparent"
                                  BorderThickness="0"
-                                 Padding="16" />
-                        <TextBlock Text="Click the text box and press Ctrl+Win to start dictation. Your transcription appears as you speak."
-                                   Style="{StaticResource SubtleText}"
-                                   TextWrapping="Wrap"
-                                   Margin="0,12,0,0" />
-                    </StackPanel>
-                </Border>
-            </StackPanel>
+                                 Padding="28,24"
+                                 Foreground="#FF1A1C1C">
+                            <TextBox.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="12" />
+                                </Style>
+                            </TextBox.Resources>
+                        </TextBox>
+                    </Border>
 
-            <!-- ═══════ RIGHT: Hotkey Reference ═══════ -->
-            <StackPanel Grid.Column="2">
-                <!-- Hotkeys Card -->
-                <Border Background="#FFFFFFFF" CornerRadius="12" Padding="24"
-                        BorderBrush="#19C0C7D4" BorderThickness="1" Margin="0,0,0,16">
-                    <Border.Effect>
-                        <DropShadowEffect Color="#FF005FAA" Opacity="0.06" BlurRadius="32" ShadowDepth="8" />
-                    </Border.Effect>
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
-                            <ui:SymbolIcon Symbol="Keyboard24" Foreground="#FF005FAA" Margin="0,0,8,0" />
-                            <TextBlock Text="HOTKEYS"
-                                       FontSize="11" FontWeight="Bold"
-                                       />
+                    <!-- Gradient CTA Button -->
+                    <Button HorizontalAlignment="Center" Padding="28,14"
+                            Foreground="White" FontWeight="Bold" FontSize="14"
+                            BorderThickness="0" Cursor="Hand">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="BtnBorder" CornerRadius="12" Padding="{TemplateBinding Padding}">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                            <GradientStop Color="#FF005FAA" Offset="0" />
+                                            <GradientStop Color="#FF0078D4" Offset="1" />
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="#FF005FAA" Opacity="0.2" BlurRadius="20" ShadowDepth="6" Direction="270" />
+                                    </Border.Effect>
+                                    <StackPanel Orientation="Horizontal">
+                                        <ui:SymbolIcon Symbol="Stop24" Foreground="White" Margin="0,0,10,0" />
+                                        <ContentPresenter VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                        Stop Dictation
+                    </Button>
+                </StackPanel>
+
+                <!-- RIGHT: Sidebar Cards -->
+                <StackPanel Grid.Column="2">
+                    <!-- Hotkeys Card -->
+                    <Border Background="#FFFFFFFF" CornerRadius="12" Padding="28"
+                            Margin="0,0,0,20">
+                        <Border.Effect>
+                            <DropShadowEffect Color="#FF005FAA" Opacity="0.06" BlurRadius="32" ShadowDepth="8" Direction="270" />
+                        </Border.Effect>
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                                <ui:SymbolIcon Symbol="Keyboard24" Foreground="#FF005FAA" Margin="0,0,10,0" />
+                                <TextBlock Text="HOTKEYS"
+                                           FontSize="11" FontWeight="Bold"
+                                           Foreground="#FF1A1C1C" />
+                            </StackPanel>
+
+                            <!-- Shortcut: Start/Stop -->
+                            <DockPanel Margin="0,0,0,14">
+                                <TextBlock Text="Start/Stop" FontSize="11" Foreground="#FF404752"
+                                           VerticalAlignment="Center" DockPanel.Dock="Left" />
+                                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
+                                    <Border Style="{StaticResource KbdPill}">
+                                        <TextBlock Text="Ctrl" Style="{StaticResource KbdText}" />
+                                    </Border>
+                                    <Border Style="{StaticResource KbdPill}">
+                                        <TextBlock Text="Win" Style="{StaticResource KbdText}" />
+                                    </Border>
+                                </StackPanel>
+                            </DockPanel>
+
+                            <!-- Shortcut: Read Aloud -->
+                            <DockPanel Margin="0,0,0,14">
+                                <TextBlock Text="Read Aloud" FontSize="11" Foreground="#FF404752"
+                                           VerticalAlignment="Center" DockPanel.Dock="Left" />
+                                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
+                                    <Border Style="{StaticResource KbdPill}">
+                                        <TextBlock Text="Shift" Style="{StaticResource KbdText}" />
+                                    </Border>
+                                    <Border Style="{StaticResource KbdPill}">
+                                        <TextBlock Text="Win" Style="{StaticResource KbdText}" />
+                                    </Border>
+                                    <Border Style="{StaticResource KbdPill}">
+                                        <TextBlock Text="A" Style="{StaticResource KbdText}" />
+                                    </Border>
+                                </StackPanel>
+                            </DockPanel>
+
+                            <!-- Shortcut: Call Recording -->
+                            <DockPanel Margin="0,0,0,14">
+                                <TextBlock Text="Call Recording" FontSize="11" Foreground="#FF404752"
+                                           VerticalAlignment="Center" DockPanel.Dock="Left" />
+                                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
+                                    <Border Style="{StaticResource KbdPill}">
+                                        <TextBlock Text="Ctrl" Style="{StaticResource KbdText}" />
+                                    </Border>
+                                    <Border Style="{StaticResource KbdPill}">
+                                        <TextBlock Text="Win" Style="{StaticResource KbdText}" />
+                                    </Border>
+                                    <Border Style="{StaticResource KbdPill}">
+                                        <TextBlock Text="R" Style="{StaticResource KbdText}" />
+                                    </Border>
+                                </StackPanel>
+                            </DockPanel>
+
+                            <!-- Footer note -->
+                            <Border Margin="0,12,0,0" Padding="0,16,0,0"
+                                    BorderBrush="#19C0C7D4" BorderThickness="0,1,0,0">
+                                <TextBlock Text="Global hotkeys work even when WhisperHeim is minimized to the system tray."
+                                           FontSize="10" Foreground="#FF404752"
+                                           TextWrapping="Wrap" LineHeight="16" />
+                            </Border>
                         </StackPanel>
+                    </Border>
 
-                        <!-- Shortcut rows -->
-                        <DockPanel Margin="0,0,0,12">
-                            <TextBlock Text="Start/Stop" FontSize="12" Foreground="#FF404752"
-                                       VerticalAlignment="Center" DockPanel.Dock="Left" />
-                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
-                                <Border Background="#FFE8E8E8" CornerRadius="4" Padding="6,3" Margin="2,0">
-                                    <TextBlock Text="Ctrl" FontSize="10" FontWeight="Bold" />
-                                </Border>
-                                <Border Background="#FFE8E8E8" CornerRadius="4" Padding="6,3" Margin="2,0">
-                                    <TextBlock Text="Win" FontSize="10" FontWeight="Bold" />
-                                </Border>
+                    <!-- Model Info Card -->
+                    <Border Background="#0D005FAA" CornerRadius="12" Padding="24">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <ui:SymbolIcon Symbol="Flash24" Foreground="#FF005FAA" FontSize="16" Margin="0,0,10,0" />
+                                <TextBlock Text="MODEL INFO"
+                                           FontSize="10" FontWeight="Bold"
+                                           Foreground="#FF005FAA" />
                             </StackPanel>
-                        </DockPanel>
-
-                        <DockPanel Margin="0,0,0,12">
-                            <TextBlock Text="Read Aloud" FontSize="12" Foreground="#FF404752"
-                                       VerticalAlignment="Center" DockPanel.Dock="Left" />
-                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
-                                <Border Background="#FFE8E8E8" CornerRadius="4" Padding="6,3" Margin="2,0">
-                                    <TextBlock Text="Shift" FontSize="10" FontWeight="Bold" />
-                                </Border>
-                                <Border Background="#FFE8E8E8" CornerRadius="4" Padding="6,3" Margin="2,0">
-                                    <TextBlock Text="Win" FontSize="10" FontWeight="Bold" />
-                                </Border>
-                                <Border Background="#FFE8E8E8" CornerRadius="4" Padding="6,3" Margin="2,0">
-                                    <TextBlock Text="A" FontSize="10" FontWeight="Bold" />
-                                </Border>
-                            </StackPanel>
-                        </DockPanel>
-
-                        <DockPanel Margin="0,0,0,12">
-                            <TextBlock Text="Call Recording" FontSize="12" Foreground="#FF404752"
-                                       VerticalAlignment="Center" DockPanel.Dock="Left" />
-                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
-                                <Border Background="#FFE8E8E8" CornerRadius="4" Padding="6,3" Margin="2,0">
-                                    <TextBlock Text="Ctrl" FontSize="10" FontWeight="Bold" />
-                                </Border>
-                                <Border Background="#FFE8E8E8" CornerRadius="4" Padding="6,3" Margin="2,0">
-                                    <TextBlock Text="Win" FontSize="10" FontWeight="Bold" />
-                                </Border>
-                                <Border Background="#FFE8E8E8" CornerRadius="4" Padding="6,3" Margin="2,0">
-                                    <TextBlock Text="R" FontSize="10" FontWeight="Bold" />
-                                </Border>
-                            </StackPanel>
-                        </DockPanel>
-
-                        <Border Margin="0,8,0,0" Padding="0,12,0,0"
-                                BorderBrush="#19C0C7D4" BorderThickness="0,1,0,0">
-                            <TextBlock Text="Global hotkeys work even when WhisperHeim is minimized to the system tray."
-                                       FontSize="10" Foreground="#FF404752"
-                                       TextWrapping="Wrap" />
-                        </Border>
-                    </StackPanel>
-                </Border>
-
-                <!-- Model Info Card -->
-                <Border Background="#0D005FAA" CornerRadius="12" Padding="20"
-                        BorderBrush="#19005FAA" BorderThickness="1">
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                            <ui:SymbolIcon Symbol="Flash24" Foreground="#FF005FAA" FontSize="16" Margin="0,0,8,0" />
-                            <TextBlock Text="MODEL INFO"
-                                       FontSize="10" FontWeight="Bold"
-                                       Foreground="#FF005FAA" />
+                            <TextBlock Text="Whisper model loaded. Press the hotkey combination to begin dictating."
+                                       FontSize="12" Foreground="#FF404752"
+                                       TextWrapping="Wrap" LineHeight="18"
+                                       Margin="0,0,0,16" />
+                            <!-- GPU Memory bar -->
+                            <Border Background="#FFE8E8E8" CornerRadius="2" Height="4">
+                                <Border Background="#FF005FAA" CornerRadius="2" Height="4"
+                                        HorizontalAlignment="Left" Width="170" />
+                            </Border>
+                            <DockPanel Margin="0,6,0,0">
+                                <TextBlock Text="GPU Memory" FontSize="9" Foreground="#FF404752"
+                                           DockPanel.Dock="Left" />
+                                <TextBlock Text="Ready" FontSize="9" Foreground="#FF404752"
+                                           DockPanel.Dock="Right" HorizontalAlignment="Right" />
+                            </DockPanel>
                         </StackPanel>
-                        <TextBlock Text="Whisper model loaded. Press the hotkey combination to begin dictating."
-                                   FontSize="12" Foreground="#FF404752"
-                                   TextWrapping="Wrap" />
-                    </StackPanel>
-                </Border>
-            </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
         </Grid>
     </ScrollViewer>
 </UserControl>

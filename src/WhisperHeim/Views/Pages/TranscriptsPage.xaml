@@ -7,14 +7,13 @@
         <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
         <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibility" />
         <Style x:Key="SubtleText" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontSize" Value="13" />
             <Setter Property="Foreground" Value="#FF404752" />
         </Style>
         <Style x:Key="SectionLabel" TargetType="TextBlock">
             <Setter Property="FontSize" Value="10" />
             <Setter Property="FontWeight" Value="Bold" />
             <Setter Property="Foreground" Value="#FF404752" />
-
         </Style>
     </UserControl.Resources>
 
@@ -28,24 +27,28 @@
         <Border x:Name="TranscribingBanner"
                 Grid.Row="0"
                 Visibility="Collapsed"
-                Padding="16,10"
-                Margin="0">
+                Padding="20,12">
             <Border.Background>
                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
                     <GradientStop Color="#FF005FAA" Offset="0" />
                     <GradientStop Color="#FF0078D4" Offset="1" />
                 </LinearGradientBrush>
             </Border.Background>
-            <StackPanel Orientation="Horizontal">
-                <Ellipse Width="8" Height="8" Fill="White" Margin="0,0,12,0" />
-                <TextBlock Text="Transcribing call recording..."
-                           Foreground="White"
-                           FontSize="13" FontWeight="Medium" />
-            </StackPanel>
+            <Border.Effect>
+                <DropShadowEffect Color="#FF005FAA" Opacity="0.15" BlurRadius="16" ShadowDepth="4" Direction="270" />
+            </Border.Effect>
+            <DockPanel>
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
+                    <Ellipse Width="8" Height="8" Fill="White" Margin="0,0,12,0" />
+                    <TextBlock Text="Transcribing call recording..."
+                               Foreground="White"
+                               FontSize="13" FontWeight="Medium" />
+                </StackPanel>
+            </DockPanel>
         </Border>
 
         <!-- ═══════ Main Content ═══════ -->
-        <Grid Grid.Row="1" Margin="24,16,24,16">
+        <Grid Grid.Row="1" Margin="24,20,24,16">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -53,37 +56,56 @@
             </Grid.RowDefinitions>
 
             <!-- Header -->
-            <StackPanel Grid.Row="0" Margin="0,0,0,16">
+            <StackPanel Grid.Row="0" Margin="0,0,0,20">
                 <TextBlock Text="Recordings"
-                           FontSize="28" FontWeight="Bold"
+                           FontSize="36" FontWeight="Bold"
                            Foreground="#FF1A1C1C"
-                           Margin="0,0,0,4" />
+                           Margin="0,0,0,6" />
                 <TextBlock Text="Press Ctrl+Win+R to start or stop a call recording."
                            Style="{StaticResource SubtleText}" />
             </StackPanel>
 
-            <!-- Search bar -->
-            <Grid Grid.Row="1" Margin="0,0,0,16">
+            <!-- Search & Filter Row -->
+            <Grid Grid.Row="1" Margin="0,0,0,20">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="12" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <ui:TextBox x:Name="SearchBox"
                             Grid.Column="0"
                             PlaceholderText="Search transcripts, speakers, or keywords..."
-                            TextChanged="SearchBox_TextChanged"
-                            Margin="0,0,8,0" />
-                <ui:Button x:Name="ClearSearchButton"
-                           Grid.Column="1"
-                           Content="Clear"
-                           Click="ClearSearch_Click" />
+                            TextChanged="SearchBox_TextChanged" />
+                <Button x:Name="ClearSearchButton"
+                        Grid.Column="2"
+                        Click="ClearSearch_Click"
+                        Padding="16,10" Cursor="Hand"
+                        BorderThickness="0">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd" CornerRadius="12" Padding="{TemplateBinding Padding}"
+                                    Background="#FFF3F3F3">
+                                <StackPanel Orientation="Horizontal">
+                                    <ui:SymbolIcon Symbol="Filter24" Foreground="#FF404752" Margin="0,0,8,0" FontSize="16" />
+                                    <TextBlock Text="FILTERS" FontSize="10" FontWeight="Bold"
+                                               Foreground="#FF404752" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#FFE8E8E8" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
             </Grid>
 
             <!-- Split: list + viewer -->
             <Grid Grid.Row="2">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="240" />
-                    <ColumnDefinition Width="16" />
+                    <ColumnDefinition Width="280" />
+                    <ColumnDefinition Width="24" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
@@ -97,62 +119,91 @@
 
                     <TextBlock Grid.Row="0" Text="RECENT TRANSCRIPTS"
                                Style="{StaticResource SectionLabel}"
-                               Margin="4,0,0,8" />
+                               Margin="8,0,0,12" />
 
                     <ListBox x:Name="TranscriptList"
                              Grid.Row="1"
                              SelectionChanged="TranscriptList_SelectionChanged"
                              Background="Transparent"
                              BorderThickness="0">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Padding" Value="0" />
+                                <Setter Property="Margin" Value="0,3" />
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <Border x:Name="Bd" CornerRadius="12" Padding="16,14"
+                                                    Background="#FFF3F3F3">
+                                                <ContentPresenter />
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter TargetName="Bd" Property="Background" Value="#FFFFFFFF" />
+                                                </Trigger>
+                                                <MultiTrigger>
+                                                    <MultiTrigger.Conditions>
+                                                        <Condition Property="IsMouseOver" Value="True" />
+                                                        <Condition Property="IsSelected" Value="False" />
+                                                    </MultiTrigger.Conditions>
+                                                    <Setter TargetName="Bd" Property="Background" Value="#FFE8E8E8" />
+                                                </MultiTrigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <Border Padding="12,10" CornerRadius="12" Margin="0,2"
-                                        Background="#FFFFFFFF">
-                                    <StackPanel>
+                                <StackPanel>
+                                    <DockPanel Margin="0,0,0,4">
+                                        <TextBlock Text="{Binding DateDisplay}"
+                                                   FontSize="10" Foreground="#FF404752"
+                                                   DockPanel.Dock="Right" HorizontalAlignment="Right"
+                                                   VerticalAlignment="Top" />
                                         <TextBlock Text="{Binding Name}"
                                                    FontWeight="SemiBold"
-                                                   FontSize="12"
-                                                   TextTrimming="CharacterEllipsis"
-                                                   MaxWidth="200"
-                                                   HorizontalAlignment="Left" />
-                                        <TextBlock Text="{Binding DateDisplay}"
-                                                   FontSize="10"
-                                                   Foreground="#FF404752"
-                                                   Margin="0,2,0,0" />
-                                        <TextBlock Text="{Binding DurationDisplay}"
-                                                   FontSize="10"
-                                                   Foreground="#FF404752" />
-                                        <TextBlock Text="{Binding PreviewText}"
-                                                   FontSize="10"
-                                                   Foreground="#FF717783"
-                                                   TextTrimming="CharacterEllipsis"
-                                                   MaxWidth="200"
-                                                   HorizontalAlignment="Left"
-                                                   Margin="0,2,0,0" />
-                                    </StackPanel>
-                                </Border>
+                                                   FontSize="13"
+                                                   Foreground="#FF1A1C1C"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </DockPanel>
+                                    <TextBlock Text="{Binding DurationDisplay}"
+                                               FontSize="10"
+                                               Foreground="#FF404752" />
+                                    <TextBlock Text="{Binding PreviewText}"
+                                               FontSize="10"
+                                               Foreground="#FF717783"
+                                               TextTrimming="CharacterEllipsis"
+                                               Margin="0,2,0,0" />
+                                </StackPanel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
 
-                    <ui:Button Grid.Row="2"
-                               Content="Delete Selected"
-                               Margin="0,8,0,0"
-                               HorizontalAlignment="Stretch"
-                               Click="DeleteTranscript_Click"
-                               x:Name="DeleteButton"
-                               IsEnabled="False" />
+                    <Button Grid.Row="2"
+                            Content="Delete Selected"
+                            Margin="0,12,0,0"
+                            HorizontalAlignment="Stretch"
+                            Click="DeleteTranscript_Click"
+                            x:Name="DeleteButton"
+                            IsEnabled="False"
+                            Foreground="#FFBA1A1A"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Padding="12,8"
+                            Cursor="Hand" />
                 </Grid>
 
                 <!-- RIGHT: Transcript viewer -->
                 <Border Grid.Column="2"
                         Background="#FFFFFFFF"
-                        CornerRadius="12"
-                        BorderBrush="#19C0C7D4" BorderThickness="1">
+                        CornerRadius="12">
                     <Border.Effect>
-                        <DropShadowEffect Color="#FF005FAA" Opacity="0.04" BlurRadius="32" ShadowDepth="8" />
+                        <DropShadowEffect Color="#FF005FAA" Opacity="0.04" BlurRadius="32" ShadowDepth="8" Direction="270" />
                     </Border.Effect>
-                    <Grid Margin="24,20">
+                    <Grid Margin="28,24">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
@@ -163,9 +214,10 @@
                         <!-- Viewer header -->
                         <StackPanel Grid.Row="0" x:Name="ViewerHeader" Visibility="Collapsed">
                             <TextBox x:Name="TranscriptNameBox"
-                                     FontSize="16"
+                                     FontSize="18"
                                      FontWeight="Bold"
-                                     Margin="0,0,0,4"
+                                     Foreground="#FF1A1C1C"
+                                     Margin="0,0,0,6"
                                      BorderThickness="0"
                                      Background="Transparent"
                                      LostFocus="TranscriptNameBox_LostFocus"
@@ -173,16 +225,16 @@
                             <TextBlock x:Name="TranscriptInfo"
                                        FontSize="11"
                                        Foreground="#FF404752"
-                                       Margin="0,0,0,12" />
+                                       Margin="0,0,0,16" />
                         </StackPanel>
 
                         <!-- Audio playback controls -->
                         <Border Grid.Row="1"
                                 x:Name="PlaybackPanel"
                                 Visibility="Collapsed"
-                                Padding="12,8"
-                                Margin="0,0,0,8"
-                                CornerRadius="8"
+                                Padding="14,10"
+                                Margin="0,0,0,12"
+                                CornerRadius="10"
                                 Background="#FFF3F3F3">
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -195,14 +247,14 @@
                                            Grid.Column="0"
                                            Content="Play"
                                            Click="PlayPause_Click"
-                                           Padding="8,4"
-                                           Margin="0,0,6,0"
+                                           Padding="10,5"
+                                           Margin="0,0,8,0"
                                            FontSize="12" />
                                 <ui:Button x:Name="StopButton"
                                            Grid.Column="1"
                                            Content="Stop"
                                            Click="Stop_Click"
-                                           Padding="8,4"
+                                           Padding="10,5"
                                            Margin="0,0,8,0"
                                            FontSize="12" />
                                 <TextBlock x:Name="PlaybackPositionText"
@@ -221,18 +273,18 @@
                             <ItemsControl x:Name="SegmentList">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border Margin="0,4,0,4"
-                                                Padding="12,8"
+                                        <Border Margin="0,6,0,6"
+                                                Padding="16,12"
                                                 CornerRadius="12"
                                                 Background="{Binding CurrentBackground}"
                                                 Cursor="Hand"
                                                 MouseLeftButtonDown="Segment_MouseLeftButtonDown">
                                             <StackPanel>
-                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                                                     <TextBlock Text="{Binding DisplaySpeaker}"
                                                                FontWeight="Bold"
                                                                FontSize="11"
-                                                                                                                             Foreground="{Binding SpeakerColor}"
+                                                               Foreground="{Binding SpeakerColor}"
                                                                Cursor="Hand"
                                                                ToolTip="Click to rename speaker; Shift+Click to rename just this segment"
                                                                MouseLeftButtonDown="SpeakerLabel_MouseLeftButtonDown"
@@ -250,17 +302,20 @@
                                                     <TextBlock Text="{Binding TimestampDisplay}"
                                                                FontSize="10"
                                                                Foreground="#FF717783"
-                                                               Margin="8,0,0,0"
+                                                               Margin="10,0,0,0"
                                                                VerticalAlignment="Center" />
                                                     <TextBlock Text="  playing"
                                                                FontSize="10"
-                                                               Foreground="#FF404752"
+                                                               Foreground="#FF005FAA"
+                                                               FontWeight="SemiBold"
                                                                VerticalAlignment="Center"
                                                                Visibility="{Binding IsCurrentlyPlaying, Converter={StaticResource BoolToVisibility}}" />
                                                 </StackPanel>
                                                 <TextBlock Text="{Binding Text}"
                                                            TextWrapping="Wrap"
-                                                           FontSize="13" />
+                                                           FontSize="13"
+                                                           LineHeight="20"
+                                                           Foreground="#FF1A1C1C" />
                                             </StackPanel>
                                         </Border>
                                     </DataTemplate>
@@ -280,20 +335,64 @@
                         <!-- Action buttons -->
                         <StackPanel Grid.Row="3"
                                     Orientation="Horizontal"
-                                    Margin="0,12,0,0"
+                                    Margin="0,16,0,0"
                                     x:Name="ActionPanel"
                                     Visibility="Collapsed">
-                            <ui:Button Content="Copy"
-                                       Click="CopyToClipboard_Click"
-                                       Margin="0,0,6,0" />
-                            <ui:Button Content="Export MD"
-                                       Click="ExportMarkdown_Click"
-                                       Margin="0,0,6,0" />
-                            <ui:Button Content="Export JSON"
-                                       Click="ExportJson_Click"
-                                       Margin="0,0,6,0" />
-                            <ui:Button Content="Export TXT"
-                                       Click="ExportText_Click" />
+                            <Button Click="CopyToClipboard_Click"
+                                    Margin="0,0,8,0" Padding="14,8" Cursor="Hand"
+                                    BorderThickness="0">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="Bd" CornerRadius="8" Padding="{TemplateBinding Padding}"
+                                                Background="#FFF3F3F3">
+                                            <StackPanel Orientation="Horizontal">
+                                                <ui:SymbolIcon Symbol="Copy24" Foreground="#FF404752" Margin="0,0,6,0" FontSize="14" />
+                                                <TextBlock Text="COPY" FontSize="10" FontWeight="Bold"
+                                                           Foreground="#FF404752" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Bd" Property="Background" Value="#FFE8E8E8" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                            <Button Click="ExportMarkdown_Click"
+                                    Margin="0,0,8,0" Padding="14,8" Cursor="Hand"
+                                    BorderThickness="0">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="Bd" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                                            <Border.Background>
+                                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                    <GradientStop Color="#FF005FAA" Offset="0" />
+                                                    <GradientStop Color="#FF0078D4" Offset="1" />
+                                                </LinearGradientBrush>
+                                            </Border.Background>
+                                            <StackPanel Orientation="Horizontal">
+                                                <ui:SymbolIcon Symbol="ArrowDownload24" Foreground="White" Margin="0,0,6,0" FontSize="14" />
+                                                <TextBlock Text="EXPORT" FontSize="10" FontWeight="Bold"
+                                                           Foreground="White" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Bd" Property="Opacity" Value="0.9" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                            <Button Content="JSON" Click="ExportJson_Click"
+                                    Margin="0,0,8,0" Padding="10,8"
+                                    Background="Transparent" BorderThickness="0"
+                                    Foreground="#FF404752" FontSize="11" Cursor="Hand" />
+                            <Button Content="TXT" Click="ExportText_Click"
+                                    Padding="10,8"
+                                    Background="Transparent" BorderThickness="0"
+                                    Foreground="#FF404752" FontSize="11" Cursor="Hand" />
                         </StackPanel>
                     </Grid>
                 </Border>

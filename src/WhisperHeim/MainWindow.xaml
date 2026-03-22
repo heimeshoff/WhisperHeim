@@ -83,70 +83,88 @@
             </tray:NotifyIcon.Menu>
         </tray:NotifyIcon>
 
-        <!-- Settings Navigation -->
+        <!-- Main Layout -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="180" />
+                <ColumnDefinition Width="200" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
             <!-- Nav panel -->
-            <ListBox x:Name="NavList"
-                     Grid.Column="0"
-                     Margin="8"
-                     Background="Transparent"
-                     BorderThickness="0"
-                     SelectionChanged="NavList_SelectionChanged">
-                <ListBoxItem Tag="Dictation" IsSelected="True" Style="{StaticResource NavPillItem}">
-                    <StackPanel Orientation="Horizontal">
-                        <ui:SymbolIcon Symbol="Mic24" Margin="0,0,8,0" />
-                        <TextBlock Text="DICTATION" VerticalAlignment="Center"
-                                   FontSize="11" FontWeight="Medium" />
-                    </StackPanel>
-                </ListBoxItem>
-                <ListBoxItem Tag="Templates" Style="{StaticResource NavPillItem}">
-                    <StackPanel Orientation="Horizontal">
-                        <ui:SymbolIcon Symbol="Document24" Margin="0,0,8,0" />
-                        <TextBlock Text="TEMPLATES" VerticalAlignment="Center"
-                                   FontSize="11" FontWeight="Medium" />
-                    </StackPanel>
-                </ListBoxItem>
-                <ListBoxItem Tag="Recordings" Style="{StaticResource NavPillItem}">
-                    <StackPanel Orientation="Horizontal">
-                        <ui:SymbolIcon Symbol="DocumentText24" Margin="0,0,8,0" />
-                        <TextBlock Text="RECORDINGS" VerticalAlignment="Center"
-                                   FontSize="11" FontWeight="Medium" />
-                    </StackPanel>
-                </ListBoxItem>
-                <ListBoxItem Tag="Transcriptions" Style="{StaticResource NavPillItem}">
-                    <StackPanel Orientation="Horizontal">
-                        <ui:SymbolIcon Symbol="ArrowDownload24" Margin="0,0,8,0" />
-                        <TextBlock Text="TRANSCRIPTIONS" VerticalAlignment="Center"
-                                   FontSize="11" FontWeight="Medium" />
-                    </StackPanel>
-                </ListBoxItem>
-                <ListBoxItem Tag="TextToSpeech" Style="{StaticResource NavPillItem}">
-                    <StackPanel Orientation="Horizontal">
-                        <ui:SymbolIcon Symbol="ReadAloud24" Margin="0,0,8,0" />
-                        <TextBlock Text="TEXT TO SPEECH" VerticalAlignment="Center"
-                                   FontSize="11" FontWeight="Medium" />
-                    </StackPanel>
-                </ListBoxItem>
-                <ListBoxItem Tag="Settings" Style="{StaticResource NavPillItem}">
-                    <StackPanel Orientation="Horizontal">
-                        <ui:SymbolIcon Symbol="Settings24" Margin="0,0,8,0" />
-                        <TextBlock Text="SETTINGS" VerticalAlignment="Center"
-                                   FontSize="11" FontWeight="Medium" />
-                    </StackPanel>
-                </ListBoxItem>
-                <ListBoxItem Tag="Models" Style="{StaticResource NavPillItem}">
-                    <StackPanel Orientation="Horizontal">
-                        <ui:SymbolIcon Symbol="Info24" Margin="0,0,8,0" />
-                        <TextBlock Text="MODELS" VerticalAlignment="Center"
-                                   FontSize="11" FontWeight="Medium" />
-                    </StackPanel>
-                </ListBoxItem>
-            </ListBox>
+            <Grid Grid.Column="0" Margin="12,0,4,12">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- Branding header -->
+                <StackPanel Grid.Row="0" Margin="16,12,16,24">
+                    <TextBlock Text="WhisperHeim"
+                               FontSize="16" FontWeight="Bold"
+                               Foreground="#FF1A1C1C" />
+                    <TextBlock Text="LOCAL-FIRST AI"
+                               FontSize="9" FontWeight="Medium"
+                               Foreground="#FF404752"
+                               Opacity="0.6" />
+                </StackPanel>
+
+                <!-- Navigation items -->
+                <ListBox x:Name="NavList"
+                         Grid.Row="1"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         SelectionChanged="NavList_SelectionChanged">
+                    <ListBoxItem Tag="Dictation" IsSelected="True" Style="{StaticResource NavPillItem}">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="Mic24" Margin="0,0,10,0" FontSize="18" />
+                            <TextBlock Text="DICTATION" VerticalAlignment="Center"
+                                       FontSize="11" FontWeight="Medium" />
+                        </StackPanel>
+                    </ListBoxItem>
+                    <ListBoxItem Tag="Templates" Style="{StaticResource NavPillItem}">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="Document24" Margin="0,0,10,0" FontSize="18" />
+                            <TextBlock Text="TEMPLATES" VerticalAlignment="Center"
+                                       FontSize="11" FontWeight="Medium" />
+                        </StackPanel>
+                    </ListBoxItem>
+                    <ListBoxItem Tag="Recordings" Style="{StaticResource NavPillItem}">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="DocumentText24" Margin="0,0,10,0" FontSize="18" />
+                            <TextBlock Text="RECORDINGS" VerticalAlignment="Center"
+                                       FontSize="11" FontWeight="Medium" />
+                        </StackPanel>
+                    </ListBoxItem>
+                    <ListBoxItem Tag="Transcriptions" Style="{StaticResource NavPillItem}">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="ArrowDownload24" Margin="0,0,10,0" FontSize="18" />
+                            <TextBlock Text="TRANSCRIPTIONS" VerticalAlignment="Center"
+                                       FontSize="11" FontWeight="Medium" />
+                        </StackPanel>
+                    </ListBoxItem>
+                    <ListBoxItem Tag="TextToSpeech" Style="{StaticResource NavPillItem}">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="ReadAloud24" Margin="0,0,10,0" FontSize="18" />
+                            <TextBlock Text="TEXT TO SPEECH" VerticalAlignment="Center"
+                                       FontSize="11" FontWeight="Medium" />
+                        </StackPanel>
+                    </ListBoxItem>
+                    <ListBoxItem Tag="Settings" Style="{StaticResource NavPillItem}">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="Settings24" Margin="0,0,10,0" FontSize="18" />
+                            <TextBlock Text="SETTINGS" VerticalAlignment="Center"
+                                       FontSize="11" FontWeight="Medium" />
+                        </StackPanel>
+                    </ListBoxItem>
+                    <ListBoxItem Tag="Models" Style="{StaticResource NavPillItem}">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="Info24" Margin="0,0,10,0" FontSize="18" />
+                            <TextBlock Text="MODELS" VerticalAlignment="Center"
+                                       FontSize="11" FontWeight="Medium" />
+                        </StackPanel>
+                    </ListBoxItem>
+                </ListBox>
+            </Grid>
 
             <!-- Page content area -->
             <ContentPresenter x:Name="PageContent"

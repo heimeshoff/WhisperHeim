@@ -94,7 +94,7 @@ public partial class DictationPage : UserControl
     private void ShowDeviceWarning(string missingDeviceName)
     {
         DeviceWarning.Text = $"Previously selected microphone \"{missingDeviceName}\" is no longer available. Falling back to system default.";
-        DeviceWarning.Visibility = Visibility.Visible;
+        DeviceWarningCard.Visibility = Visibility.Visible;
     }
 
     private void MicrophoneCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -103,7 +103,7 @@ public partial class DictationPage : UserControl
             return;
 
         // Hide any previous warning when user makes a new selection
-        DeviceWarning.Visibility = Visibility.Collapsed;
+        DeviceWarningCard.Visibility = Visibility.Collapsed;
 
         if (MicrophoneCombo.SelectedItem is MicComboItem selected)
         {

@@ -3,20 +3,20 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
     <ScrollViewer VerticalScrollBarVisibility="Auto" Background="#FFF9F9F9">
-        <StackPanel Margin="32,32,32,24" MaxWidth="700"
+        <StackPanel Margin="40,36,40,32" MaxWidth="760"
                     HorizontalAlignment="Left">
             <!-- Header -->
-            <TextBlock Text="Settings"
-                       FontSize="28" FontWeight="Bold"
+            <TextBlock Text="General"
+                       FontSize="36" FontWeight="Bold"
                        Foreground="#FF1A1C1C"
-                       Margin="0,0,0,4" />
+                       Margin="0,0,0,6" />
             <TextBlock Text="Manage your application preferences and behavioral settings."
-                       FontSize="14" Foreground="#FF404752"
-                       Margin="0,0,0,32" />
+                       FontSize="15" Foreground="#FF404752"
+                       Margin="0,0,0,40" />
 
-            <!-- App Start Section -->
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
-                <ui:SymbolIcon Symbol="Power24" Foreground="#FF005FAA" Margin="0,0,8,0" />
+            <!-- ═══════ App Start Section ═══════ -->
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                <ui:SymbolIcon Symbol="Power24" Foreground="#FF005FAA" Margin="0,0,10,0" />
                 <TextBlock Text="APP START"
                            FontSize="10" FontWeight="Bold"
                            Foreground="#FF404752"
@@ -24,15 +24,16 @@
             </StackPanel>
 
             <!-- Start minimized card -->
-            <Border Background="#FFFFFFFF" CornerRadius="12" Padding="24" Margin="0,0,0,8">
+            <Border Background="#FFFFFFFF" CornerRadius="12" Padding="24" Margin="0,0,0,12">
                 <DockPanel>
-                    <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                    <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center" MaxWidth="400">
                         <TextBlock Text="Start minimized"
-                                   FontSize="14" FontWeight="SemiBold"
+                                   FontSize="15" FontWeight="SemiBold"
                                    Foreground="#FF1A1C1C" />
                         <TextBlock Text="Open the application in the system tray instead of a window."
-                                   FontSize="12" Foreground="#FF404752"
-                                   Margin="0,4,0,0" />
+                                   FontSize="13" Foreground="#FF404752"
+                                   Margin="0,4,0,0"
+                                   TextWrapping="Wrap" />
                     </StackPanel>
                     <ui:ToggleSwitch x:Name="StartMinimizedCheck"
                                      IsChecked="{Binding StartMinimized, Mode=TwoWay}"
@@ -45,15 +46,16 @@
             </Border>
 
             <!-- Launch at startup card -->
-            <Border Background="#FFFFFFFF" CornerRadius="12" Padding="24" Margin="0,0,0,8">
+            <Border Background="#FFFFFFFF" CornerRadius="12" Padding="24" Margin="0,0,0,32">
                 <DockPanel>
-                    <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                    <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center" MaxWidth="400">
                         <TextBlock Text="Launch at startup"
-                                   FontSize="14" FontWeight="SemiBold"
+                                   FontSize="15" FontWeight="SemiBold"
                                    Foreground="#FF1A1C1C" />
                         <TextBlock Text="Automatically run WhisperHeim when your operating system starts."
-                                   FontSize="12" Foreground="#FF404752"
-                                   Margin="0,4,0,0" />
+                                   FontSize="13" Foreground="#FF404752"
+                                   Margin="0,4,0,0"
+                                   TextWrapping="Wrap" />
                     </StackPanel>
                     <ui:ToggleSwitch x:Name="LaunchAtStartupCheck"
                                      IsChecked="{Binding LaunchAtStartup, Mode=TwoWay}"
@@ -62,6 +64,126 @@
                                      DockPanel.Dock="Right"
                                      HorizontalAlignment="Right"
                                      VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
+            <!-- ═══════ Interface / Appearance Bento Row ═══════ -->
+            <Grid Margin="0,0,0,32">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="24" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Interface Language card -->
+                <Border Grid.Column="0" Background="#FFF3F3F3" CornerRadius="12" Padding="24">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                            <ui:SymbolIcon Symbol="Translate24" Foreground="#FF005FAA" Margin="0,0,10,0" />
+                            <TextBlock Text="INTERFACE LANGUAGE"
+                                       FontSize="10" FontWeight="Bold"
+                                       Foreground="#FF404752"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+                        <TextBlock Text="Select the language used throughout the application UI."
+                                   FontSize="12" Foreground="#FF404752"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,16" />
+                        <ComboBox IsEnabled="False" SelectedIndex="0" HorizontalAlignment="Stretch">
+                            <ComboBoxItem Content="English (United States)" />
+                            <ComboBoxItem Content="Deutsch" />
+                        </ComboBox>
+                    </StackPanel>
+                </Border>
+
+                <!-- Appearance card -->
+                <Border Grid.Column="2" Background="#0D005FAA" CornerRadius="12" Padding="24">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                            <ui:SymbolIcon Symbol="PaintBrush24" Foreground="#FF005FAA" Margin="0,0,10,0" />
+                            <TextBlock Text="APPEARANCE"
+                                       FontSize="10" FontWeight="Bold"
+                                       Foreground="#FF404752"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+                        <UniformGrid Columns="3" Margin="0,4,0,0">
+                            <!-- Light theme -->
+                            <StackPanel Margin="0,0,6,0" HorizontalAlignment="Center">
+                                <Border Width="70" Height="48" CornerRadius="8"
+                                        Background="#FFF9F9F9" Margin="0,0,0,6"
+                                        BorderBrush="#FF005FAA" BorderThickness="2" />
+                                <TextBlock Text="LIGHT" FontSize="9" FontWeight="Bold"
+                                           HorizontalAlignment="Center" Foreground="#FF1A1C1C" />
+                            </StackPanel>
+                            <!-- Dark theme -->
+                            <StackPanel Margin="3,0" HorizontalAlignment="Center">
+                                <Border Width="70" Height="48" CornerRadius="8"
+                                        Background="#FF2F3131" Margin="0,0,0,6" />
+                                <TextBlock Text="DARK" FontSize="9" FontWeight="Bold"
+                                           HorizontalAlignment="Center" Foreground="#FF404752" />
+                            </StackPanel>
+                            <!-- System theme -->
+                            <StackPanel Margin="6,0,0,0" HorizontalAlignment="Center">
+                                <Border Width="70" Height="48" CornerRadius="8" Margin="0,0,0,6">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                            <GradientStop Color="#FFF9F9F9" Offset="0" />
+                                            <GradientStop Color="#FF2F3131" Offset="1" />
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                </Border>
+                                <TextBlock Text="SYSTEM" FontSize="9" FontWeight="Bold"
+                                           HorizontalAlignment="Center" Foreground="#FF404752" />
+                            </StackPanel>
+                        </UniformGrid>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- ═══════ Advanced Section ═══════ -->
+            <Border Padding="0,24,0,0"
+                    BorderBrush="#19C0C7D4" BorderThickness="0,1,0,0">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center" MaxWidth="400">
+                        <TextBlock Text="Enable Advanced Mode"
+                                   FontSize="15" FontWeight="SemiBold"
+                                   Foreground="#FF1A1C1C" />
+                        <TextBlock Text="Expose experimental local LLM parameters and API debug tools."
+                                   FontSize="13" Foreground="#FF404752"
+                                   Margin="0,4,0,0"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                    <Button DockPanel.Dock="Right"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            IsEnabled="False"
+                            Foreground="White"
+                            FontWeight="Medium"
+                            Padding="24,10"
+                            Cursor="Hand">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bd" CornerRadius="12" Padding="{TemplateBinding Padding}">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                            <GradientStop Color="#FF005FAA" Offset="0" />
+                                            <GradientStop Color="#FF0078D4" Offset="1" />
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="#FF005FAA" Opacity="0.2" BlurRadius="16" ShadowDepth="4" Direction="270" />
+                                    </Border.Effect>
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsEnabled" Value="False">
+                                        <Setter TargetName="Bd" Property="Opacity" Value="0.4" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                        <TextBlock Text="Enable Features" Foreground="White" />
+                    </Button>
                 </DockPanel>
             </Border>
         </StackPanel>

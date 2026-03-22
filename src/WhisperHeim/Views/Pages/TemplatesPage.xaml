@@ -4,19 +4,19 @@
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
     <UserControl.Resources>
         <Style x:Key="SubtleText" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontSize" Value="13" />
             <Setter Property="Foreground" Value="#FF404752" />
         </Style>
         <Style x:Key="SectionLabel" TargetType="TextBlock">
             <Setter Property="FontSize" Value="10" />
             <Setter Property="FontWeight" Value="Bold" />
             <Setter Property="Foreground" Value="#FF404752" />
-
         </Style>
+        <!-- Gradient CTA button -->
         <Style x:Key="GradientButton" TargetType="Button">
             <Setter Property="Foreground" Value="White" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Padding" Value="20,8" />
+            <Setter Property="Padding" Value="24,10" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -29,7 +29,7 @@
                                 </LinearGradientBrush>
                             </Border.Background>
                             <Border.Effect>
-                                <DropShadowEffect Color="#FF005FAA" Opacity="0.2" BlurRadius="12" ShadowDepth="3" />
+                                <DropShadowEffect Color="#FF005FAA" Opacity="0.2" BlurRadius="16" ShadowDepth="4" Direction="270" />
                             </Border.Effect>
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
@@ -49,24 +49,23 @@
 
     <Grid Background="#FFF3F3F3">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="280" />
+            <ColumnDefinition Width="300" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <!-- ═══════ LEFT: Template Master List ═══════ -->
-        <Border Grid.Column="0" Background="#80F9F9F9"
-                BorderBrush="#19C0C7D4" BorderThickness="0,0,1,0">
+        <!-- ═══════ LEFT: Master Template List ═══════ -->
+        <Border Grid.Column="0" Background="#80F9F9F9">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
-                <StackPanel Grid.Row="0" Margin="20,24,20,16">
+                <StackPanel Grid.Row="0" Margin="24,28,24,16">
                     <TextBlock Text="Templates"
-                               FontSize="18" FontWeight="Bold"
+                               FontSize="20" FontWeight="Bold"
                                Foreground="#FF1A1C1C"
-                               Margin="0,0,0,12" />
+                               Margin="0,0,0,16" />
                     <ui:TextBox x:Name="SearchBox"
                                 PlaceholderText="Search templates..."
                                 TextChanged="SearchBox_TextChanged" />
@@ -74,27 +73,55 @@
 
                 <ListBox x:Name="TemplateList"
                          Grid.Row="1"
-                         Margin="8,0,8,8"
+                         Margin="12,0,12,12"
                          Background="Transparent"
                          BorderThickness="0"
                          SelectionChanged="TemplateList_SelectionChanged">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Padding" Value="0" />
+                            <Setter Property="Margin" Value="0,2" />
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <Border x:Name="Bd" CornerRadius="12" Padding="16,12"
+                                                Background="Transparent">
+                                            <ContentPresenter />
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter TargetName="Bd" Property="Background" Value="#FFFFFFFF" />
+                                                <Setter TargetName="Bd" Property="BorderBrush" Value="#FF005FAA" />
+                                                <Setter TargetName="Bd" Property="BorderThickness" Value="4,0,0,0" />
+                                            </Trigger>
+                                            <MultiTrigger>
+                                                <MultiTrigger.Conditions>
+                                                    <Condition Property="IsMouseOver" Value="True" />
+                                                    <Condition Property="IsSelected" Value="False" />
+                                                </MultiTrigger.Conditions>
+                                                <Setter TargetName="Bd" Property="Background" Value="#FFEEEEEE" />
+                                            </MultiTrigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <Border Padding="12,10" CornerRadius="12" Margin="0,2">
-                                <StackPanel>
-                                    <TextBlock Text="{Binding Name}"
-                                               FontWeight="SemiBold"
-                                               FontSize="13"
-                                               Foreground="#FF1A1C1C" />
-                                    <TextBlock Text="{Binding Text}"
-                                               Foreground="#FF404752"
-                                               FontSize="11"
-                                               TextTrimming="CharacterEllipsis"
-                                               MaxWidth="220"
-                                               HorizontalAlignment="Left"
-                                               Margin="0,4,0,0" />
-                                </StackPanel>
-                            </Border>
+                            <StackPanel>
+                                <TextBlock Text="{Binding Name}"
+                                           FontWeight="SemiBold"
+                                           FontSize="13"
+                                           Foreground="#FF1A1C1C" />
+                                <TextBlock Text="{Binding Text}"
+                                           Foreground="#FF404752"
+                                           FontSize="11"
+                                           TextTrimming="CharacterEllipsis"
+                                           MaxHeight="32"
+                                           Margin="0,4,0,0" />
+                            </StackPanel>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
@@ -102,15 +129,16 @@
         </Border>
 
         <!-- ═══════ RIGHT: Detail / Edit Area ═══════ -->
-        <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
-            <StackPanel Margin="32,32,32,24" MaxWidth="600">
+        <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" Background="#FFF3F3F3">
+            <StackPanel Margin="40,36,40,32" MaxWidth="640">
+                <!-- Header -->
                 <TextBlock Text="Edit Template"
-                           FontSize="28" FontWeight="Bold"
+                           FontSize="30" FontWeight="Bold"
                            Foreground="#FF1A1C1C"
-                           Margin="0,0,0,4" />
+                           Margin="0,0,0,6" />
                 <TextBlock Text="Craft reusable snippets for your voice dictations."
                            Style="{StaticResource SubtleText}"
-                           Margin="0,0,0,24" />
+                           Margin="0,0,0,28" />
 
                 <!-- Template Name -->
                 <TextBlock Text="TEMPLATE NAME"
@@ -118,50 +146,68 @@
                            Margin="0,0,0,8" />
                 <ui:TextBox x:Name="NameTextBox"
                             PlaceholderText="Template trigger name (e.g. 'greeting')"
-                            Margin="0,0,0,20" />
+                            Margin="0,0,0,24" />
 
                 <!-- Template Body -->
                 <DockPanel Margin="0,0,0,8">
                     <TextBlock Text="TEMPLATE BODY"
                                Style="{StaticResource SectionLabel}"
                                DockPanel.Dock="Left" VerticalAlignment="Center" />
-                    <!-- Placeholder tag buttons -->
+                    <!-- Placeholder tag pills -->
                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
-                        <Border Background="#FFD3E3FF" CornerRadius="12" Padding="8,4" Margin="4,0">
+                        <Border Background="#FFD3E3FF" CornerRadius="12" Padding="10,5" Margin="4,0">
                             <TextBlock Text="{}{date}" FontSize="10" FontWeight="SemiBold" Foreground="#FF004883" />
                         </Border>
-                        <Border Background="#FFD3E3FF" CornerRadius="12" Padding="8,4" Margin="4,0">
+                        <Border Background="#FFD3E3FF" CornerRadius="12" Padding="10,5" Margin="4,0">
                             <TextBlock Text="{}{time}" FontSize="10" FontWeight="SemiBold" Foreground="#FF004883" />
                         </Border>
-                        <Border Background="#FFD3E3FF" CornerRadius="12" Padding="8,4" Margin="4,0">
+                        <Border Background="#FFD3E3FF" CornerRadius="12" Padding="10,5" Margin="4,0">
                             <TextBlock Text="{}{clipboard}" FontSize="10" FontWeight="SemiBold" Foreground="#FF004883" />
                         </Border>
                     </StackPanel>
                 </DockPanel>
                 <ui:TextBox x:Name="TextTextBox"
                             AcceptsReturn="True"
-                            MinHeight="160"
-                            MaxHeight="300"
+                            MinHeight="200"
+                            MaxHeight="360"
                             PlaceholderText="Template text. Use {date}, {time}, {clipboard} for placeholders."
-                            Margin="0,0,0,24" />
+                            Margin="0,0,0,32" />
 
                 <!-- Action Footer -->
-                <Border Padding="0,16,0,0"
+                <Border Padding="0,20,0,0"
                         BorderBrush="#19C0C7D4" BorderThickness="0,1,0,0">
                     <DockPanel>
-                        <ui:Button x:Name="DeleteButton"
-                                   Content="Delete Template"
-                                   Appearance="Danger"
-                                   IsEnabled="False"
-                                   Click="DeleteButton_Click"
-                                   DockPanel.Dock="Left" />
+                        <Button x:Name="DeleteButton"
+                                Content="Delete Template"
+                                Background="Transparent" BorderThickness="0"
+                                Foreground="#FFBA1A1A" FontWeight="Medium"
+                                Padding="12,8" Cursor="Hand"
+                                IsEnabled="False"
+                                Click="DeleteButton_Click"
+                                DockPanel.Dock="Left" />
                         <StackPanel Orientation="Horizontal"
                                     DockPanel.Dock="Right"
                                     HorizontalAlignment="Right">
-                            <ui:Button x:Name="AddButton"
-                                       Content="Add New"
-                                       Margin="0,0,8,0"
-                                       Click="AddButton_Click" />
+                            <Button x:Name="AddButton"
+                                    Margin="0,0,12,0"
+                                    Click="AddButton_Click"
+                                    Foreground="#FF1A1C1C" FontWeight="Medium"
+                                    Padding="20,10" Cursor="Hand">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="Bd" CornerRadius="12" Padding="{TemplateBinding Padding}"
+                                                Background="#FFE8E8E8">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Bd" Property="Background" Value="#FFE2E2E2" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                                Add New
+                            </Button>
                             <Button x:Name="UpdateButton"
                                     Style="{StaticResource GradientButton}"
                                     IsEnabled="False"
@@ -171,6 +217,54 @@
                         </StackPanel>
                     </DockPanel>
                 </Border>
+
+                <!-- Bottom Bento Cards -->
+                <Grid Margin="0,40,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="16" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Magic Replacement info card -->
+                    <Border Grid.Column="0" Background="#FFEEEEEE" CornerRadius="16" Padding="24">
+                        <StackPanel>
+                            <TextBlock Text="Magic Replacement"
+                                       FontSize="13" FontWeight="Bold"
+                                       Foreground="#FF1A1C1C"
+                                       Margin="0,0,0,6" />
+                            <TextBlock Text="WhisperHeim automatically detects {clipboard} and populates it with your last copied text during transcription."
+                                       FontSize="12" Foreground="#FF404752"
+                                       TextWrapping="Wrap" LineHeight="18"
+                                       Margin="0,0,0,16" />
+                            <StackPanel Orientation="Horizontal">
+                                <ui:SymbolIcon Symbol="Sparkle24" Foreground="#FF005FAA" Margin="0,0,6,0" FontSize="14" />
+                                <TextBlock Text="FEATURE ENABLED"
+                                           FontSize="10" FontWeight="Bold"
+                                           Foreground="#FF005FAA" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- New Template gradient card -->
+                    <Border Grid.Column="2" CornerRadius="16" Padding="24"
+                            Cursor="Hand">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#FF0078D4" Offset="0" />
+                                <GradientStop Color="#FF1565C0" Offset="1" />
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <ui:SymbolIcon Symbol="Add24" Foreground="White" FontSize="28"
+                                          HorizontalAlignment="Center" Margin="0,0,0,8" />
+                            <TextBlock Text="NEW TEMPLATE"
+                                       FontSize="10" FontWeight="Bold"
+                                       Foreground="White"
+                                       HorizontalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
             </StackPanel>
         </ScrollViewer>
     </Grid>
