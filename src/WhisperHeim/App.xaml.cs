@@ -15,6 +15,7 @@ using WhisperHeim.Services.SelectedText;
 using WhisperHeim.Services.TextToSpeech;
 using WhisperHeim.Services.Transcription;
 using WhisperHeim.Views;
+using Wpf.Ui.Appearance;
 
 namespace WhisperHeim;
 
@@ -117,6 +118,18 @@ public partial class App : Application
         Trace.TraceInformation("[App] WhisperHeim starting...");
         // Load settings (creates file with defaults on first run)
         _settingsService.Load();
+
+        // Apply the persisted theme so the UI matches the user's last choice
+        var savedTheme = _settingsService.Current.General.Theme;
+        if (savedTheme == "System")
+        {
+            ApplicationThemeManager.ApplySystemTheme();
+        }
+        else
+        {
+            var appTheme = savedTheme == "Dark" ? ApplicationTheme.Dark : ApplicationTheme.Light;
+            ApplicationThemeManager.Apply(appTheme);
+        }
 
         // If auto-start is enabled, refresh the registry entry so the exe path
         // stays current (handles updates that move the executable).

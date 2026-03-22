@@ -20,7 +20,10 @@ public partial class GeneralPage : UserControl
         DataContext = _settingsService.Current.General;
         InitializeComponent();
         LoadModelStatus(modelManager);
-        HighlightActiveTheme();
+
+        // Highlight the active theme card once the visual tree is ready,
+        // so that Background assignments are applied after layout.
+        Loaded += (_, _) => HighlightActiveTheme();
     }
 
     private void LoadModelStatus(ModelManagerService modelManager)

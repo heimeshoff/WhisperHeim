@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>WhisperHeim - Templates</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-tertiary-fixed": "#311300",
+              "on-primary": "#ffffff",
+              "primary-fixed": "#d3e3ff",
+              "inverse-on-surface": "#f1f1f1",
+              "tertiary-fixed": "#ffdbc8",
+              "primary": "#005faa",
+              "tertiary-container": "#bc5b00",
+              "surface-tint": "#0060ab",
+              "on-surface": "#1a1c1c",
+              "on-tertiary-container": "#ffffff",
+              "secondary-container": "#b8d3fd",
+              "primary-container": "#0078d4",
+              "error-container": "#ffdad6",
+              "on-tertiary": "#ffffff",
+              "on-error": "#ffffff",
+              "on-background": "#1a1c1c",
+              "outline-variant": "#c0c7d4",
+              "secondary-fixed": "#d3e3ff",
+              "on-secondary": "#ffffff",
+              "on-secondary-fixed-variant": "#2d486b",
+              "surface-container-low": "#f3f3f3",
+              "tertiary-fixed-dim": "#ffb689",
+              "surface-container": "#eeeeee",
+              "on-secondary-fixed": "#001c39",
+              "surface-container-lowest": "#ffffff",
+              "error": "#ba1a1a",
+              "surface-container-highest": "#e2e2e2",
+              "on-error-container": "#93000a",
+              "tertiary": "#974700",
+              "inverse-primary": "#a3c9ff",
+              "inverse-surface": "#2f3131",
+              "on-primary-container": "#ffffff",
+              "surface": "#f9f9f9",
+              "on-primary-fixed-variant": "#004883",
+              "secondary-fixed-dim": "#adc8f2",
+              "secondary": "#456084",
+              "on-primary-fixed": "#001c39",
+              "on-surface-variant": "#404752",
+              "on-secondary-container": "#405b7f",
+              "primary-fixed-dim": "#a3c9ff",
+              "surface-container-high": "#e8e8e8",
+              "surface-bright": "#f9f9f9",
+              "surface-variant": "#e2e2e2",
+              "outline": "#717783",
+              "background": "#f9f9f9",
+              "surface-dim": "#dadada",
+              "on-tertiary-fixed-variant": "#743500"
+            },
+            fontFamily: {
+              "headline": ["Inter", "sans-serif"],
+              "body": ["Inter", "sans-serif"],
+              "label": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+            font-size: 20px;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface h-screen flex flex-col overflow-hidden">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full h-12 flex items-center justify-between px-4 z-[100] bg-slate-50/70 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,96,171,0.06)]">
+<div class="flex items-center gap-4">
+<span class="text-sm font-semibold text-slate-900">WhisperHeim</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 hover:bg-slate-200/50 transition-colors text-slate-500 active:opacity-80 transition-all">
+<span class="material-symbols-outlined" data-icon="remove">remove</span>
+</button>
+<button class="p-2 hover:bg-slate-200/50 transition-colors text-slate-500 active:opacity-80 transition-all">
+<span class="material-symbols-outlined" data-icon="check_box_outline_blank">check_box_outline_blank</span>
+</button>
+<button class="p-2 hover:bg-slate-200/50 transition-colors text-slate-500 active:opacity-80 transition-all">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+</div>
+</header>
+<div class="flex flex-1 pt-12">
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-12 h-[calc(100vh-48px)] w-64 flex flex-col p-4 bg-slate-100/50 backdrop-blur-2xl border-r border-slate-200/10">
+<div class="mb-8 px-4">
+<div class="text-lg font-bold tracking-tighter text-slate-900">WhisperHeim</div>
+<div class="text-[10px] uppercase tracking-widest text-on-surface-variant font-medium opacity-60">Local-First AI</div>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 text-slate-600 hover:bg-slate-200/50 rounded-full px-4 py-2 my-1 transition-all active:scale-95 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="mic">mic</span>
+<span class="text-xs font-medium uppercase tracking-wider">Dictation</span>
+</a>
+<a class="flex items-center gap-3 text-slate-600 hover:bg-slate-200/50 rounded-full px-4 py-2 my-1 transition-all active:scale-95 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="folder_open">folder_open</span>
+<span class="text-xs font-medium uppercase tracking-wider">Library</span>
+</a>
+<a class="flex items-center gap-3 bg-blue-600 text-white rounded-full px-4 py-2 my-1 shadow-md transition-all active:scale-95 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="memory" style="font-variation-settings: 'FILL' 1;">memory</span>
+<span class="text-xs font-medium uppercase tracking-wider">Templates</span>
+</a>
+<a class="flex items-center gap-3 text-slate-600 hover:bg-slate-200/50 rounded-full px-4 py-2 my-1 transition-all active:scale-95 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="text-xs font-medium uppercase tracking-wider">Settings</span>
+</a>
+<a class="flex items-center gap-3 text-slate-600 hover:bg-slate-200/50 rounded-full px-4 py-2 my-1 transition-all active:scale-95 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+<span class="text-xs font-medium uppercase tracking-wider">Help</span>
+</a>
+</nav>
+<div class="mt-auto px-4 py-4 flex items-center gap-3 bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/10">
+<div class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-white">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+</div>
+<div class="overflow-hidden">
+<p class="text-xs font-semibold truncate">Local Instance</p>
+<p class="text-[10px] text-on-surface-variant truncate">Ready to Sync</p>
+</div>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-64 flex-1 bg-surface-container-low flex overflow-hidden">
+<!-- Master: Template List -->
+<div class="w-80 flex flex-col border-r border-outline-variant/10 bg-surface/50 backdrop-blur-sm overflow-hidden">
+<div class="p-6">
+<h2 class="text-xl font-bold tracking-tight text-on-surface mb-4">Templates</h2>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm" data-icon="search">search</span>
+<input class="w-full bg-surface-container-highest border-none rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none" placeholder="Search templates..." type="text"/>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto px-3 space-y-2 pb-6">
+<!-- Template Card Active -->
+<div class="p-4 bg-surface-container-lowest rounded-xl shadow-sm border-l-4 border-primary">
+<div class="flex justify-between items-start mb-1">
+<h3 class="text-sm font-bold text-on-surface">Daily Standup</h3>
+<span class="text-[10px] text-on-surface-variant">2h ago</span>
+</div>
+<p class="text-xs text-on-surface-variant line-clamp-2">Meeting summary for {date} at {time}. Key highlights include...</p>
+</div>
+<!-- Template Card -->
+<div class="p-4 hover:bg-surface-container rounded-xl transition-colors cursor-pointer group">
+<div class="flex justify-between items-start mb-1">
+<h3 class="text-sm font-semibold text-on-surface">Email Response</h3>
+<span class="text-[10px] text-on-surface-variant group-hover:text-primary">Yesterday</span>
+</div>
+<p class="text-xs text-on-surface-variant line-clamp-2">Hi {clipboard}, thank you for reaching out regarding...</p>
+</div>
+<!-- Template Card -->
+<div class="p-4 hover:bg-surface-container rounded-xl transition-colors cursor-pointer group">
+<div class="flex justify-between items-start mb-1">
+<h3 class="text-sm font-semibold text-on-surface">Code Review</h3>
+<span class="text-[10px] text-on-surface-variant group-hover:text-primary">Oct 24</span>
+</div>
+<p class="text-xs text-on-surface-variant line-clamp-2">PR review for branch {clipboard}. Checklist status...</p>
+</div>
+<!-- Template Card -->
+<div class="p-4 hover:bg-surface-container rounded-xl transition-colors cursor-pointer group">
+<div class="flex justify-between items-start mb-1">
+<h3 class="text-sm font-semibold text-on-surface">Podcast Intro</h3>
+<span class="text-[10px] text-on-surface-variant group-hover:text-primary">Oct 20</span>
+</div>
+<p class="text-xs text-on-surface-variant line-clamp-2">Welcome to WhisperHeim Insights. Today is {date}...</p>
+</div>
+</div>
+</div>
+<!-- Detail: Edit Area -->
+<div class="flex-1 flex flex-col p-8 lg:p-12 max-w-4xl mx-auto overflow-y-auto">
+<div class="mb-8 flex items-center justify-between">
+<div>
+<h1 class="text-3xl font-bold tracking-tighter text-on-surface">Edit Template</h1>
+<p class="text-on-surface-variant text-sm">Craft reusable snippets for your voice dictations.</p>
+</div>
+<div class="flex gap-2">
+<button class="p-2 rounded-lg hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="share">share</span>
+</button>
+<button class="p-2 rounded-lg hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</div>
+<div class="space-y-6">
+<section>
+<label class="block text-[10px] font-bold uppercase tracking-wider text-on-surface-variant mb-2">Template Name</label>
+<input class="w-full bg-surface-container-highest border-none rounded-xl px-4 py-3 text-lg font-medium focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary transition-all outline-none" type="text" value="Daily Standup"/>
+</section>
+<section class="flex-1">
+<div class="flex justify-between items-center mb-2">
+<label class="block text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Template Body</label>
+<div class="flex gap-2">
+<button class="flex items-center gap-1.5 px-3 py-1 bg-primary-fixed text-on-primary-fixed-variant rounded-full text-[11px] font-semibold hover:opacity-80 transition-opacity">
+<span class="material-symbols-outlined text-xs" data-icon="calendar_today">calendar_today</span>
+                                    {date}
+                                </button>
+<button class="flex items-center gap-1.5 px-3 py-1 bg-primary-fixed text-on-primary-fixed-variant rounded-full text-[11px] font-semibold hover:opacity-80 transition-opacity">
+<span class="material-symbols-outlined text-xs" data-icon="schedule">schedule</span>
+                                    {time}
+                                </button>
+<button class="flex items-center gap-1.5 px-3 py-1 bg-primary-fixed text-on-primary-fixed-variant rounded-full text-[11px] font-semibold hover:opacity-80 transition-opacity">
+<span class="material-symbols-outlined text-xs" data-icon="content_paste">content_paste</span>
+                                    {clipboard}
+                                </button>
+</div>
+</div>
+<div class="relative group">
+<textarea class="w-full bg-surface-container-highest border-none rounded-xl px-4 py-4 text-base leading-relaxed focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary transition-all outline-none resize-none" rows="12">Meeting summary for {date} at {time}. 
+
+Key highlights include:
+1. Progress update from {clipboard} regarding the backend migration.
+2. Discussion on the new UI patterns for the Templates module.
+3. Decision to implement local-first storage using WhisperHeim protocols.
+
+Action Items:
+- Follow up with the design team.
+- Finalize the PR by end of day.
+- Sync metadata across instances.</textarea>
+<div class="absolute bottom-4 right-4 text-[10px] text-on-surface-variant bg-surface/50 backdrop-blur rounded px-2 py-1">
+                                242 Characters • 42 Words
+                            </div>
+</div>
+</section>
+</div>
+<!-- Action Footer -->
+<div class="mt-12 pt-6 border-t border-outline-variant/10 flex items-center justify-between">
+<button class="flex items-center gap-2 px-4 py-2 text-error font-medium hover:bg-error/5 rounded-lg transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="delete">delete</span>
+                        Delete Template
+                    </button>
+<div class="flex gap-3">
+<button class="px-6 py-2 bg-surface-container-high text-on-surface font-medium rounded-xl hover:bg-surface-container-highest transition-colors">
+                            Cancel
+                        </button>
+<button class="px-8 py-2 bg-gradient-to-br from-primary to-primary-container text-white font-semibold rounded-xl shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-95 transition-all">
+                            Update Template
+                        </button>
+</div>
+</div>
+<!-- Extra Context Bento Card -->
+<div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-4">
+<div class="col-span-2 p-6 bg-surface-container rounded-2xl flex flex-col justify-between">
+<div>
+<h4 class="text-sm font-bold text-on-surface">Magic Replacement</h4>
+<p class="text-xs text-on-surface-variant mt-1">WhisperHeim automatically detects {clipboard} and populates it with your last copied text during transcription.</p>
+</div>
+<div class="mt-4 flex items-center gap-2 text-primary">
+<span class="material-symbols-outlined text-sm" data-icon="auto_awesome">auto_awesome</span>
+<span class="text-[10px] font-bold uppercase tracking-wider">Feature Enabled</span>
+</div>
+</div>
+<div class="p-6 bg-gradient-to-br from-primary-container to-blue-700 text-white rounded-2xl flex flex-col items-center justify-center text-center">
+<span class="material-symbols-outlined text-3xl mb-2" data-icon="add" style="font-variation-settings: 'wght' 700;">add</span>
+<p class="text-xs font-bold uppercase tracking-widest">New Template</p>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Background Decoration -->
+<div class="fixed top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] -z-10 pointer-events-none"></div>
+<div class="fixed bottom-0 left-0 w-[300px] h-[300px] bg-secondary/5 rounded-full blur-[80px] -z-10 pointer-events-none"></div>
+</body></html>

@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-tertiary-fixed": "#311300",
+              "on-primary": "#ffffff",
+              "primary-fixed": "#d3e3ff",
+              "inverse-on-surface": "#f1f1f1",
+              "tertiary-fixed": "#ffdbc8",
+              "primary": "#005faa",
+              "tertiary-container": "#bc5b00",
+              "surface-tint": "#0060ab",
+              "on-surface": "#1a1c1c",
+              "on-tertiary-container": "#ffffff",
+              "secondary-container": "#b8d3fd",
+              "primary-container": "#0078d4",
+              "error-container": "#ffdad6",
+              "on-tertiary": "#ffffff",
+              "on-error": "#ffffff",
+              "on-background": "#1a1c1c",
+              "outline-variant": "#c0c7d4",
+              "secondary-fixed": "#d3e3ff",
+              "on-secondary": "#ffffff",
+              "on-secondary-fixed-variant": "#2d486b",
+              "surface-container-low": "#f3f3f3",
+              "tertiary-fixed-dim": "#ffb689",
+              "surface-container": "#eeeeee",
+              "on-secondary-fixed": "#001c39",
+              "surface-container-lowest": "#ffffff",
+              "error": "#ba1a1a",
+              "surface-container-highest": "#e2e2e2",
+              "on-error-container": "#93000a",
+              "tertiary": "#974700",
+              "inverse-primary": "#a3c9ff",
+              "inverse-surface": "#2f3131",
+              "on-primary-container": "#ffffff",
+              "surface": "#f9f9f9",
+              "on-primary-fixed-variant": "#004883",
+              "secondary-fixed-dim": "#adc8f2",
+              "secondary": "#456084",
+              "on-primary-fixed": "#001c39",
+              "on-surface-variant": "#404752",
+              "on-secondary-container": "#405b7f",
+              "primary-fixed-dim": "#a3c9ff",
+              "surface-container-high": "#e8e8e8",
+              "surface-bright": "#f9f9f9",
+              "surface-variant": "#e2e2e2",
+              "outline": "#717783",
+              "background": "#f9f9f9",
+              "surface-dim": "#dadada",
+              "on-tertiary-fixed-variant": "#743500"
+            },
+            fontFamily: {
+              "headline": ["Inter"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        .glass-panel {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e2e2; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface flex min-h-screen">
+<!-- SideNavBar (Authority: JSON & Design System) -->
+<aside class="fixed left-0 top-12 h-[calc(100vh-48px)] w-64 bg-slate-100/50 dark:bg-slate-950/50 backdrop-blur-2xl flex flex-col p-4 border-r border-slate-200/10 dark:border-slate-800/10 z-50">
+<div class="mb-8 px-4">
+<h1 class="text-lg font-bold tracking-tighter text-slate-900 dark:text-slate-50">WhisperHeim</h1>
+<p class="text-[10px] font-medium uppercase tracking-wider text-slate-500">Local-First AI</p>
+</div>
+<nav class="flex-1 space-y-1">
+<!-- Active Tab: Library (Closest match to Transcripts) -->
+<a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-full px-4 py-2 my-1 transition-all active:scale-95 duration-200" href="#">
+<span class="material-symbols-outlined">mic</span>
+<span class="text-xs font-medium uppercase tracking-wider">Dictation</span>
+</a>
+<a class="flex items-center gap-3 bg-blue-600 dark:bg-blue-500 text-white rounded-full px-4 py-2 my-1 transition-all scale-95 duration-200" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">folder_open</span>
+<span class="text-xs font-medium uppercase tracking-wider">Library</span>
+</a>
+<a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-full px-4 py-2 my-1 transition-all active:scale-95 duration-200" href="#">
+<span class="material-symbols-outlined">memory</span>
+<span class="text-xs font-medium uppercase tracking-wider">Models</span>
+</a>
+<a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-full px-4 py-2 my-1 transition-all active:scale-95 duration-200" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-xs font-medium uppercase tracking-wider">Settings</span>
+</a>
+<a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-full px-4 py-2 my-1 transition-all active:scale-95 duration-200" href="#">
+<span class="material-symbols-outlined">help_outline</span>
+<span class="text-xs font-medium uppercase tracking-wider">Help</span>
+</a>
+</nav>
+<div class="mt-auto p-4 bg-surface-container-low rounded-xl">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-sm">person</span>
+</div>
+<div>
+<p class="text-xs font-semibold">User Account</p>
+<p class="text-[10px] text-on-surface-variant">Pro Version</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- TopAppBar (Authority: JSON) -->
+<header class="fixed top-0 w-full h-12 bg-slate-50/70 dark:bg-slate-900/70 backdrop-blur-xl flex items-center justify-between px-4 z-[100] shadow-[0_8px_32_rgba(0,96,171,0.06)]">
+<div class="flex items-center gap-4">
+<span class="text-sm font-semibold text-slate-900 dark:text-slate-100">WhisperHeim</span>
+<div class="h-4 w-[1px] bg-outline-variant/30"></div>
+<span class="text-[11px] font-medium text-blue-700 dark:text-blue-300 uppercase tracking-widest">Library / Transcripts</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-1.5 rounded-md hover:bg-slate-200/50 transition-colors text-slate-500">
+<span class="material-symbols-outlined text-[18px]">remove</span>
+</button>
+<button class="p-1.5 rounded-md hover:bg-slate-200/50 transition-colors text-slate-500">
+<span class="material-symbols-outlined text-[18px]">check_box_outline_blank</span>
+</button>
+<button class="p-1.5 rounded-md hover:bg-red-100 text-red-500 transition-colors">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="ml-64 mt-12 flex-1 flex flex-col min-h-0 bg-surface">
+<!-- Status Banner: Transcribing... -->
+<div class="bg-primary px-6 py-3 flex items-center justify-between text-white shadow-lg relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-r from-primary to-primary-container opacity-50"></div>
+<div class="relative flex items-center gap-4">
+<div class="w-2 h-2 rounded-full bg-white animate-pulse"></div>
+<span class="text-sm font-medium tracking-tight">Transcribing: Quarterly_Review_Meeting.mp3</span>
+<span class="text-xs bg-white/20 px-2 py-0.5 rounded-full">64% complete</span>
+</div>
+<div class="relative flex items-center gap-6">
+<div class="text-right">
+<p class="text-[10px] uppercase tracking-tighter opacity-70">Estimated Time</p>
+<p class="text-xs font-bold">1m 12s</p>
+</div>
+<button class="bg-white/10 hover:bg-white/20 transition-colors px-3 py-1.5 rounded-md text-xs font-medium">View Progress</button>
+</div>
+</div>
+<!-- Toolbar & Content Grid -->
+<div class="flex-1 flex flex-col p-6 gap-6 min-h-0">
+<!-- Search & Filter Row -->
+<div class="flex items-center gap-4">
+<div class="flex-1 relative group">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px] transition-colors group-focus-within:text-primary">search</span>
+<input class="w-full bg-surface-container-highest border-none rounded-xl pl-12 pr-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all" placeholder="Search transcripts, speakers, or keywords..." type="text"/>
+</div>
+<button class="bg-surface-container-low hover:bg-surface-container-high transition-colors p-3 rounded-xl text-on-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">tune</span>
+<span class="text-xs font-medium uppercase tracking-wider">Filters</span>
+</button>
+</div>
+<!-- Main Layout Split -->
+<div class="flex-1 flex gap-6 min-h-0">
+<!-- Left Panel: Recent List -->
+<section class="w-1/3 flex flex-col gap-3 min-h-0">
+<h2 class="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant px-2">Recent Transcripts</h2>
+<div class="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-2 pr-2">
+<!-- Active Item -->
+<div class="bg-surface-container-lowest p-4 rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.03)] border border-primary/10 cursor-pointer group">
+<div class="flex justify-between items-start mb-2">
+<span class="text-[10px] font-bold text-primary bg-primary-fixed px-2 py-0.5 rounded-md">TODAY</span>
+<span class="text-[10px] text-on-surface-variant">14:20</span>
+</div>
+<h3 class="text-sm font-bold text-on-surface truncate mb-1">Product Sync - AI Roadmap</h3>
+<div class="flex items-center gap-3 text-[11px] text-on-surface-variant">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">schedule</span>
+<span>24:12</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">group</span>
+<span>3 Speakers</span>
+</div>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="bg-surface-container-low hover:bg-surface-container-high transition-all p-4 rounded-xl cursor-pointer">
+<div class="flex justify-between items-start mb-2">
+<span class="text-[10px] font-medium text-on-surface-variant uppercase tracking-wider">Yesterday</span>
+<span class="text-[10px] text-on-surface-variant">10:05</span>
+</div>
+<h3 class="text-sm font-semibold text-on-surface truncate mb-1">Interview - Design Lead Candidate</h3>
+<div class="flex items-center gap-3 text-[11px] text-on-surface-variant">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">schedule</span>
+<span>45:00</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">group</span>
+<span>2 Speakers</span>
+</div>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="bg-surface-container-low hover:bg-surface-container-high transition-all p-4 rounded-xl cursor-pointer">
+<div class="flex justify-between items-start mb-2">
+<span class="text-[10px] font-medium text-on-surface-variant uppercase tracking-wider">Oct 24, 2023</span>
+<span class="text-[10px] text-on-surface-variant">16:45</span>
+</div>
+<h3 class="text-sm font-semibold text-on-surface truncate mb-1">WhisperHeim Technical Overview</h3>
+<div class="flex items-center gap-3 text-[11px] text-on-surface-variant">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">schedule</span>
+<span>12:15</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">person</span>
+<span>1 Speaker</span>
+</div>
+</div>
+</div>
+<!-- Item 4 -->
+<div class="bg-surface-container-low hover:bg-surface-container-high transition-all p-4 rounded-xl cursor-pointer opacity-80">
+<div class="flex justify-between items-start mb-2">
+<span class="text-[10px] font-medium text-on-surface-variant uppercase tracking-wider">Oct 23, 2023</span>
+<span class="text-[10px] text-on-surface-variant">09:12</span>
+</div>
+<h3 class="text-sm font-semibold text-on-surface truncate mb-1">Morning Standup &amp; Tasks</h3>
+<div class="flex items-center gap-3 text-[11px] text-on-surface-variant">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">schedule</span>
+<span>08:42</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">group</span>
+<span>5 Speakers</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Right Panel: Full Viewer -->
+<section class="flex-1 bg-surface-container-lowest rounded-xl shadow-[0_8px_32px_rgba(0,96,171,0.04)] flex flex-col min-h-0 border border-outline-variant/10">
+<!-- Viewer Header -->
+<div class="p-6 border-b border-surface-container flex items-center justify-between">
+<div>
+<h2 class="text-lg font-bold text-on-surface tracking-tight">Product Sync - AI Roadmap</h2>
+<p class="text-xs text-on-surface-variant flex items-center gap-2 mt-1">
+<span class="material-symbols-outlined text-[16px]">calendar_today</span>
+                                October 25, 2023 • 2:20 PM
+                            </p>
+</div>
+<div class="flex items-center gap-2">
+<button class="bg-surface-container-low hover:bg-surface-container-high text-on-surface-variant px-3 py-2 rounded-md transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">content_copy</span>
+<span class="text-[11px] font-bold uppercase tracking-wider">Copy</span>
+</button>
+<button class="bg-primary hover:primary-container text-white px-4 py-2 rounded-md transition-all flex items-center gap-2 shadow-sm">
+<span class="material-symbols-outlined text-[18px]">download</span>
+<span class="text-[11px] font-bold uppercase tracking-wider">Export</span>
+</button>
+</div>
+</div>
+<!-- Transcript Content -->
+<div class="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-8">
+<!-- Speaker 1 Segment -->
+<div class="flex gap-6 group">
+<div class="flex-shrink-0 w-12 text-right">
+<span class="text-[10px] font-bold text-primary/40 group-hover:text-primary transition-colors">00:00</span>
+</div>
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-2">
+<span class="text-[11px] font-black uppercase tracking-widest text-primary">Alex Chen</span>
+<div class="h-1.5 w-1.5 rounded-full bg-primary/30"></div>
+</div>
+<div class="bg-primary-fixed/30 p-4 rounded-xl rounded-tl-none text-sm leading-relaxed text-on-surface">
+                                    Alright everyone, thanks for joining today's sync. We're looking at the roadmap for WhisperHeim's next release cycle. Specifically, we need to focus on local-first processing efficiency.
+                                </div>
+</div>
+</div>
+<!-- Speaker 2 Segment -->
+<div class="flex gap-6 group">
+<div class="flex-shrink-0 w-12 text-right">
+<span class="text-[10px] font-bold text-tertiary/40 group-hover:text-tertiary transition-colors">00:15</span>
+</div>
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-2">
+<span class="text-[11px] font-black uppercase tracking-widest text-tertiary">Sarah Miller</span>
+<div class="h-1.5 w-1.5 rounded-full bg-tertiary/30"></div>
+</div>
+<div class="bg-tertiary-fixed/30 p-4 rounded-xl rounded-tl-none text-sm leading-relaxed text-on-surface">
+                                    I've been running some tests on the new quantization models. We're seeing about a 30% reduction in memory overhead on ARM chips, which is a huge win for the laptop users.
+                                </div>
+</div>
+</div>
+<!-- Speaker 1 Segment -->
+<div class="flex gap-6 group">
+<div class="flex-shrink-0 w-12 text-right">
+<span class="text-[10px] font-bold text-primary/40 group-hover:text-primary transition-colors">00:42</span>
+</div>
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-2">
+<span class="text-[11px] font-black uppercase tracking-widest text-primary">Alex Chen</span>
+<div class="h-1.5 w-1.5 rounded-full bg-primary/30"></div>
+</div>
+<div class="bg-primary-fixed/30 p-4 rounded-xl rounded-tl-none text-sm leading-relaxed text-on-surface">
+                                    That's excellent, Sarah. Does that impact the transcription accuracy at all, or are we maintaining the current WER (Word Error Rate)?
+                                </div>
+</div>
+</div>
+<!-- Speaker 3 Segment -->
+<div class="flex gap-6 group">
+<div class="flex-shrink-0 w-12 text-right">
+<span class="text-[10px] font-bold text-secondary/40 group-hover:text-secondary transition-colors">01:05</span>
+</div>
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-2">
+<span class="text-[11px] font-black uppercase tracking-widest text-secondary">David Wu</span>
+<div class="h-1.5 w-1.5 rounded-full bg-secondary/30"></div>
+</div>
+<div class="bg-secondary-fixed/30 p-4 rounded-xl rounded-tl-none text-sm leading-relaxed text-on-surface">
+                                    The WER stays within a 0.5% margin. However, the initial load time of the model into VRAM is slightly longer. I think it's a fair trade-off for the sustained performance during long dictation sessions.
+                                </div>
+</div>
+</div>
+<!-- Speaker 1 Segment -->
+<div class="flex gap-6 group">
+<div class="flex-shrink-0 w-12 text-right">
+<span class="text-[10px] font-bold text-primary/40 group-hover:text-primary transition-colors">02:12</span>
+</div>
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-2">
+<span class="text-[11px] font-black uppercase tracking-widest text-primary">Alex Chen</span>
+<div class="h-1.5 w-1.5 rounded-full bg-primary/30"></div>
+</div>
+<div class="bg-primary-fixed/30 p-4 rounded-xl rounded-tl-none text-sm leading-relaxed text-on-surface">
+                                    Agreed. Let's make sure that's documented in the internal wiki. Next item: the UI overhaul. Our users are asking for more density in the transcript view without sacrificing legibility.
+                                </div>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+</main>
+</body></html>

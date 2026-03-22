@@ -2,6 +2,32 @@
 
 ---
 
+## 2026-03-22 16:15 -- Task Completed: 044 - Fix Theme Persistence and Settings Highlight
+
+**Type:** Task Completion
+**Task:** 044 - Fix Theme Persistence and Settings Highlight
+**Summary:** Fixed theme persistence by adding theme restoration on app startup in App.xaml.cs and fixed theme card highlighting in GeneralPage.xaml.cs by moving HighlightActiveTheme() to a Loaded event handler.
+**Files changed:** 2 files
+
+---
+
+## 2026-03-22 16:10 -- Task Started: 044 - Fix Theme Persistence and Settings Highlight
+
+**Type:** Task Start
+**Task:** 044 - Fix Theme Persistence and Settings Highlight
+**Milestone:** --
+
+---
+
+## 2026-03-22 16:00 -- Idea Captured: Fix Theme Persistence
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/044-theme-persistence.md
+**Summary:** Theme choice (Light/Dark/System) not restored on startup and not highlighted in settings. Two small fixes needed in App.xaml.cs and GeneralPage.xaml.cs.
+
+---
+
 ## 2026-03-22 15:30 -- Task Completed: 043 - Faithful Quiet Engine Restyling
 
 **Type:** Task Completion
