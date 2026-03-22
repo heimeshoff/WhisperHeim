@@ -177,9 +177,9 @@
                                            Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                             </StackPanel>
 
-                            <!-- Shortcut: Start/Stop -->
+                            <!-- Shortcut: Dictation -->
                             <DockPanel Margin="0,0,0,14">
-                                <TextBlock Text="Start/Stop" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                <TextBlock Text="Dictation" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                            VerticalAlignment="Center" DockPanel.Dock="Left" />
                                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
                                     <Border Style="{StaticResource KbdPill}">
@@ -197,13 +197,13 @@
                                            VerticalAlignment="Center" DockPanel.Dock="Left" />
                                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
                                     <Border Style="{StaticResource KbdPill}">
-                                        <TextBlock Text="Shift" Style="{StaticResource KbdText}" />
+                                        <TextBlock Text="Ctrl" Style="{StaticResource KbdText}" />
                                     </Border>
                                     <Border Style="{StaticResource KbdPill}">
                                         <TextBlock Text="Win" Style="{StaticResource KbdText}" />
                                     </Border>
                                     <Border Style="{StaticResource KbdPill}">
-                                        <TextBlock Text="A" Style="{StaticResource KbdText}" />
+                                        <TextBlock Text="^" Style="{StaticResource KbdText}" />
                                     </Border>
                                 </StackPanel>
                             </DockPanel>

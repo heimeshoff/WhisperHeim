@@ -6,25 +6,11 @@
         Width="420" SizeToContent="Height"
         WindowStartupLocation="CenterOwner"
         WindowStyle="None"
-        AllowsTransparency="True"
-        Background="Transparent"
+        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
         ResizeMode="NoResize"
         ShowInTaskbar="False">
 
-    <!-- Outer border with shadow and frosted glass effect -->
-    <Border CornerRadius="16" Margin="24" ClipToBounds="True">
-        <Border.Effect>
-            <DropShadowEffect Color="#FF005FAA" Opacity="0.15" BlurRadius="48" ShadowDepth="12" Direction="270" />
-        </Border.Effect>
-        <Grid>
-            <!-- Solid themed background -->
-            <Border CornerRadius="16"
-                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                    BorderThickness="1"
-                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" />
-
-            <!-- Content -->
-            <StackPanel Margin="32">
+    <StackPanel Margin="32">
                 <!-- Icon + Title -->
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
                     <Border Width="40" Height="40" CornerRadius="10"
@@ -70,7 +56,5 @@
                         Delete
                     </Button>
                 </StackPanel>
-            </StackPanel>
-        </Grid>
-    </Border>
+    </StackPanel>
 </Window>
