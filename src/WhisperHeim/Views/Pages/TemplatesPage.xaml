@@ -5,12 +5,12 @@
     <UserControl.Resources>
         <Style x:Key="SubtleText" TargetType="TextBlock">
             <Setter Property="FontSize" Value="13" />
-            <Setter Property="Foreground" Value="#FF404752" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
         </Style>
         <Style x:Key="SectionLabel" TargetType="TextBlock">
             <Setter Property="FontSize" Value="10" />
             <Setter Property="FontWeight" Value="Bold" />
-            <Setter Property="Foreground" Value="#FF404752" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
         </Style>
         <!-- Gradient CTA button -->
         <Style x:Key="GradientButton" TargetType="Button">
@@ -47,14 +47,14 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid Background="#FFF3F3F3">
+    <Grid Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="300" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
         <!-- ═══════ LEFT: Master Template List ═══════ -->
-        <Border Grid.Column="0" Background="#80F9F9F9">
+        <Border Grid.Column="0" Background="{DynamicResource LayerFillColorDefaultBrush}">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -64,7 +64,7 @@
                 <StackPanel Grid.Row="0" Margin="24,28,24,16">
                     <TextBlock Text="Templates"
                                FontSize="20" FontWeight="Bold"
-                               Foreground="#FF1A1C1C"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                Margin="0,0,0,16" />
                     <ui:TextBox x:Name="SearchBox"
                                 PlaceholderText="Search templates..."
@@ -91,7 +91,7 @@
                                         </Border>
                                         <ControlTemplate.Triggers>
                                             <Trigger Property="IsSelected" Value="True">
-                                                <Setter TargetName="Bd" Property="Background" Value="#FFFFFFFF" />
+                                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
                                                 <Setter TargetName="Bd" Property="BorderBrush" Value="#FF005FAA" />
                                                 <Setter TargetName="Bd" Property="BorderThickness" Value="4,0,0,0" />
                                             </Trigger>
@@ -100,7 +100,7 @@
                                                     <Condition Property="IsMouseOver" Value="True" />
                                                     <Condition Property="IsSelected" Value="False" />
                                                 </MultiTrigger.Conditions>
-                                                <Setter TargetName="Bd" Property="Background" Value="#FFEEEEEE" />
+                                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
                                             </MultiTrigger>
                                         </ControlTemplate.Triggers>
                                     </ControlTemplate>
@@ -114,9 +114,9 @@
                                 <TextBlock Text="{Binding Name}"
                                            FontWeight="SemiBold"
                                            FontSize="13"
-                                           Foreground="#FF1A1C1C" />
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                                 <TextBlock Text="{Binding Text}"
-                                           Foreground="#FF404752"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                            FontSize="11"
                                            TextTrimming="CharacterEllipsis"
                                            MaxHeight="32"
@@ -129,12 +129,12 @@
         </Border>
 
         <!-- ═══════ RIGHT: Detail / Edit Area ═══════ -->
-        <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" Background="#FFF3F3F3">
+        <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}">
             <StackPanel Margin="40,36,40,32" MaxWidth="640">
                 <!-- Header -->
                 <TextBlock Text="Edit Template"
                            FontSize="30" FontWeight="Bold"
-                           Foreground="#FF1A1C1C"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                            Margin="0,0,0,6" />
                 <TextBlock Text="Craft reusable snippets for your voice dictations."
                            Style="{StaticResource SubtleText}"
@@ -175,7 +175,7 @@
 
                 <!-- Action Footer -->
                 <Border Padding="0,20,0,0"
-                        BorderBrush="#19C0C7D4" BorderThickness="0,1,0,0">
+                        BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}" BorderThickness="0,1,0,0">
                     <DockPanel>
                         <Button x:Name="DeleteButton"
                                 Content="Delete Template"
@@ -191,17 +191,17 @@
                             <Button x:Name="AddButton"
                                     Margin="0,0,12,0"
                                     Click="AddButton_Click"
-                                    Foreground="#FF1A1C1C" FontWeight="Medium"
+                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontWeight="Medium"
                                     Padding="20,10" Cursor="Hand">
                                 <Button.Template>
                                     <ControlTemplate TargetType="Button">
                                         <Border x:Name="Bd" CornerRadius="12" Padding="{TemplateBinding Padding}"
-                                                Background="#FFE8E8E8">
+                                                Background="{DynamicResource SubtleFillColorSecondaryBrush}">
                                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                                         </Border>
                                         <ControlTemplate.Triggers>
                                             <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter TargetName="Bd" Property="Background" Value="#FFE2E2E2" />
+                                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
                                             </Trigger>
                                         </ControlTemplate.Triggers>
                                     </ControlTemplate>
@@ -227,14 +227,14 @@
                     </Grid.ColumnDefinitions>
 
                     <!-- Magic Replacement info card -->
-                    <Border Grid.Column="0" Background="#FFEEEEEE" CornerRadius="16" Padding="24">
+                    <Border Grid.Column="0" Background="{DynamicResource SubtleFillColorTertiaryBrush}" CornerRadius="16" Padding="24">
                         <StackPanel>
                             <TextBlock Text="Magic Replacement"
                                        FontSize="13" FontWeight="Bold"
-                                       Foreground="#FF1A1C1C"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                        Margin="0,0,0,6" />
                             <TextBlock Text="WhisperHeim automatically detects {clipboard} and populates it with your last copied text during transcription."
-                                       FontSize="12" Foreground="#FF404752"
+                                       FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                        TextWrapping="Wrap" LineHeight="18"
                                        Margin="0,0,0,16" />
                             <StackPanel Orientation="Horizontal">

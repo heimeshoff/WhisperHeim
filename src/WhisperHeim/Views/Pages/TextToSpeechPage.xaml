@@ -10,7 +10,7 @@
         </Style>
         <Style x:Key="SubtleText" TargetType="TextBlock">
             <Setter Property="FontSize" Value="13" />
-            <Setter Property="Foreground" Value="#FF404752" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
         </Style>
         <Style x:Key="GradientButton" TargetType="Button">
             <Setter Property="Foreground" Value="White" />
@@ -54,11 +54,11 @@
                                        Text="{TemplateBinding Content}"
                                        FontSize="11" FontWeight="Bold"
                                        HorizontalAlignment="Center"
-                                       Foreground="#FF404752" />
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#FFFFFFFF" />
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
                                 <Setter TargetName="Txt" Property="Foreground" Value="#FF005FAA" />
                                 <Setter TargetName="Bd" Property="Effect">
                                     <Setter.Value>
@@ -73,7 +73,7 @@
         </Style>
     </UserControl.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto" Background="#FFF3F3F3">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}">
         <Grid Margin="40,36,40,32">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="8*" MinWidth="300" />
@@ -86,14 +86,14 @@
                 <!-- Page Header -->
                 <TextBlock Text="Text to Speech"
                            FontSize="30" FontWeight="Bold"
-                           Foreground="#FF1A1C1C"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                            Margin="0,0,0,6" />
                 <TextBlock Text="Synthesize lifelike speech using local neural models."
                            Style="{StaticResource SubtleText}"
                            Margin="0,0,0,28" />
 
                 <!-- Main TTS Card -->
-                <Border Background="#FFFFFFFF" CornerRadius="12" Padding="28" Margin="0,0,0,20">
+                <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" CornerRadius="12" Padding="28" Margin="0,0,0,20">
                     <Border.Effect>
                         <DropShadowEffect Color="#FF005FAA" Opacity="0.04" BlurRadius="32" ShadowDepth="8" Direction="270" />
                     </Border.Effect>
@@ -110,7 +110,7 @@
                                 <ui:SymbolIcon Symbol="Person24"
                                                Margin="0,0,8,0"
                                                FontSize="14"
-                                               Foreground="#FF404752" />
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                                 <ComboBox x:Name="VoiceCombo"
                                           MinWidth="180"
                                           SelectionChanged="VoiceCombo_SelectionChanged" />
@@ -124,11 +124,11 @@
                                  VerticalScrollBarVisibility="Auto"
                                  MinHeight="200"
                                  MaxHeight="360"
-                                 Background="#08E2E2E2"
+                                 Background="{DynamicResource ControlFillColorDefaultBrush}"
                                  BorderThickness="0"
                                  Padding="20"
                                  FontSize="15"
-                                 Foreground="#FF1A1C1C"
+                                 Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                  TextChanged="SpeechTextInput_TextChanged">
                             <TextBox.Resources>
                                 <Style TargetType="Border">
@@ -142,17 +142,17 @@
                             <DockPanel Margin="0,0,0,6">
                                 <TextBlock Text="SYNTHESIS BUFFER"
                                            FontSize="10" FontWeight="Bold"
-                                           Foreground="#FF404752"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                            DockPanel.Dock="Left" />
                                 <TextBlock x:Name="PlaybackTimeText"
                                            Text="Ready"
                                            FontSize="10" FontWeight="Bold"
-                                           Foreground="#FF404752"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                            DockPanel.Dock="Right"
                                            HorizontalAlignment="Right" />
                             </DockPanel>
                             <Grid Height="4">
-                                <Border Background="#FFE8E8E8" CornerRadius="2" />
+                                <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}" CornerRadius="2" />
                                 <ProgressBar x:Name="GenerationProgress"
                                              Height="4"
                                              IsIndeterminate="True"
@@ -162,7 +162,7 @@
 
                         <!-- Controls Row -->
                         <Border Margin="0,24,0,0" Padding="0,20,0,0"
-                                BorderBrush="#19C0C7D4" BorderThickness="0,1,0,0">
+                                BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}" BorderThickness="0,1,0,0">
                             <DockPanel>
                                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
                                     <Button x:Name="PlayButton"
@@ -173,7 +173,7 @@
                                         <Button.Template>
                                             <ControlTemplate TargetType="Button">
                                                 <Border x:Name="Bd" CornerRadius="24"
-                                                        Background="#FFE8E8E8" Width="48" Height="48"
+                                                        Background="{DynamicResource SubtleFillColorSecondaryBrush}" Width="48" Height="48"
                                                         Cursor="Hand">
                                                     <ui:SymbolIcon Symbol="Play24"
                                                                    HorizontalAlignment="Center"
@@ -198,7 +198,7 @@
                                         <Button.Template>
                                             <ControlTemplate TargetType="Button">
                                                 <Border x:Name="Bd" CornerRadius="24"
-                                                        Background="#FFE8E8E8" Width="48" Height="48"
+                                                        Background="{DynamicResource SubtleFillColorSecondaryBrush}" Width="48" Height="48"
                                                         Cursor="Hand">
                                                     <ui:SymbolIcon Symbol="Stop24"
                                                                    HorizontalAlignment="Center"
@@ -234,31 +234,31 @@
 
                 <!-- Status Summary Cards -->
                 <UniformGrid Columns="3" Margin="0,0,0,0">
-                    <Border Background="#FFEEEEEE" CornerRadius="12" Padding="16" Margin="0,0,8,0">
+                    <Border Background="{DynamicResource SubtleFillColorTertiaryBrush}" CornerRadius="12" Padding="16" Margin="0,0,8,0">
                         <StackPanel>
                             <TextBlock Text="MODEL" FontSize="10" FontWeight="Bold"
-                                       Foreground="#FF404752" />
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                             <TextBlock x:Name="ModelInfoText" Text="Pocket TTS"
                                        FontSize="13" FontWeight="SemiBold" Margin="0,6,0,0"
-                                       Foreground="#FF1A1C1C" />
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                         </StackPanel>
                     </Border>
-                    <Border Background="#FFEEEEEE" CornerRadius="12" Padding="16" Margin="4,0,4,0">
+                    <Border Background="{DynamicResource SubtleFillColorTertiaryBrush}" CornerRadius="12" Padding="16" Margin="4,0,4,0">
                         <StackPanel>
                             <TextBlock Text="INFERENCE" FontSize="10" FontWeight="Bold"
-                                       Foreground="#FF404752" />
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                             <TextBlock x:Name="InferenceText" Text="--"
                                        FontSize="13" FontWeight="SemiBold" Margin="0,6,0,0"
-                                       Foreground="#FF1A1C1C" />
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                         </StackPanel>
                     </Border>
-                    <Border Background="#FFEEEEEE" CornerRadius="12" Padding="16" Margin="8,0,0,0">
+                    <Border Background="{DynamicResource SubtleFillColorTertiaryBrush}" CornerRadius="12" Padding="16" Margin="8,0,0,0">
                         <StackPanel>
                             <TextBlock Text="OUTPUT" FontSize="10" FontWeight="Bold"
-                                       Foreground="#FF404752" />
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                             <TextBlock Text="24kHz / WAV"
                                        FontSize="13" FontWeight="SemiBold" Margin="0,6,0,0"
-                                       Foreground="#FF1A1C1C" />
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                         </StackPanel>
                     </Border>
                 </UniformGrid>
@@ -266,7 +266,7 @@
                 <!-- Status Text -->
                 <TextBlock x:Name="StatusText"
                            FontSize="12"
-                           Foreground="#FF404752"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                            Margin="0,14,0,0"
                            TextWrapping="Wrap" />
             </StackPanel>
@@ -274,7 +274,7 @@
             <!-- ═══════════════ RIGHT: Voice Clone Sidebar (4-col) ═══════════════ -->
             <StackPanel Grid.Column="2">
                 <!-- Clone New Voice Card -->
-                <Border Background="#FFF9F9F9" CornerRadius="12" Padding="20"
+                <Border Background="{DynamicResource ApplicationBackgroundBrush}" CornerRadius="12" Padding="20"
                         Margin="0,0,0,20">
                     <StackPanel>
                         <!-- Header -->
@@ -282,11 +282,11 @@
                             <Ellipse Width="8" Height="8" Fill="#FFBA1A1A" Margin="0,0,10,0" />
                             <TextBlock Text="CLONE NEW VOICE"
                                        FontSize="12" FontWeight="Bold"
-                                       Foreground="#FF1A1C1C" />
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                         </StackPanel>
 
                         <!-- Source Toggle: Microphone / System Audio -->
-                        <Border Background="#FFE2E2E2" CornerRadius="8" Padding="3" Margin="0,0,0,14">
+                        <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}" CornerRadius="8" Padding="3" Margin="0,0,0,14">
                             <UniformGrid Columns="2">
                                 <RadioButton x:Name="MicSourceToggle"
                                              Content="MICROPHONE"
@@ -308,7 +308,7 @@
                                   HorizontalAlignment="Stretch" />
 
                         <!-- Audio Visualizer -->
-                        <Border Background="#0D1A1C1C" CornerRadius="10" Height="80" Margin="0,0,0,14">
+                        <Border Background="{DynamicResource SubtleFillColorTertiaryBrush}" CornerRadius="10" Height="80" Margin="0,0,0,14">
                             <Grid x:Name="LevelMeterGrid">
                                 <Border x:Name="LevelMeterFill"
                                         Background="#40005FAA"
@@ -318,7 +318,7 @@
                                 <TextBlock x:Name="LevelText"
                                            Text="--"
                                            FontSize="11"
-                                           Foreground="#FF404752"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                            HorizontalAlignment="Center"
                                            VerticalAlignment="Center" />
                             </Grid>
@@ -328,7 +328,7 @@
                         <DockPanel Margin="0,0,0,6">
                             <TextBlock Text="PROGRESS (MIN 5S)"
                                        FontSize="9" FontWeight="Bold"
-                                       Foreground="#FF404752"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                        DockPanel.Dock="Left" />
                             <TextBlock x:Name="CloneDurationText"
                                        Text="00:00"
@@ -338,7 +338,7 @@
                                        HorizontalAlignment="Right" />
                         </DockPanel>
                         <Grid Height="4" Margin="0,0,0,14">
-                            <Border Background="#FFE8E8E8" CornerRadius="2" />
+                            <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}" CornerRadius="2" />
                             <Border x:Name="CloneDurationProgress"
                                     CornerRadius="2"
                                     HorizontalAlignment="Left"
@@ -379,10 +379,10 @@
                             <Button.Template>
                                 <ControlTemplate TargetType="Button">
                                     <Border x:Name="Bd" CornerRadius="8" Padding="{TemplateBinding Padding}"
-                                            Background="#FFE8E8E8">
+                                            Background="{DynamicResource SubtleFillColorSecondaryBrush}">
                                         <TextBlock Text="SAVE VOICE INSTANCE"
                                                    FontSize="11" FontWeight="Bold"
-                                                   Foreground="#FF1A1C1C"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                                    HorizontalAlignment="Center" />
                                     </Border>
                                     <ControlTemplate.Triggers>
@@ -390,7 +390,7 @@
                                             <Setter TargetName="Bd" Property="Opacity" Value="0.4" />
                                         </Trigger>
                                         <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="Bd" Property="Background" Value="#FFE2E2E2" />
+                                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
                                         </Trigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>
@@ -400,7 +400,7 @@
                         <!-- Clone status -->
                         <TextBlock x:Name="CloneStatusText"
                                    FontSize="11"
-                                   Foreground="#FF404752"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                    Margin="0,10,0,0"
                                    TextWrapping="Wrap" />
                     </StackPanel>
@@ -409,7 +409,7 @@
                 <!-- Library Voices -->
                 <TextBlock Text="LIBRARY VOICES"
                            FontSize="10" FontWeight="Bold"
-                           Foreground="#FF404752"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                            Margin="4,0,0,12" />
                 <ItemsControl x:Name="VoicesList" />
             </StackPanel>

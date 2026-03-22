@@ -12,7 +12,7 @@
         ShowInTaskbar="False">
 
     <!-- Outer border with shadow -->
-    <Border Background="#FFFFFFFF" CornerRadius="16" Padding="32" Margin="24">
+    <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" CornerRadius="16" Padding="32" Margin="24">
         <Border.Effect>
             <DropShadowEffect Color="#FF005FAA" Opacity="0.15" BlurRadius="48" ShadowDepth="12" Direction="270" />
         </Border.Effect>
@@ -26,17 +26,17 @@
                 </Border>
                 <StackPanel VerticalAlignment="Center">
                     <TextBlock x:Name="TitleText"
-                               FontSize="16" FontWeight="Bold" Foreground="#FF1A1C1C" />
+                               FontSize="16" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                     <TextBlock Text="This action cannot be undone."
-                               FontSize="11" Foreground="#FF717783" Margin="0,2,0,0" />
+                               FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="0,2,0,0" />
                 </StackPanel>
             </StackPanel>
 
             <!-- Transcript name -->
-            <Border Background="#FFF3F3F3" CornerRadius="8" Padding="16,12" Margin="0,0,0,24">
+            <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="8" Padding="16,12" Margin="0,0,0,24">
                 <TextBlock x:Name="TranscriptNameText"
                            FontSize="13" FontWeight="SemiBold"
-                           Foreground="#FF1A1C1C"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                            TextWrapping="Wrap" />
             </Border>
 
@@ -44,7 +44,7 @@
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                 <Button Content="Cancel" Padding="20,10"
                         Background="Transparent" BorderThickness="0"
-                        Foreground="#FF404752" FontWeight="Medium"
+                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontWeight="Medium"
                         Cursor="Hand" FontSize="13"
                         Click="Cancel_Click" />
                 <Button Padding="20,10" Cursor="Hand" FontSize="13"

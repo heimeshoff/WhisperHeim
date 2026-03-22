@@ -8,22 +8,22 @@
         <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibility" />
         <Style x:Key="SubtleText" TargetType="TextBlock">
             <Setter Property="FontSize" Value="13" />
-            <Setter Property="Foreground" Value="#FF404752" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
         </Style>
         <Style x:Key="SectionLabel" TargetType="TextBlock">
             <Setter Property="FontSize" Value="10" />
             <Setter Property="FontWeight" Value="Bold" />
-            <Setter Property="Foreground" Value="#FF404752" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
         </Style>
     </UserControl.Resources>
 
-    <Grid Background="#FFF9F9F9">
+    <Grid Background="{DynamicResource ApplicationBackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- ═══════ Status Banner (transcribing indicator) ═══════ -->
+        <!-- Status Banner -->
         <Border x:Name="TranscribingBanner"
                 Grid.Row="0"
                 Visibility="Collapsed"
@@ -47,7 +47,7 @@
             </DockPanel>
         </Border>
 
-        <!-- ═══════ Main Content ═══════ -->
+        <!-- Main Content -->
         <Grid Grid.Row="1" Margin="24,20,24,16">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -59,7 +59,7 @@
             <StackPanel Grid.Row="0" Margin="0,0,0,20">
                 <TextBlock Text="Recordings"
                            FontSize="36" FontWeight="Bold"
-                           Foreground="#FF1A1C1C"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                            Margin="0,0,0,6" />
                 <TextBlock Text="Press Ctrl+Win+R to start or stop a call recording."
                            Style="{StaticResource SubtleText}" />
@@ -84,16 +84,16 @@
                     <Button.Template>
                         <ControlTemplate TargetType="Button">
                             <Border x:Name="Bd" CornerRadius="12" Padding="{TemplateBinding Padding}"
-                                    Background="#FFF3F3F3">
+                                    Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}">
                                 <StackPanel Orientation="Horizontal">
-                                    <ui:SymbolIcon Symbol="Filter24" Foreground="#FF404752" Margin="0,0,8,0" FontSize="16" />
+                                    <ui:SymbolIcon Symbol="Filter24" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,8,0" FontSize="16" />
                                     <TextBlock Text="FILTERS" FontSize="10" FontWeight="Bold"
-                                               Foreground="#FF404752" VerticalAlignment="Center" />
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
                                 </StackPanel>
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="Bd" Property="Background" Value="#FFE8E8E8" />
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -135,19 +135,19 @@
                                     <Setter.Value>
                                         <ControlTemplate TargetType="ListBoxItem">
                                             <Border x:Name="Bd" CornerRadius="12" Padding="16,14"
-                                                    Background="#FFF3F3F3">
+                                                    Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}">
                                                 <ContentPresenter />
                                             </Border>
                                             <ControlTemplate.Triggers>
                                                 <Trigger Property="IsSelected" Value="True">
-                                                    <Setter TargetName="Bd" Property="Background" Value="#FFFFFFFF" />
+                                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
                                                 </Trigger>
                                                 <MultiTrigger>
                                                     <MultiTrigger.Conditions>
                                                         <Condition Property="IsMouseOver" Value="True" />
                                                         <Condition Property="IsSelected" Value="False" />
                                                     </MultiTrigger.Conditions>
-                                                    <Setter TargetName="Bd" Property="Background" Value="#FFE8E8E8" />
+                                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
                                                 </MultiTrigger>
                                             </ControlTemplate.Triggers>
                                         </ControlTemplate>
@@ -160,21 +160,21 @@
                                 <StackPanel>
                                     <DockPanel Margin="0,0,0,4">
                                         <TextBlock Text="{Binding DateDisplay}"
-                                                   FontSize="10" Foreground="#FF404752"
+                                                   FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                                    DockPanel.Dock="Right" HorizontalAlignment="Right"
                                                    VerticalAlignment="Top" />
                                         <TextBlock Text="{Binding Name}"
                                                    FontWeight="SemiBold"
                                                    FontSize="13"
-                                                   Foreground="#FF1A1C1C"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                                    TextTrimming="CharacterEllipsis" />
                                     </DockPanel>
                                     <TextBlock Text="{Binding DurationDisplay}"
                                                FontSize="10"
-                                               Foreground="#FF404752" />
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                                     <TextBlock Text="{Binding PreviewText}"
                                                FontSize="10"
-                                               Foreground="#FF717783"
+                                               Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                                                TextTrimming="CharacterEllipsis"
                                                Margin="0,2,0,0" />
                                 </StackPanel>
@@ -198,7 +198,7 @@
 
                 <!-- RIGHT: Transcript viewer -->
                 <Border Grid.Column="2"
-                        Background="#FFFFFFFF"
+                        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                         CornerRadius="12">
                     <Border.Effect>
                         <DropShadowEffect Color="#FF005FAA" Opacity="0.04" BlurRadius="32" ShadowDepth="8" Direction="270" />
@@ -216,7 +216,7 @@
                             <TextBox x:Name="TranscriptNameBox"
                                      FontSize="18"
                                      FontWeight="Bold"
-                                     Foreground="#FF1A1C1C"
+                                     Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                      Margin="0,0,0,6"
                                      BorderThickness="0"
                                      Background="Transparent"
@@ -224,7 +224,7 @@
                                      KeyDown="TranscriptNameBox_KeyDown" />
                             <TextBlock x:Name="TranscriptInfo"
                                        FontSize="11"
-                                       Foreground="#FF404752"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                        Margin="0,0,0,16" />
                         </StackPanel>
 
@@ -235,7 +235,7 @@
                                 Padding="14,10"
                                 Margin="0,0,0,12"
                                 CornerRadius="10"
-                                Background="#FFF3F3F3">
+                                Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
@@ -261,7 +261,7 @@
                                            Grid.Column="3"
                                            Text="00:00 / 00:00"
                                            FontSize="11"
-                                           Foreground="#FF404752"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                            VerticalAlignment="Center" />
                             </Grid>
                         </Border>
@@ -301,7 +301,7 @@
                                                              Loaded="SpeakerEditBox_Loaded" />
                                                     <TextBlock Text="{Binding TimestampDisplay}"
                                                                FontSize="10"
-                                                               Foreground="#FF717783"
+                                                               Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                                                                Margin="10,0,0,0"
                                                                VerticalAlignment="Center" />
                                                     <TextBlock Text="  playing"
@@ -315,7 +315,7 @@
                                                            TextWrapping="Wrap"
                                                            FontSize="13"
                                                            LineHeight="20"
-                                                           Foreground="#FF1A1C1C" />
+                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                                             </StackPanel>
                                         </Border>
                                     </DataTemplate>
@@ -329,7 +329,7 @@
                                    Text="Select a transcript to view"
                                    HorizontalAlignment="Center"
                                    VerticalAlignment="Center"
-                                   Foreground="#FF717783"
+                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                                    FontSize="14" />
 
                         <!-- Action buttons -->
@@ -344,16 +344,16 @@
                                 <Button.Template>
                                     <ControlTemplate TargetType="Button">
                                         <Border x:Name="Bd" CornerRadius="8" Padding="{TemplateBinding Padding}"
-                                                Background="#FFF3F3F3">
+                                                Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}">
                                             <StackPanel Orientation="Horizontal">
-                                                <ui:SymbolIcon Symbol="Copy24" Foreground="#FF404752" Margin="0,0,6,0" FontSize="14" />
+                                                <ui:SymbolIcon Symbol="Copy24" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,6,0" FontSize="14" />
                                                 <TextBlock Text="COPY" FontSize="10" FontWeight="Bold"
-                                                           Foreground="#FF404752" VerticalAlignment="Center" />
+                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
                                             </StackPanel>
                                         </Border>
                                         <ControlTemplate.Triggers>
                                             <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter TargetName="Bd" Property="Background" Value="#FFE8E8E8" />
+                                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
                                             </Trigger>
                                         </ControlTemplate.Triggers>
                                     </ControlTemplate>
@@ -388,11 +388,11 @@
                             <Button Content="JSON" Click="ExportJson_Click"
                                     Margin="0,0,8,0" Padding="10,8"
                                     Background="Transparent" BorderThickness="0"
-                                    Foreground="#FF404752" FontSize="11" Cursor="Hand" />
+                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="11" Cursor="Hand" />
                             <Button Content="TXT" Click="ExportText_Click"
                                     Padding="10,8"
                                     Background="Transparent" BorderThickness="0"
-                                    Foreground="#FF404752" FontSize="11" Cursor="Hand" />
+                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="11" Cursor="Hand" />
                         </StackPanel>
                     </Grid>
                 </Border>

@@ -2,7 +2,7 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
-    <ScrollViewer VerticalScrollBarVisibility="Auto" Background="#FFF9F9F9">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Background="{DynamicResource ApplicationBackgroundBrush}">
         <StackPanel Margin="40,36,40,32" MaxWidth="800"
                     HorizontalAlignment="Center">
 
@@ -19,7 +19,7 @@
                             <GradientStop Color="#FF0078D4" Offset="1" />
                         </LinearGradientBrush>
                     </Border.Background>
-                    <Border Background="White" CornerRadius="14">
+                    <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" CornerRadius="14">
                         <ui:SymbolIcon Symbol="Mic24" FontSize="36"
                                        Foreground="#FF005FAA"
                                        HorizontalAlignment="Center"
@@ -31,7 +31,7 @@
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,8">
                     <TextBlock Text="WhisperHeim"
                                FontSize="40" FontWeight="ExtraBold"
-                               Foreground="#FF1A1C1C" />
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                     <TextBlock Text="v0.1.0"
                                FontSize="18" FontWeight="Medium"
                                Foreground="#66005FAA"
@@ -40,7 +40,7 @@
                 </StackPanel>
 
                 <TextBlock Text="High-fidelity local transcription powered by the quiet engine of modern neural networks."
-                           FontSize="14" Foreground="#FF404752"
+                           FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                            HorizontalAlignment="Center"
                            TextAlignment="Center"
                            TextWrapping="Wrap"
@@ -52,19 +52,19 @@
                 <ui:SymbolIcon Symbol="Power24" Foreground="#FF005FAA" Margin="0,0,10,0" />
                 <TextBlock Text="APP START"
                            FontSize="10" FontWeight="Bold"
-                           Foreground="#FF404752"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                            VerticalAlignment="Center" />
             </StackPanel>
 
             <!-- Start minimized card -->
-            <Border Background="#FFFFFFFF" CornerRadius="12" Padding="24" Margin="0,0,0,12">
+            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" CornerRadius="12" Padding="24" Margin="0,0,0,12">
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center" MaxWidth="400">
                         <TextBlock Text="Start minimized"
                                    FontSize="15" FontWeight="SemiBold"
-                                   Foreground="#FF1A1C1C" />
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                         <TextBlock Text="Open the application in the system tray instead of a window."
-                                   FontSize="13" Foreground="#FF404752"
+                                   FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                    Margin="0,4,0,0"
                                    TextWrapping="Wrap" />
                     </StackPanel>
@@ -79,14 +79,14 @@
             </Border>
 
             <!-- Launch at startup card -->
-            <Border Background="#FFFFFFFF" CornerRadius="12" Padding="24" Margin="0,0,0,40">
+            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" CornerRadius="12" Padding="24" Margin="0,0,0,40">
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center" MaxWidth="400">
                         <TextBlock Text="Launch at startup"
                                    FontSize="15" FontWeight="SemiBold"
-                                   Foreground="#FF1A1C1C" />
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                         <TextBlock Text="Automatically run WhisperHeim when your operating system starts."
-                                   FontSize="13" Foreground="#FF404752"
+                                   FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                    Margin="0,4,0,0"
                                    TextWrapping="Wrap" />
                     </StackPanel>
@@ -105,14 +105,14 @@
                 <ui:SymbolIcon Symbol="PaintBrush24" Foreground="#FF005FAA" Margin="0,0,10,0" />
                 <TextBlock Text="APPEARANCE"
                            FontSize="10" FontWeight="Bold"
-                           Foreground="#FF404752"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                            VerticalAlignment="Center" />
             </StackPanel>
 
-            <Border Background="#FFFFFFFF" CornerRadius="12" Padding="24" Margin="0,0,0,40">
+            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" CornerRadius="12" Padding="24" Margin="0,0,0,40">
                 <StackPanel>
                     <TextBlock Text="Choose your preferred color scheme."
-                               FontSize="13" Foreground="#FF404752"
+                               FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                Margin="0,0,0,20" />
                     <UniformGrid Columns="3">
                         <!-- Light theme -->
@@ -122,9 +122,9 @@
                             <StackPanel HorizontalAlignment="Center">
                                 <Border Width="80" Height="52" CornerRadius="8"
                                         Background="#FFF9F9F9" Margin="0,0,0,8"
-                                        BorderBrush="#26C0C7D4" BorderThickness="1" />
+                                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" />
                                 <TextBlock Text="LIGHT" FontSize="9" FontWeight="Bold"
-                                           HorizontalAlignment="Center" Foreground="#FF404752" />
+                                           HorizontalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                             </StackPanel>
                         </Border>
                         <!-- Dark theme -->
@@ -134,9 +134,9 @@
                             <StackPanel HorizontalAlignment="Center">
                                 <Border Width="80" Height="52" CornerRadius="8"
                                         Background="#FF2F3131" Margin="0,0,0,8"
-                                        BorderBrush="#26C0C7D4" BorderThickness="1" />
+                                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" />
                                 <TextBlock Text="DARK" FontSize="9" FontWeight="Bold"
-                                           HorizontalAlignment="Center" Foreground="#FF404752" />
+                                           HorizontalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                             </StackPanel>
                         </Border>
                         <!-- System theme -->
@@ -145,7 +145,7 @@
                                 MouseLeftButtonUp="ThemeSystem_Click">
                             <StackPanel HorizontalAlignment="Center">
                                 <Border Width="80" Height="52" CornerRadius="8" Margin="0,0,0,8"
-                                        BorderBrush="#26C0C7D4" BorderThickness="1">
+                                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                                     <Border.Background>
                                         <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                                             <GradientStop Color="#FFF9F9F9" Offset="0" />
@@ -154,7 +154,7 @@
                                     </Border.Background>
                                 </Border>
                                 <TextBlock Text="SYSTEM" FontSize="9" FontWeight="Bold"
-                                           HorizontalAlignment="Center" Foreground="#FF404752" />
+                                           HorizontalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                             </StackPanel>
                         </Border>
                     </UniformGrid>
@@ -162,14 +162,14 @@
             </Border>
 
             <!-- ═══════ AI Models Section ═══════ -->
-            <Border Background="#FFF3F3F3" CornerRadius="12" Padding="0" Margin="0,0,0,32">
+            <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="12" Padding="0" Margin="0,0,0,32">
                 <StackPanel>
                     <DockPanel Margin="24,24,24,16">
                         <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
                             <ui:SymbolIcon Symbol="BrainCircuit24" Foreground="#FF005FAA" Margin="0,0,10,0" />
                             <TextBlock Text="AI MODELS"
                                        FontSize="11" FontWeight="Bold"
-                                       Foreground="#FF1A1C1C"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                        VerticalAlignment="Center" />
                         </StackPanel>
                         <Border Background="#FFD3E3FF" CornerRadius="8" Padding="10,4"
@@ -183,7 +183,7 @@
                     <ItemsControl x:Name="ModelList" Margin="12,0,12,12">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Background="#FFFFFFFF"
+                                <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                                         CornerRadius="10"
                                         Padding="16,14"
                                         Margin="0,3,0,3">
@@ -214,22 +214,22 @@
                                             <TextBlock Text="{Binding Name}"
                                                        FontWeight="SemiBold"
                                                        FontSize="13"
-                                                       Foreground="#FF1A1C1C" />
+                                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                                             <TextBlock Text="{Binding Description}"
                                                        FontSize="10"
-                                                       Foreground="#FF404752"
+                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                                        Margin="0,2,0,0" />
                                         </StackPanel>
 
                                         <!-- Size and status -->
                                         <StackPanel Grid.Column="2" VerticalAlignment="Center"
                                                     HorizontalAlignment="Right">
-                                            <Border Background="#FFE8E8E8" CornerRadius="6" Padding="10,4"
+                                            <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}" CornerRadius="6" Padding="10,4"
                                                     HorizontalAlignment="Right" Margin="0,0,0,4">
                                                 <TextBlock Text="{Binding SizeText}"
                                                            FontSize="10"
                                                            FontWeight="SemiBold"
-                                                           Foreground="#FF1A1C1C" />
+                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                                             </Border>
                                             <TextBlock Text="{Binding StatusText}"
                                                        FontSize="10"

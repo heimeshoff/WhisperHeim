@@ -34,7 +34,7 @@
                                     <Condition Property="IsMouseOver" Value="True" />
                                     <Condition Property="IsSelected" Value="False" />
                                 </MultiTrigger.Conditions>
-                                <Setter TargetName="Bd" Property="Background" Value="#18000000" />
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
                             </MultiTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -101,10 +101,10 @@
                 <StackPanel Grid.Row="0" Margin="16,12,16,24">
                     <TextBlock Text="WhisperHeim"
                                FontSize="16" FontWeight="Bold"
-                               Foreground="#FF1A1C1C" />
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                     <TextBlock Text="LOCAL-FIRST AI"
                                FontSize="9" FontWeight="Medium"
-                               Foreground="#FF404752"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                Opacity="0.6" />
                 </StackPanel>
 
