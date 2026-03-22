@@ -20,6 +20,10 @@
 - **diart**: Real-time streaming diarization, 500ms latency, Python only.
 - **WhisperX**: Whisper + pyannote in one pipeline, batch only, Python.
 
+## TTS Naturalness & Pacing (2026-03-21)
+
+| 2026-03-21 | TTS Naturalness & Pacing | [tts-naturalness-and-pacing.md](tts-naturalness-and-pacing.md) | Sentence boundary artifacts caused by per-sentence generation + direct concatenation; fix via Extra params (frames_after_eos, temperature) and app-level silence injection |
+
 ## UI Framework (2026-03-21)
 
 - **WPF + WPF UI (lepoco/wpfui)**: Mica, Fluent controls, tray icon via WPF-UI.Tray. Best fit for Windows 11 tray app.

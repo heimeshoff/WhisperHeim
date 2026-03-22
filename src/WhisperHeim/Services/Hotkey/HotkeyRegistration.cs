@@ -93,6 +93,9 @@ public sealed record HotkeyRegistration(ModifierKeys Modifiers, int VirtualKey)
         NativeMethods.VK_SPACE => "Space",
         NativeMethods.VK_LWIN => "LWin",
         NativeMethods.VK_RWIN => "RWin",
+        0xDE => "Ä", // VK_OEM_7 — ä key on German keyboard
+        0xC0 => "Ö", // VK_OEM_3 — ö key on German keyboard
+        0xBA => "Ü", // VK_OEM_1 — ü key on German keyboard
         _ => $"0x{vk:X2}"
     };
 
@@ -120,6 +123,9 @@ public sealed record HotkeyRegistration(ModifierKeys Modifiers, int VirtualKey)
             "SPACE" => NativeMethods.VK_SPACE,
             "LWIN" => NativeMethods.VK_LWIN,
             "RWIN" => NativeMethods.VK_RWIN,
+            "Ä" or "AE" => 0xDE, // VK_OEM_7 — ä key on German keyboard
+            "Ö" or "OE" => 0xC0, // VK_OEM_3 — ö key on German keyboard
+            "Ü" or "UE" => 0xBA, // VK_OEM_1 — ü key on German keyboard
             _ => upper.StartsWith("0X", StringComparison.OrdinalIgnoreCase)
                 ? int.TryParse(upper[2..], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int hex) ? hex : 0
                 : 0

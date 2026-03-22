@@ -2,6 +2,192 @@
 
 ---
 
+## 2026-03-22 15:30 -- Task Completed: 043 - Faithful Quiet Engine Restyling
+
+**Type:** Task Completion
+**Task:** 043 - Faithful Quiet Engine Restyling (All Pages)
+**Summary:** Faithfully restyled all 7 pages + sidebar to match inspiration mockups. Applied bento grid layouts, gradient CTAs, kbd pill key caps, ambient tinted shadows, surface hierarchy, ghost borders, editorial typography. Build succeeds.
+**Files changed:** 9 files
+
+---
+
+## 2026-03-22 15:20 -- Task Started: 043 - Faithful Quiet Engine Restyling
+
+**Type:** Task Start
+**Task:** 043 - Faithful Quiet Engine Restyling (All Pages)
+**Milestone:** M5 - UI Redesign
+
+---
+
+## 2026-03-22 15:10 -- Task Completed: 042 - TTS Voice Pre-Caching on Startup
+
+**Type:** Task Completion
+**Task:** 042 - TTS Voice Pre-Caching on Startup
+**Summary:** Enabled sherpa-onnx embedding cache (capacity 10), added in-memory WAV sample cache, and WarmUpAsync() triggered from App.xaml.cs on background thread after UI startup.
+**Files changed:** 4 files
+
+---
+
+## 2026-03-22 -- Task Created: 043 - Faithful Quiet Engine Restyling
+
+**Type:** Task Creation
+**Task:** 043 - Faithful Quiet Engine Restyling (All Pages)
+**Summary:** Redo the visual restyling from Task 040 Phase 3 to faithfully match all inspiration mockups. Covers all 7 pages + sidebar with bento grid layouts, gradient CTAs, ghost borders, ambient shadows, kbd pills, and editorial typography.
+
+---
+
+## 2026-03-22 15:05 -- Task Started: 042 - TTS Voice Pre-Caching on Startup
+
+**Type:** Task Start
+**Task:** 042 - TTS Voice Pre-Caching on Startup
+**Milestone:** —
+
+---
+
+## 2026-03-22 15:00 -- Task Completed: 041 - Default Read-Aloud Voice
+
+**Type:** Task Completion
+**Task:** 041 - Default Read-Aloud Voice
+**Summary:** VoiceCombo selection now persists DefaultVoiceId to TtsSettings, and page load pre-selects the saved voice with fallback.
+**Files changed:** 3 files
+
+---
+
+## 2026-03-22 14:55 -- Task Started: 041 - Default Read-Aloud Voice
+
+**Type:** Task Start
+**Task:** 041 - Default Read-Aloud Voice
+**Milestone:** —
+
+---
+
+## 2026-03-22 14:50 -- Task Completed: 040 - UI Redesign Navigation & TTS Merge
+
+**Type:** Task Completion
+**Task:** 040 - UI Redesign Navigation & TTS Merge
+**Summary:** Merged VoiceCloningPage and VoiceLoopbackCapturePage into TextToSpeechPage, restructured sidebar from 9 to 7 items, restyled all pages to Quiet Engine design language. Build succeeds.
+**Files changed:** 15 files
+
+---
+
+## 2026-03-22 -- Idea Captured: TTS Voice Pre-Caching on Startup
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/042-tts-voice-warm-up.md
+**Summary:** Pre-cache the default TTS voice on app startup via background thread — load TTS model, warm the sherpa-onnx embedding cache with a dummy generation, and keep the default voice's WAV samples in memory. Eliminates the ~1-3s encoder delay on first read-aloud hotkey press.
+
+---
+
+## 2026-03-22 14:40 -- Task Started: 040 - UI Redesign Navigation & TTS Merge
+
+**Type:** Task Start
+**Task:** 040 - UI Redesign Navigation & TTS Merge
+**Milestone:** M5 - UI Redesign
+
+---
+
+## 2026-03-22 14:35 -- Task Completed: 038 - Transcript Audio Playback
+
+**Type:** Task Completion
+**Task:** 038 - Transcript Audio Playback
+**Summary:** Audio preserved alongside transcripts, segment click-to-play with NAudio, play/pause/stop controls, position tracking, currently-playing segment highlight. Old transcripts gracefully hide playback.
+**Files changed:** 6 files
+
+---
+
+## 2026-03-22 14:25 -- Task Started: 038 - Transcript Audio Playback
+
+**Type:** Task Start
+**Task:** 038 - Transcript Audio Playback
+**Milestone:** M2 - Audio Capture + Call Transcription
+
+---
+
+## 2026-03-22 14:20 -- Task Completed: 037 - Speaker Name Editing
+
+**Type:** Task Completion
+**Task:** 037 - Speaker Name Editing
+**Summary:** Implemented global rename (click speaker label) and per-segment override (Shift+Click) with SpeakerNameMap dictionary and SpeakerOverride property. 32 tests pass (10 new).
+**Files changed:** 6 files
+
+---
+
+## 2026-03-22 14:15 -- Task Started: 037 - Speaker Name Editing
+
+**Type:** Task Start
+**Task:** 037 - Speaker Name Editing
+**Milestone:** M2 - Audio Capture + Call Transcription
+
+---
+
+## 2026-03-22 14:10 -- Task Completed: 039 - Read-Aloud Overlay Indicator
+
+**Type:** Task Completion
+**Task:** 039 - Read-Aloud Overlay Indicator
+**Summary:** Implemented purple-themed read-aloud overlay with Thinking (pulsing/spinning) and Playing (sound wave) animations, lifecycle events on ReadAloudHotkeyService, and onPlaybackStarted callback in SpeakAsync.
+**Files changed:** 8 files
+
+---
+
+## 2026-03-22 14:05 -- Task Completed: 036 - Transcript Naming
+
+**Type:** Task Completion
+**Task:** 036 - Transcript Naming
+**Summary:** Added editable Name property to CallTranscript model with JSON persistence, editable TextBox in transcript viewer header, name display in transcript list, and backward compatibility for existing transcripts.
+**Files changed:** 7 files
+
+---
+
+## 2026-03-22 14:00 -- Batch Started: [036, 039]
+
+**Type:** Batch Start
+**Tasks:** 036 - Transcript Naming, 039 - Read-Aloud Overlay Indicator
+**Mode:** Parallel (batch of 2)
+
+---
+
+## 2026-03-22 -- Idea Captured: Default Read-Aloud Voice from TTS Page
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/041-default-read-aloud-voice.md
+**Summary:** Persist the voice selected on the TTS page as the default for the read-aloud hotkey (Shift+Win+Ä). Small wiring change — settings model and hotkey service already support it, just needs the UI to write it back.
+
+---
+
+## 2026-03-22 -- Idea Captured: UI Redesign — Navigation & TTS Merge
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/040-ui-redesign-navigation-and-tts-merge.md
+**Summary:** Restructure sidebar from 9 to 7 items (Dictation, Templates, Recordings, Transcriptions, Text to Speech, Settings, Models). Merge TextToSpeechPage + VoiceCloningPage + VoiceLoopbackCapturePage into a single unified TTS page. Apply "Quiet Engine" design language from inspiration files across all pages.
+
+---
+
+## 2026-03-21 23:30 -- Idea Captured: Read-Aloud Overlay Indicator
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/039-read-aloud-overlay.md
+**Summary:** Visual overlay indicator for the read-aloud hotkey (Shift+Win+Ä) — shows thinking state while model loads, animated playback state while reading, auto-dismisses on completion, toggle-stops on re-press. Same position as dictation overlay but distinct color.
+
+---
+
+## 2026-03-21 22:15 -- Research: TTS Naturalness & Sentence Boundary Artifacts
+
+**Type:** Research
+**Topic:** Why Pocket TTS output sounds rushed with voice-breaking artifacts between sentences, and how to fix it
+**File:** research/tts-naturalness-and-pacing.md
+**Key findings:**
+- sherpa-onnx splits text into sentences, generates each independently via `GenerateSingleSentence()`, and concatenates audio with NO silence between them -- this is the root cause of the "rushed" and "breaking voice" artifacts
+- Several `Extra` parameters are available but unused: `frames_after_eos` (default 3), `temperature` (default 0.7), configurable via `genConfig.Extra` hashtable
+- `NumSteps` (flow matching diffusion iterations) can be increased from 5 to 8-10 for smoother audio quality
+- Best fix: app-level sentence splitting with configurable silence injection (300ms+) between generated segments
+- The 15s reference audio gets truncated to 12s; int8 quantization may also degrade voice cloning fidelity
+
+---
+
 ## 2026-03-21 21:40 -- Idea Captured: Transcript Usability Improvements
 
 **Type:** Idea Capture
