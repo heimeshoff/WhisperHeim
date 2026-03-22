@@ -466,20 +466,25 @@ public partial class TranscriptsPage : UserControl
         if (TranscriptList.SelectedItem is not TranscriptListItem item)
             return;
 
-        var result = System.Windows.MessageBox.Show(
-            $"Delete transcript from {item.DateDisplay}?",
-            "Confirm Delete",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning);
+        var displayName = !string.IsNullOrEmpty(item.Name) ? item.Name : item.DateDisplay;
+        var dialog = new WhisperHeim.Views.DeleteConfirmationDialog(displayName)
+        {
+            Owner = Window.GetWindow(this)
+        };
+        dialog.ShowDialog();
 
-        if (result != MessageBoxResult.Yes)
+        if (!dialog.Confirmed)
             return;
 
         try
         {
+            // Release the audio file first — the player holds it open
+            StopPlayback();
+            _audioPlayer.Close();
+
             if (File.Exists(item.FilePath))
             {
-                // Also delete associated audio file if it exists
+                // Delete associated audio file if it exists
                 var audioPath = _selectedTranscript?.ResolvedAudioFilePath;
                 if (audioPath is not null && File.Exists(audioPath))
                 {
@@ -497,11 +502,6 @@ public partial class TranscriptsPage : UserControl
         catch (Exception ex)
         {
             Trace.TraceError("[TranscriptsPage] Failed to delete transcript: {0}", ex.Message);
-            System.Windows.MessageBox.Show(
-                $"Failed to delete transcript: {ex.Message}",
-                "Error",
-                MessageBoxButton.OK,
-                MessageBoxImage.Error);
         }
     }
 

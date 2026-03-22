@@ -40,7 +40,7 @@ public sealed class GeneralSettings
 
     /// <summary>Application theme: "Dark", "Light", or "System".</summary>
     [JsonPropertyName("theme")]
-    public string Theme { get; set; } = "Dark";
+    public string Theme { get; set; } = "Light";
 }
 
 public sealed class DictationSettings
@@ -111,8 +111,8 @@ public sealed class TtsSettings
     public string? DefaultVoiceId { get; set; }
 
     /// <summary>
-    /// Read-aloud hotkey combination as a string like "Ctrl+Shift+R".
-    /// Null means use the default (Ctrl+Shift+R).
+    /// Read-aloud hotkey combination as a string like "Shift+Win+Ä".
+    /// Null means use the default (Shift+Win+Ä).
     /// </summary>
     [JsonPropertyName("readAloudHotkey")]
     public string? ReadAloudHotkey { get; set; }

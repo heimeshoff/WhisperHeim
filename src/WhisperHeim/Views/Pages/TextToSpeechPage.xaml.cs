@@ -527,6 +527,11 @@ public partial class TextToSpeechPage : UserControl
         UpdateCloneSaveButtonState();
     }
 
+    private void CloneVoiceNameBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        UpdateCloneSaveButtonState();
+    }
+
     private void UpdateCloneSaveButtonState()
     {
         if (CloneSaveButton is null) return;
@@ -675,20 +680,71 @@ public partial class TextToSpeechPage : UserControl
             };
             DockPanel.SetDock(nameBlock, Dock.Left);
 
+            // Delete button
+            var deleteButton = new Button
+            {
+                Content = "✕",
+                FontSize = 11,
+                Padding = new Thickness(6, 2, 6, 2),
+                Background = System.Windows.Media.Brushes.Transparent,
+                BorderThickness = new Thickness(0),
+                Foreground = new SolidColorBrush(Color.FromRgb(0xBA, 0x1A, 0x1A)),
+                Cursor = System.Windows.Input.Cursors.Hand,
+                VerticalAlignment = VerticalAlignment.Center,
+                Tag = wavFile // store file path for deletion
+            };
+            deleteButton.Click += DeleteVoice_Click;
+            DockPanel.SetDock(deleteButton, Dock.Right);
+
             var sizeBlock = new TextBlock
             {
                 Text = $"{info.Length / 1024.0:F0} KB",
                 Opacity = 0.5,
                 FontSize = 11,
                 VerticalAlignment = VerticalAlignment.Center,
-                HorizontalAlignment = HorizontalAlignment.Right
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Margin = new Thickness(0, 0, 8, 0)
             };
             DockPanel.SetDock(sizeBlock, Dock.Right);
 
             panel.Children.Add(nameBlock);
+            panel.Children.Add(deleteButton);
             panel.Children.Add(sizeBlock);
             card.Child = panel;
             VoicesList.Items.Add(card);
+        }
+    }
+
+    private void DeleteVoice_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string filePath })
+            return;
+
+        var voiceName = Path.GetFileNameWithoutExtension(filePath);
+        var dialog = new WhisperHeim.Views.DeleteConfirmationDialog(voiceName, "Delete Voice")
+        {
+            Owner = Window.GetWindow(this)
+        };
+        dialog.ShowDialog();
+
+        if (!dialog.Confirmed)
+            return;
+
+        try
+        {
+            if (File.Exists(filePath))
+            {
+                File.Delete(filePath);
+                Trace.TraceInformation("[TextToSpeechPage] Deleted voice: {0}", filePath);
+            }
+
+            RefreshVoicesList();
+            _ = PopulateVoicesAsync();
+        }
+        catch (Exception ex)
+        {
+            Trace.TraceError("[TextToSpeechPage] Failed to delete voice: {0}", ex.Message);
+            CloneStatusText.Text = $"Failed to delete voice: {ex.Message}";
         }
     }
 

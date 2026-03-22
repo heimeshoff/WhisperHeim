@@ -368,7 +368,8 @@
                         <!-- Voice Name + Save -->
                         <TextBox x:Name="CloneVoiceNameBox"
                                  MaxLength="50"
-                                 Margin="0,0,0,10" />
+                                 Margin="0,0,0,10"
+                                 TextChanged="CloneVoiceNameBox_TextChanged" />
                         <Button x:Name="CloneSaveButton"
                                 Click="CloneSaveButton_Click"
                                 IsEnabled="False"

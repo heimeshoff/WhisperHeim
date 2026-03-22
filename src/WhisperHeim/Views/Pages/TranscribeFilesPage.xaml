@@ -22,7 +22,7 @@
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" Background="#FFF9F9F9">
         <StackPanel Margin="40,36,40,32" MaxWidth="860"
-                    HorizontalAlignment="Left">
+                    HorizontalAlignment="Center">
             <!-- Header -->
             <TextBlock Text="Transcribe Files"
                        FontSize="36" FontWeight="Bold"
@@ -217,23 +217,6 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
-
-            <!-- Model info card at bottom -->
-            <Border Background="#FFF3F3F3" CornerRadius="16" Padding="24" Margin="0,16,0,0">
-                <StackPanel Orientation="Horizontal">
-                    <ui:SymbolIcon Symbol="Info24" Foreground="#FF005FAA" Margin="0,0,16,0"
-                                   VerticalAlignment="Top" />
-                    <StackPanel>
-                        <TextBlock Text="Model: Whisper (Local)"
-                                   FontSize="13" FontWeight="Bold"
-                                   Foreground="#FF1A1C1C"
-                                   Margin="0,0,0,4" />
-                        <TextBlock Text="WhisperHeim uses Whisper models running natively on your hardware. For faster results, try the Base or Small models in settings."
-                                   FontSize="12" Foreground="#FF404752"
-                                   TextWrapping="Wrap" LineHeight="18" />
-                    </StackPanel>
-                </StackPanel>
-            </Border>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

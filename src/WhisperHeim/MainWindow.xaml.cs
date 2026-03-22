@@ -117,6 +117,9 @@ public partial class MainWindow : FluentWindow
 
         InitializeComponent();
 
+        // Load the initial page now that InitializeComponent has set up PageContent
+        NavigateTo("Dictation");
+
         // Generate tray icons for idle, dictation, and call recording states
         _idleIcon = CreateMicrophoneIcon(Brushes.White);
         _recordingIcon = CreateMicrophoneIcon(Brushes.Red);
@@ -613,8 +616,7 @@ public partial class MainWindow : FluentWindow
                     _highQualityRecorderService,
                     _highQualityLoopbackService,
                     _settingsService),
-                "Settings" => new GeneralPage(_settingsService),
-                "Models" => new AboutPage(_modelManager),
+                "Settings" => new GeneralPage(_settingsService, _modelManager),
                 _ => null
             };
 

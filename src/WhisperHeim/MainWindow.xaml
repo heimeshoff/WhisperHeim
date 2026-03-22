@@ -19,7 +19,7 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="ListBoxItem">
                         <Border x:Name="Bd"
-                                CornerRadius="9999"
+                                CornerRadius="8"
                                 Padding="{TemplateBinding Padding}"
                                 Background="Transparent">
                             <ContentPresenter />
@@ -153,13 +153,6 @@
                         <StackPanel Orientation="Horizontal">
                             <ui:SymbolIcon Symbol="Settings24" Margin="0,0,10,0" FontSize="18" />
                             <TextBlock Text="SETTINGS" VerticalAlignment="Center"
-                                       FontSize="11" FontWeight="Medium" />
-                        </StackPanel>
-                    </ListBoxItem>
-                    <ListBoxItem Tag="Models" Style="{StaticResource NavPillItem}">
-                        <StackPanel Orientation="Horizontal">
-                            <ui:SymbolIcon Symbol="Info24" Margin="0,0,10,0" FontSize="18" />
-                            <TextBlock Text="MODELS" VerticalAlignment="Center"
                                        FontSize="11" FontWeight="Medium" />
                         </StackPanel>
                     </ListBoxItem>

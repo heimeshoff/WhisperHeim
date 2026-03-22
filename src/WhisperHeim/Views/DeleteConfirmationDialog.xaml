@@ -1,0 +1,67 @@
+<Window x:Class="WhisperHeim.Views.DeleteConfirmationDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        Title="Delete Recording"
+        Width="420" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False">
+
+    <!-- Outer border with shadow -->
+    <Border Background="#FFFFFFFF" CornerRadius="16" Padding="32" Margin="24">
+        <Border.Effect>
+            <DropShadowEffect Color="#FF005FAA" Opacity="0.15" BlurRadius="48" ShadowDepth="12" Direction="270" />
+        </Border.Effect>
+        <StackPanel>
+            <!-- Icon + Title -->
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                <Border Width="40" Height="40" CornerRadius="10"
+                        Background="#20BA1A1A" Margin="0,0,14,0">
+                    <ui:SymbolIcon Symbol="Delete24" Foreground="#FFBA1A1A"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock x:Name="TitleText"
+                               FontSize="16" FontWeight="Bold" Foreground="#FF1A1C1C" />
+                    <TextBlock Text="This action cannot be undone."
+                               FontSize="11" Foreground="#FF717783" Margin="0,2,0,0" />
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Transcript name -->
+            <Border Background="#FFF3F3F3" CornerRadius="8" Padding="16,12" Margin="0,0,0,24">
+                <TextBlock x:Name="TranscriptNameText"
+                           FontSize="13" FontWeight="SemiBold"
+                           Foreground="#FF1A1C1C"
+                           TextWrapping="Wrap" />
+            </Border>
+
+            <!-- Buttons -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Cancel" Padding="20,10"
+                        Background="Transparent" BorderThickness="0"
+                        Foreground="#FF404752" FontWeight="Medium"
+                        Cursor="Hand" FontSize="13"
+                        Click="Cancel_Click" />
+                <Button Padding="20,10" Cursor="Hand" FontSize="13"
+                        Foreground="White" FontWeight="SemiBold"
+                        BorderThickness="0"
+                        Click="Delete_Click">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border CornerRadius="10" Padding="{TemplateBinding Padding}"
+                                    Background="#FFBA1A1A">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                        </ControlTemplate>
+                    </Button.Template>
+                    Delete
+                </Button>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>

@@ -25,6 +25,9 @@ public partial class DictationPage : UserControl
         InitializeComponent();
         PopulateMicrophoneList();
         _isInitializing = false;
+
+        TestTextBox.TextChanged += (_, _) => UpdateWatermark();
+        UpdateWatermark();
     }
 
     private void PopulateMicrophoneList()
@@ -95,6 +98,24 @@ public partial class DictationPage : UserControl
     {
         DeviceWarning.Text = $"Previously selected microphone \"{missingDeviceName}\" is no longer available. Falling back to system default.";
         DeviceWarningCard.Visibility = Visibility.Visible;
+    }
+
+    private void UpdateWatermark()
+    {
+        WatermarkText.Visibility = string.IsNullOrEmpty(TestTextBox.Text)
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+    }
+
+    private void CopyButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (!string.IsNullOrEmpty(TestTextBox.Text))
+            Clipboard.SetText(TestTextBox.Text);
+    }
+
+    private void ClearButton_Click(object sender, RoutedEventArgs e)
+    {
+        TestTextBox.Clear();
     }
 
     private void MicrophoneCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
