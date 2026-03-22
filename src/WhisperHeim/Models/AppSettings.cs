@@ -126,6 +126,10 @@ public sealed class WindowSettings
     /// <summary>Whether the window was maximized.</summary>
     [JsonPropertyName("isMaximized")]
     public bool IsMaximized { get; set; }
+
+    /// <summary>Whether the sidebar was collapsed to icons-only mode.</summary>
+    [JsonPropertyName("sidebarCollapsed")]
+    public bool SidebarCollapsed { get; set; }
 }
 
 /// <summary>

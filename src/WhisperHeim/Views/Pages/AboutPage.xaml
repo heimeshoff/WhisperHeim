@@ -114,7 +114,10 @@
                                     <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                                             CornerRadius="10"
                                             Padding="16,14"
-                                            Margin="0,3,0,3">
+                                            Margin="0,3,0,3"
+                                            Cursor="Hand"
+                                            MouseLeftButtonUp="ModelCard_Click"
+                                            Tag="{Binding ProjectUrl}">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto" />
@@ -139,10 +142,17 @@
 
                                             <!-- Name and description -->
                                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding Name}"
-                                                           FontWeight="SemiBold"
-                                                           FontSize="13"
-                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding Name}"
+                                                               FontWeight="SemiBold"
+                                                               FontSize="13"
+                                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                                    <ui:SymbolIcon Symbol="Open24"
+                                                                   FontSize="12"
+                                                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                                                   Margin="6,0,0,0"
+                                                                   VerticalAlignment="Center" />
+                                                </StackPanel>
                                                 <TextBlock Text="{Binding Description}"
                                                            FontSize="10"
                                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"

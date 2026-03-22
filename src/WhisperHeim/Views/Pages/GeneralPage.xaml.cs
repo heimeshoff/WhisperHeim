@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -68,6 +69,14 @@ public partial class GeneralPage : UserControl
         HighlightActiveTheme();
     }
 
+    private void ModelCard_Click(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: string url } && !string.IsNullOrEmpty(url))
+        {
+            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+        }
+    }
+
     private void HighlightActiveTheme()
     {
         var current = _settingsService.Current.General.Theme;
@@ -89,6 +98,7 @@ internal sealed class ModelStatusViewModel
     {
         Name = info.Definition.Name;
         Description = info.Definition.Description;
+        ProjectUrl = info.Definition.ProjectUrl;
 
         StatusText = info.Status switch
         {
@@ -113,6 +123,7 @@ internal sealed class ModelStatusViewModel
 
     public string Name { get; }
     public string Description { get; }
+    public string? ProjectUrl { get; }
     public string StatusText { get; }
     public Brush StatusBrush { get; }
     public string SizeText { get; }

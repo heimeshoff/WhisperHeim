@@ -44,7 +44,8 @@ public sealed class ModelManagerService
                 "tokens.txt",
                 "https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8/resolve/main/tokens.txt",
                 ExpectedSizeBytes: 9_600), // ~9.4 KB
-        });
+        },
+        ProjectUrl: "https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2");
 
     /// <summary>Silero VAD ONNX model for voice activity detection.</summary>
     public static readonly ModelDefinition SileroVad = new(
@@ -57,7 +58,8 @@ public sealed class ModelManagerService
                 "silero_vad.onnx",
                 "https://github.com/snakers4/silero-vad/raw/master/src/silero_vad/data/silero_vad.onnx",
                 ExpectedSizeBytes: 2_300_000), // ~2 MB
-        });
+        },
+        ProjectUrl: "https://github.com/snakers4/silero-vad");
 
     /// <summary>Pyannote segmentation 3.0 ONNX model for speaker diarization.</summary>
     public static readonly ModelDefinition PyannoteSegmentation = new(
@@ -70,7 +72,8 @@ public sealed class ModelManagerService
                 "model.int8.onnx",
                 "https://huggingface.co/csukuangfj/sherpa-onnx-pyannote-segmentation-3-0/resolve/main/model.int8.onnx",
                 ExpectedSizeBytes: 1_540_000), // ~1.5 MB
-        });
+        },
+        ProjectUrl: "https://github.com/pyannote/pyannote-audio");
 
     /// <summary>3D-Speaker ERes2Net speaker embedding model for diarization clustering.</summary>
     public static readonly ModelDefinition SpeakerEmbedding = new(
@@ -83,7 +86,8 @@ public sealed class ModelManagerService
                 "3dspeaker_speech_eres2net_base_sv_zh-cn_3dspeaker_16k.onnx",
                 "https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/3dspeaker_speech_eres2net_base_sv_zh-cn_3dspeaker_16k.onnx",
                 ExpectedSizeBytes: 39_593_761), // ~38 MB
-        });
+        },
+        ProjectUrl: "https://github.com/modelscope/3D-Speaker");
 
     /// <summary>Kyutai Pocket TTS full-precision (FP32) ONNX model for higher quality voice cloning.</summary>
     public static readonly ModelDefinition PocketTtsFp32 = new(
@@ -128,7 +132,8 @@ public sealed class ModelManagerService
                 "test_wavs/loona.wav",
                 "https://huggingface.co/csukuangfj2/sherpa-onnx-pocket-tts-2026-01-26/resolve/main/test_wavs/loona.wav",
                 ExpectedSizeBytes: 53_000), // ~50 KB
-        });
+        },
+        ProjectUrl: "https://github.com/kyutai-labs/moshi");
 
     /// <summary>Kyutai Pocket TTS int8 ONNX model for text-to-speech via sherpa-onnx.</summary>
     public static readonly ModelDefinition PocketTtsInt8 = new(
@@ -173,7 +178,8 @@ public sealed class ModelManagerService
                 "test_wavs/loona.wav",
                 "https://huggingface.co/csukuangfj2/sherpa-onnx-pocket-tts-int8-2026-01-26/resolve/main/test_wavs/loona.wav",
                 ExpectedSizeBytes: 53_000), // ~50 KB
-        });
+        },
+        ProjectUrl: "https://github.com/kyutai-labs/moshi");
 
     /// <summary>
     /// All known model definitions.

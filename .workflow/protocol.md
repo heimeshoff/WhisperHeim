@@ -2,6 +2,41 @@
 
 ---
 
+## 2026-03-22 17:11 -- Batch Started: [050, 053, 056]
+
+**Type:** Batch Start
+**Tasks:** 050 - Collapsible Sidebar Menu, 053 - Reduce Transcripts List Column Width, 056 - Link AI Model Cards to GitHub Projects
+**Mode:** Parallel (batch of 3)
+
+---
+
+## 2026-03-22 17:10 -- Task Completed: 055 - Rename Export Button to MD
+
+**Type:** Task Completion
+**Task:** 055 - Rename Export Button to MD
+**Summary:** Renamed "EXPORT" button to "MD" in TranscriptsPage for consistent naming (MD, JSON, TXT).
+**Files changed:** 2 files
+
+---
+
+## 2026-03-22 17:09 -- Task Completed: 049 - Add WhisperHeim Logo to Sidebar
+
+**Type:** Task Completion
+**Task:** 049 - Add WhisperHeim Logo to Sidebar
+**Summary:** Added logo with blue-to-orange gradient to sidebar header, updated GeneralPage and AboutPage logos to use brand colors.
+**Files changed:** 4 files
+
+---
+
+## 2026-03-22 17:08 -- Task Completed: 047 - Fix TTS Voice Cards Dark Mode Background
+
+**Type:** Task Completion
+**Task:** 047 - Fix TTS Voice Cards Dark Mode Background
+**Summary:** Replaced hardcoded white background with theme-aware CardBackgroundFillColorDefaultBrush and brightened delete button for dark mode.
+**Files changed:** 2 files
+
+---
+
 ## 2026-03-22 17:06 -- Batch Started: [047, 049, 055]
 
 **Type:** Batch Start

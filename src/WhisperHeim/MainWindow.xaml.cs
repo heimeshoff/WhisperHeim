@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using WhisperHeim.Services.Audio;
 using WhisperHeim.Services.CallTranscription;
@@ -20,6 +21,7 @@ using WhisperHeim.Services.Settings;
 using WhisperHeim.Services.Templates;
 using WhisperHeim.Services.SelectedText;
 using WhisperHeim.Services.TextToSpeech;
+using WhisperHeim.Converters;
 using WhisperHeim.Views;
 using WhisperHeim.Views.Pages;
 using Wpf.Ui.Controls;
@@ -83,6 +85,11 @@ public partial class MainWindow : FluentWindow
     // Cache pages so they are not recreated on every navigation
     private readonly Dictionary<string, object> _pageCache = new();
 
+    // Sidebar collapsed state
+    private bool _isSidebarCollapsed;
+    private const double SidebarExpandedWidth = 200;
+    private const double SidebarCollapsedWidth = 60;
+
     public MainWindow(
         SettingsService settingsService,
         IAudioCaptureService audioCaptureService,
@@ -120,6 +127,12 @@ public partial class MainWindow : FluentWindow
 
         // Restore saved window position/size or center on screen
         RestoreWindowPosition();
+
+        // Restore sidebar collapsed state from settings
+        if (_settingsService.Current.Window.SidebarCollapsed)
+        {
+            ApplySidebarCollapsedState(collapsed: true, animate: false);
+        }
 
         // Load the initial page now that InitializeComponent has set up PageContent
         NavigateTo("Dictation");
@@ -636,6 +649,76 @@ public partial class MainWindow : FluentWindow
         if (page is not null)
         {
             PageContent.Content = page;
+        }
+    }
+
+    // ── Sidebar collapse/expand ────────────────────────────────────────
+
+    private void SidebarToggle_Click(object sender, RoutedEventArgs e)
+    {
+        ApplySidebarCollapsedState(!_isSidebarCollapsed, animate: true);
+
+        // Persist the state
+        _settingsService.Current.Window.SidebarCollapsed = _isSidebarCollapsed;
+        _settingsService.Save();
+    }
+
+    /// <summary>
+    /// Applies the sidebar collapsed or expanded state, optionally with animation.
+    /// </summary>
+    private void ApplySidebarCollapsedState(bool collapsed, bool animate)
+    {
+        _isSidebarCollapsed = collapsed;
+
+        var targetWidth = collapsed ? SidebarCollapsedWidth : SidebarExpandedWidth;
+        var labelVisibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
+
+        // Update toggle button appearance
+        SidebarToggleIcon.Symbol = collapsed
+            ? Wpf.Ui.Controls.SymbolRegular.PanelLeftExpand24
+            : Wpf.Ui.Controls.SymbolRegular.PanelLeftContract24;
+        SidebarToggleLabel.Visibility = labelVisibility;
+        SidebarToggleButton.ToolTip = collapsed ? "Expand sidebar" : "Collapse sidebar";
+
+        // Show/hide text labels in nav items
+        BrandingTitle.Visibility = labelVisibility;
+        BrandingSubtitle.Visibility = labelVisibility;
+        NavLabelDictation.Visibility = labelVisibility;
+        NavLabelTemplates.Visibility = labelVisibility;
+        NavLabelRecordings.Visibility = labelVisibility;
+        NavLabelTranscriptions.Visibility = labelVisibility;
+        NavLabelTextToSpeech.Visibility = labelVisibility;
+        NavLabelSettings.Visibility = labelVisibility;
+
+        // Adjust icon margins when collapsed (center the icons)
+        var iconMargin = collapsed ? new Thickness(0) : new Thickness(0, 0, 10, 0);
+        foreach (var item in NavList.Items.OfType<ListBoxItem>())
+        {
+            if (item.Content is StackPanel sp && sp.Children[0] is Wpf.Ui.Controls.SymbolIcon icon)
+            {
+                icon.Margin = iconMargin;
+            }
+        }
+
+        // Adjust nav panel margin for collapsed mode (center content)
+        NavPanel.Margin = collapsed
+            ? new Thickness(4, 0, 4, 12)
+            : new Thickness(12, 0, 4, 12);
+
+        if (animate)
+        {
+            var animation = new GridLengthAnimation
+            {
+                From = new GridLength(collapsed ? SidebarExpandedWidth : SidebarCollapsedWidth),
+                To = new GridLength(targetWidth),
+                Duration = TimeSpan.FromMilliseconds(200),
+                EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseInOut }
+            };
+            SidebarColumn.BeginAnimation(ColumnDefinition.WidthProperty, animation);
+        }
+        else
+        {
+            SidebarColumn.Width = new GridLength(targetWidth);
         }
     }
 

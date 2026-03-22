@@ -16,7 +16,8 @@ public sealed record ModelDefinition(
     string Name,
     string Description,
     string SubDirectory,
-    IReadOnlyList<ModelFileDefinition> Files)
+    IReadOnlyList<ModelFileDefinition> Files,
+    string? ProjectUrl = null)
 {
     /// <summary>Total expected size across all files.</summary>
     public long TotalSizeBytes => Files.Sum(f => f.ExpectedSizeBytes);
