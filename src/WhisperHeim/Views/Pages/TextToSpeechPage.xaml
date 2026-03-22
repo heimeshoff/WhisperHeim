@@ -98,25 +98,6 @@
                         <DropShadowEffect Color="#FF005FAA" Opacity="0.04" BlurRadius="32" ShadowDepth="8" Direction="270" />
                     </Border.Effect>
                     <StackPanel>
-                        <!-- Header row: label + voice selector -->
-                        <DockPanel Margin="0,0,0,20">
-                            <TextBlock Text="INPUT WORKSPACE"
-                                       Style="{StaticResource SectionLabel}"
-                                       VerticalAlignment="Center"
-                                       DockPanel.Dock="Left" />
-                            <StackPanel Orientation="Horizontal"
-                                        DockPanel.Dock="Right"
-                                        HorizontalAlignment="Right">
-                                <ui:SymbolIcon Symbol="Person24"
-                                               Margin="0,0,8,0"
-                                               FontSize="14"
-                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                                <ComboBox x:Name="VoiceCombo"
-                                          MinWidth="180"
-                                          SelectionChanged="VoiceCombo_SelectionChanged" />
-                            </StackPanel>
-                        </DockPanel>
-
                         <!-- Text Input -->
                         <TextBox x:Name="SpeechTextInput"
                                  AcceptsReturn="True"
@@ -229,6 +210,19 @@
                                 </Button>
                             </DockPanel>
                         </Border>
+
+                        <!-- Voice Selector -->
+                        <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Left"
+                                    Margin="0,16,0,0">
+                            <ui:SymbolIcon Symbol="Person24"
+                                           Margin="0,0,8,0"
+                                           FontSize="14"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <ComboBox x:Name="VoiceCombo"
+                                      MinWidth="180"
+                                      SelectionChanged="VoiceCombo_SelectionChanged" />
+                        </StackPanel>
                     </StackPanel>
                 </Border>
 
