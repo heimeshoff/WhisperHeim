@@ -693,6 +693,7 @@ public partial class MainWindow : FluentWindow
                     _highQualityLoopbackService,
                     _settingsService),
                 "Settings" => new GeneralPage(_settingsService, _modelManager),
+                "About" => new AboutPage(_modelManager),
                 _ => null
             };
 
@@ -747,6 +748,7 @@ public partial class MainWindow : FluentWindow
         NavLabelTranscriptions.Visibility = labelVisibility;
         NavLabelTextToSpeech.Visibility = labelVisibility;
         NavLabelSettings.Visibility = labelVisibility;
+        NavLabelAbout.Visibility = labelVisibility;
 
         // Adjust icon margins when collapsed (center the icons)
         var iconMargin = collapsed ? new Thickness(0) : new Thickness(0, 0, 10, 0);

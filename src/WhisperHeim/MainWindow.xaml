@@ -168,6 +168,13 @@
                                        FontSize="11" FontWeight="Medium" />
                         </StackPanel>
                     </ListBoxItem>
+                    <ListBoxItem Tag="About" Style="{StaticResource NavPillItem}">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="Info24" Margin="0,0,10,0" FontSize="18" />
+                            <TextBlock x:Name="NavLabelAbout" Text="ABOUT" VerticalAlignment="Center"
+                                       FontSize="11" FontWeight="Medium" />
+                        </StackPanel>
+                    </ListBoxItem>
                 </ListBox>
 
                 <!-- Sidebar collapse/expand toggle -->

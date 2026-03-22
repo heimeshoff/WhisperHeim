@@ -21,4 +21,8 @@
     <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.*" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Resource Include="Assets\heimeshoff.jpg" />
+  </ItemGroup>
+
 </Project>
