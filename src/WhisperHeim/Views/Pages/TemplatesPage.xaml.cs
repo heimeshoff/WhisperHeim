@@ -47,12 +47,10 @@ public partial class TemplatesPage : UserControl
             NameTextBox.Text = item.Name;
             TextTextBox.Text = item.Text;
             UpdateButton.IsEnabled = true;
-            DeleteButton.IsEnabled = true;
         }
         else
         {
             UpdateButton.IsEnabled = false;
-            DeleteButton.IsEnabled = false;
         }
     }
 
@@ -86,17 +84,45 @@ public partial class TemplatesPage : UserControl
         RefreshList();
     }
 
-    private void DeleteButton_Click(object sender, RoutedEventArgs e)
+    private void DeleteTemplateItem_Click(object sender, RoutedEventArgs e)
     {
-        var index = TemplateList.SelectedIndex;
+        if (sender is not FrameworkElement element || element.DataContext is not TemplateItem item)
+            return;
+
+        e.Handled = true; // Prevent the click from selecting the item
+
+        var templates = _templateService.GetTemplates();
+        var index = -1;
+        for (var i = 0; i < templates.Count; i++)
+        {
+            if (ReferenceEquals(templates[i], item))
+            {
+                index = i;
+                break;
+            }
+        }
         if (index < 0)
             return;
 
+        var dialog = new DeleteConfirmationDialog(item.Name, "Delete Template")
+        {
+            Owner = Window.GetWindow(this)
+        };
+        dialog.ShowDialog();
+
+        if (!dialog.Confirmed)
+            return;
+
         _templateService.RemoveTemplate(index);
-        NameTextBox.Text = string.Empty;
-        TextTextBox.Text = string.Empty;
-        UpdateButton.IsEnabled = false;
-        DeleteButton.IsEnabled = false;
+
+        // Clear the editor if the deleted template was selected
+        if (TemplateList.SelectedItem == item)
+        {
+            NameTextBox.Text = string.Empty;
+            TextTextBox.Text = string.Empty;
+            UpdateButton.IsEnabled = false;
+        }
+
         RefreshList();
     }
 }
