@@ -2,6 +2,32 @@
 
 ---
 
+## 2026-03-22 17:25 -- Task Started: 051 - Reduce Templates List Column Width
+
+**Type:** Task Start
+**Task:** 051 - Reduce Templates List Column Width
+**Milestone:** --
+
+---
+
+## 2026-03-22 17:24 -- Task Completed: 054 - Hover Trash Icon per Transcript
+
+**Type:** Task Completion
+**Task:** 054 - Hover Trash Icon per Transcript
+**Summary:** Replaced "Delete Selected" button with per-item hover trash icon at bottom-right of each transcript card, triggering existing delete confirmation.
+**Files changed:** 3 files
+
+---
+
+## 2026-03-22 17:23 -- Task Completed: 045 - Consistent Max-Width Across All Pages
+
+**Type:** Task Completion
+**Task:** 045 - Consistent Max-Width Across All Pages
+**Summary:** Standardized MaxWidth=900 with centered alignment across 6 pages for consistent content width on wide screens.
+**Files changed:** 7 files
+
+---
+
 ## 2026-03-22 17:19 -- Batch Started: [045, 054]
 
 **Type:** Batch Start
