@@ -2,6 +2,58 @@
 
 ---
 
+## 2026-03-22 17:00 -- Batch Started: [046, 048, 052]
+
+**Type:** Batch Start
+**Tasks:** 046 - Remember Window Size and Position, 048 - Tray Icon Green When Recording, 052 - Remove Magic Replace from Edit Template
+**Mode:** Parallel (batch of 3)
+
+---
+
+## 2026-03-22 16:45 -- Ideas Captured: UI Polish Batch
+
+**Type:** Idea Capture
+**Mode:** Deep (batch)
+**Tasks created:**
+- `tasks/todo/048-tray-icon-green-recording.md` — Tray icon green instead of red when recording
+- `tasks/todo/049-sidebar-logo.md` — Add logo to sidebar with blue (#25abfe) + orange (#ff8b00) colors
+- `tasks/todo/050-collapsible-sidebar.md` — Collapsible sidebar menu (Medium)
+- `tasks/todo/051-templates-column-width.md` — Reduce templates list column width
+- `tasks/todo/052-remove-magic-replace.md` — Remove magic replace from edit template
+- `tasks/todo/053-transcripts-list-width.md` — Reduce transcripts list column width
+- `tasks/todo/054-hover-delete-transcript.md` — Hover trash icon per transcript instead of delete button
+- `tasks/todo/055-export-button-rename-md.md` — Rename Export button to MD
+- `tasks/todo/056-model-cards-github-links.md` — Link AI model cards to GitHub projects
+
+---
+
+## 2026-03-22 16:35 -- Idea Captured: TTS Voice Cards Dark Mode
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/047-tts-voice-cards-dark-mode.md
+**Summary:** Library voice cards in TTS page use hardcoded white background instead of theme-aware brush. Breaks dark mode.
+
+---
+
+## 2026-03-22 16:30 -- Idea Captured: Window Size and Position
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/046-window-size-and-position.md
+**Summary:** Default window size 1200x800 centered. Persist size/position across restarts. Reset to centered if saved position is off-screen.
+
+---
+
+## 2026-03-22 16:20 -- Idea Captured: Consistent Page Max-Width
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/045-consistent-page-max-width.md
+**Summary:** Apply the Transcripts page's max-width constraint to all other pages for visual consistency across the app.
+
+---
+
 ## 2026-03-22 16:15 -- Task Completed: 044 - Fix Theme Persistence and Settings Highlight
 
 **Type:** Task Completion

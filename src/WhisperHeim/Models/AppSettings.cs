@@ -26,6 +26,10 @@ public sealed class AppSettings
     /// <summary>Text-to-speech settings.</summary>
     [JsonPropertyName("tts")]
     public TtsSettings Tts { get; set; } = new();
+
+    /// <summary>Window size and position persistence.</summary>
+    [JsonPropertyName("window")]
+    public WindowSettings Window { get; set; } = new();
 }
 
 public sealed class GeneralSettings
@@ -96,6 +100,32 @@ public sealed class OverlaySettings
     /// </summary>
     [JsonPropertyName("position")]
     public string Position { get; set; } = "BottomCenter";
+}
+
+/// <summary>
+/// Persisted window size, position, and state.
+/// </summary>
+public sealed class WindowSettings
+{
+    /// <summary>Window left position (null = not yet saved).</summary>
+    [JsonPropertyName("left")]
+    public double? Left { get; set; }
+
+    /// <summary>Window top position (null = not yet saved).</summary>
+    [JsonPropertyName("top")]
+    public double? Top { get; set; }
+
+    /// <summary>Window width (null = use default).</summary>
+    [JsonPropertyName("width")]
+    public double? Width { get; set; }
+
+    /// <summary>Window height (null = use default).</summary>
+    [JsonPropertyName("height")]
+    public double? Height { get; set; }
+
+    /// <summary>Whether the window was maximized.</summary>
+    [JsonPropertyName("isMaximized")]
+    public bool IsMaximized { get; set; }
 }
 
 /// <summary>

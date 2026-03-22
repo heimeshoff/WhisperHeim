@@ -161,16 +161,13 @@
                         <Border Background="#FFD3E3FF" CornerRadius="12" Padding="10,5" Margin="4,0">
                             <TextBlock Text="{}{time}" FontSize="10" FontWeight="SemiBold" Foreground="#FF004883" />
                         </Border>
-                        <Border Background="#FFD3E3FF" CornerRadius="12" Padding="10,5" Margin="4,0">
-                            <TextBlock Text="{}{clipboard}" FontSize="10" FontWeight="SemiBold" Foreground="#FF004883" />
-                        </Border>
                     </StackPanel>
                 </DockPanel>
                 <ui:TextBox x:Name="TextTextBox"
                             AcceptsReturn="True"
                             MinHeight="200"
                             MaxHeight="360"
-                            PlaceholderText="Template text. Use {date}, {time}, {clipboard} for placeholders."
+                            PlaceholderText="Template text. Use {date}, {time} for placeholders."
                             Margin="0,0,0,32" />
 
                 <!-- Action Footer -->
@@ -218,53 +215,24 @@
                     </DockPanel>
                 </Border>
 
-                <!-- Bottom Bento Cards -->
-                <Grid Margin="0,40,0,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="2*" />
-                        <ColumnDefinition Width="16" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-
-                    <!-- Magic Replacement info card -->
-                    <Border Grid.Column="0" Background="{DynamicResource SubtleFillColorTertiaryBrush}" CornerRadius="16" Padding="24">
-                        <StackPanel>
-                            <TextBlock Text="Magic Replacement"
-                                       FontSize="13" FontWeight="Bold"
-                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                       Margin="0,0,0,6" />
-                            <TextBlock Text="WhisperHeim automatically detects {clipboard} and populates it with your last copied text during transcription."
-                                       FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                       TextWrapping="Wrap" LineHeight="18"
-                                       Margin="0,0,0,16" />
-                            <StackPanel Orientation="Horizontal">
-                                <ui:SymbolIcon Symbol="Sparkle24" Foreground="#FF005FAA" Margin="0,0,6,0" FontSize="14" />
-                                <TextBlock Text="FEATURE ENABLED"
-                                           FontSize="10" FontWeight="Bold"
-                                           Foreground="#FF005FAA" />
-                            </StackPanel>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- New Template gradient card -->
-                    <Border Grid.Column="2" CornerRadius="16" Padding="24"
-                            Cursor="Hand">
-                        <Border.Background>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                <GradientStop Color="#FF0078D4" Offset="0" />
-                                <GradientStop Color="#FF1565C0" Offset="1" />
-                            </LinearGradientBrush>
-                        </Border.Background>
-                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <ui:SymbolIcon Symbol="Add24" Foreground="White" FontSize="28"
-                                          HorizontalAlignment="Center" Margin="0,0,0,8" />
-                            <TextBlock Text="NEW TEMPLATE"
-                                       FontSize="10" FontWeight="Bold"
-                                       Foreground="White"
-                                       HorizontalAlignment="Center" />
-                        </StackPanel>
-                    </Border>
-                </Grid>
+                <!-- New Template gradient card -->
+                <Border Margin="0,40,0,0" CornerRadius="16" Padding="24"
+                        Cursor="Hand" HorizontalAlignment="Right">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop Color="#FF0078D4" Offset="0" />
+                            <GradientStop Color="#FF1565C0" Offset="1" />
+                        </LinearGradientBrush>
+                    </Border.Background>
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <ui:SymbolIcon Symbol="Add24" Foreground="White" FontSize="28"
+                                      HorizontalAlignment="Center" Margin="0,0,0,8" />
+                        <TextBlock Text="NEW TEMPLATE"
+                                   FontSize="10" FontWeight="Bold"
+                                   Foreground="White"
+                                   HorizontalAlignment="Center" />
+                    </StackPanel>
+                </Border>
             </StackPanel>
         </ScrollViewer>
     </Grid>

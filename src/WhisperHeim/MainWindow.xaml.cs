@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -117,12 +118,15 @@ public partial class MainWindow : FluentWindow
 
         InitializeComponent();
 
+        // Restore saved window position/size or center on screen
+        RestoreWindowPosition();
+
         // Load the initial page now that InitializeComponent has set up PageContent
         NavigateTo("Dictation");
 
         // Generate tray icons for idle, dictation, and call recording states
         _idleIcon = CreateMicrophoneIcon(Brushes.White);
-        _recordingIcon = CreateMicrophoneIcon(Brushes.Red);
+        _recordingIcon = CreateMicrophoneIcon(new SolidColorBrush(Color.FromRgb(0x44, 0xCC, 0x44)));
         _callRecordingIcon = CreateMicrophoneIcon(Brushes.Orange);
         TrayIcon.Icon = _idleIcon;
 
@@ -516,6 +520,9 @@ public partial class MainWindow : FluentWindow
     /// </summary>
     protected override void OnClosing(CancelEventArgs e)
     {
+        // Save window position/size whenever the window is closed or hidden
+        SaveWindowPosition();
+
         if (!_isExiting)
         {
             e.Cancel = true;
@@ -630,5 +637,140 @@ public partial class MainWindow : FluentWindow
         {
             PageContent.Content = page;
         }
+    }
+
+    // ── Window position persistence ─────────────────────────────────────
+
+    private const double DefaultWidth = 1200;
+    private const double DefaultHeight = 800;
+
+    /// <summary>
+    /// Restores saved window position/size from settings, or centers on screen at default size.
+    /// If saved position is off-screen (e.g., monitor disconnected), falls back to centered.
+    /// </summary>
+    private void RestoreWindowPosition()
+    {
+        var ws = _settingsService.Current.Window;
+
+        if (ws.Left.HasValue && ws.Top.HasValue && ws.Width.HasValue && ws.Height.HasValue)
+        {
+            var savedRect = new System.Windows.Rect(ws.Left.Value, ws.Top.Value, ws.Width.Value, ws.Height.Value);
+
+            if (IsRectOnScreen(savedRect))
+            {
+                Left = ws.Left.Value;
+                Top = ws.Top.Value;
+                Width = ws.Width.Value;
+                Height = ws.Height.Value;
+
+                if (ws.IsMaximized)
+                {
+                    WindowState = WindowState.Maximized;
+                }
+
+                Trace.TraceInformation("[MainWindow] Restored window position: {0},{1} {2}x{3} maximized={4}",
+                    ws.Left, ws.Top, ws.Width, ws.Height, ws.IsMaximized);
+                return;
+            }
+
+            Trace.TraceInformation("[MainWindow] Saved window position is off-screen, centering on primary monitor.");
+        }
+
+        // First launch or off-screen: center on primary screen at default size
+        CenterOnPrimaryScreen();
+    }
+
+    /// <summary>
+    /// Centers the window on the primary screen's work area.
+    /// </summary>
+    private void CenterOnPrimaryScreen()
+    {
+        var workArea = SystemParameters.WorkArea;
+        Width = DefaultWidth;
+        Height = DefaultHeight;
+        Left = workArea.Left + (workArea.Width - DefaultWidth) / 2;
+        Top = workArea.Top + (workArea.Height - DefaultHeight) / 2;
+    }
+
+    /// <summary>
+    /// Checks if at least 100x100 pixels of the given rectangle are visible on any monitor.
+    /// Uses Win32 EnumDisplayMonitors to enumerate all connected monitors.
+    /// </summary>
+    private static bool IsRectOnScreen(System.Windows.Rect rect)
+    {
+        const double minVisiblePixels = 100;
+        bool isOnScreen = false;
+
+        EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, (IntPtr hMonitor, IntPtr hdcMonitor, ref RECT lprcMonitor, IntPtr dwData) =>
+        {
+            var monitorInfo = new MONITORINFO { cbSize = Marshal.SizeOf<MONITORINFO>() };
+            if (GetMonitorInfo(hMonitor, ref monitorInfo))
+            {
+                var workArea = new System.Windows.Rect(
+                    monitorInfo.rcWork.left,
+                    monitorInfo.rcWork.top,
+                    monitorInfo.rcWork.right - monitorInfo.rcWork.left,
+                    monitorInfo.rcWork.bottom - monitorInfo.rcWork.top);
+
+                var intersection = System.Windows.Rect.Intersect(rect, workArea);
+                if (!intersection.IsEmpty &&
+                    intersection.Width >= minVisiblePixels &&
+                    intersection.Height >= minVisiblePixels)
+                {
+                    isOnScreen = true;
+                }
+            }
+            return true; // continue enumeration
+        }, IntPtr.Zero);
+
+        return isOnScreen;
+    }
+
+    // ── Win32 interop for multi-monitor detection ───────────────────────
+
+    private delegate bool MonitorEnumProc(IntPtr hMonitor, IntPtr hdcMonitor, ref RECT lprcMonitor, IntPtr dwData);
+
+    [DllImport("user32.dll")]
+    private static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr lprcClip, MonitorEnumProc lpfnEnum, IntPtr dwData);
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto)]
+    private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct RECT
+    {
+        public int left, top, right, bottom;
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+    private struct MONITORINFO
+    {
+        public int cbSize;
+        public RECT rcMonitor;
+        public RECT rcWork;
+        public uint dwFlags;
+    }
+
+    /// <summary>
+    /// Saves the current window position, size, and maximized state to settings.
+    /// </summary>
+    private void SaveWindowPosition()
+    {
+        var ws = _settingsService.Current.Window;
+        ws.IsMaximized = WindowState == WindowState.Maximized;
+
+        // Save the restore bounds (normal position) even when maximized,
+        // so we can restore to the correct position when un-maximizing.
+        var bounds = WindowState == WindowState.Maximized ? RestoreBounds : new System.Windows.Rect(Left, Top, Width, Height);
+
+        ws.Left = bounds.Left;
+        ws.Top = bounds.Top;
+        ws.Width = bounds.Width;
+        ws.Height = bounds.Height;
+
+        _settingsService.Save();
+
+        Trace.TraceInformation("[MainWindow] Saved window position: {0},{1} {2}x{3} maximized={4}",
+            ws.Left, ws.Top, ws.Width, ws.Height, ws.IsMaximized);
     }
 }

@@ -1,10 +1,8 @@
-using System.Windows;
-
 namespace WhisperHeim.Services.Templates;
 
 /// <summary>
 /// Expands placeholders in template text.
-/// Supported placeholders: {date}, {time}, {clipboard}.
+/// Supported placeholders: {date}, {time}.
 /// </summary>
 public static class TemplatePlaceholderExpander
 {
@@ -24,28 +22,6 @@ public static class TemplatePlaceholderExpander
         // {time} -> current time in local format
         result = result.Replace("{time}", DateTime.Now.ToString("HH:mm"), StringComparison.OrdinalIgnoreCase);
 
-        // {clipboard} -> current clipboard text
-        if (result.Contains("{clipboard}", StringComparison.OrdinalIgnoreCase))
-        {
-            var clipboardText = GetClipboardText();
-            result = result.Replace("{clipboard}", clipboardText ?? string.Empty, StringComparison.OrdinalIgnoreCase);
-        }
-
         return result;
-    }
-
-    private static string? GetClipboardText()
-    {
-        try
-        {
-            if (Clipboard.ContainsText())
-                return Clipboard.GetText();
-        }
-        catch
-        {
-            // Clipboard may be locked by another app
-        }
-
-        return null;
     }
 }

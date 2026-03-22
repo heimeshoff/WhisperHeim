@@ -1,0 +1,20 @@
+# Task: Rename Export Button to "MD"
+
+**ID:** 055
+**Milestone:** --
+**Size:** Small
+**Created:** 2026-03-22
+**Dependencies:** --
+
+## Objective
+Rename the "Export" button on the recordings page to "MD" for consistency with the Text and JSON export buttons.
+
+## Details
+There are three export buttons: Text, JSON, and one labeled "Export" (which exports Markdown). Rename "Export" to "MD" so all three follow the same naming pattern.
+
+## Acceptance Criteria
+- [ ] Button reads "MD" instead of "Export"
+- [ ] Consistent naming: Text, JSON, MD
+
+## Work Log
+<!-- Appended by /work during execution -->
