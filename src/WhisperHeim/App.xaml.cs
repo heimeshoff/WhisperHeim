@@ -175,7 +175,7 @@ public partial class App : Application
         // Create read-aloud services (selected text capture + hotkey)
         // NOTE: must be stored in a field to prevent GC from collecting the keyboard hook delegate
         var selectedTextService = new SelectedTextService();
-        _readAloudHotkeyService = new ReadAloudHotkeyService(selectedTextService, textToSpeechService, _settingsService);
+        _readAloudHotkeyService = new ReadAloudHotkeyService(selectedTextService, _settingsService);
         _readAloudHotkeyService.Register();
 
         // Determine whether we were launched via auto-start (--minimized flag)

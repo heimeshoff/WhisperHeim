@@ -2,69 +2,37 @@ using System.Diagnostics;
 using WhisperHeim.Models;
 using WhisperHeim.Services.Hotkey;
 using WhisperHeim.Services.Settings;
-using WhisperHeim.Services.TextToSpeech;
 
 namespace WhisperHeim.Services.SelectedText;
 
 /// <summary>
-/// Registers a global hotkey that captures selected text from any application
-/// and reads it aloud using the text-to-speech engine.
-/// Default hotkey: Shift + Win + Ä (user-configurable via TTS settings).
+/// Registers a global hotkey that captures selected text from any application,
+/// then signals the main window to navigate to the TTS page and paste the text.
+/// Default hotkey: Ctrl + Win + Ä (user-configurable via TTS settings).
 /// </summary>
 public sealed class ReadAloudHotkeyService : IDisposable
 {
     /// <summary>
-    /// Default read-aloud hotkey: Shift + Win + Ä.
+    /// Default read-aloud hotkey: Ctrl + Win + Ä.
     /// Avoids Ctrl+Alt which triggers AltGr on German keyboards.
     /// </summary>
     public static readonly HotkeyRegistration DefaultHotkey = new(
-        ModifierKeys.Shift | ModifierKeys.Win,
+        ModifierKeys.Control | ModifierKeys.Win,
         VirtualKey: 0xDE // VK_OEM_7 — ä key on German keyboard
     );
 
     private readonly ISelectedTextService _selectedTextService;
-    private readonly ITextToSpeechService _textToSpeechService;
     private readonly SettingsService _settingsService;
     private readonly GlobalHotkeyService _hotkeyService = new();
-    private CancellationTokenSource? _currentReadCts;
-    private volatile bool _isReading;
     private bool _disposed;
 
     /// <summary>
-    /// Raised immediately when the read-aloud hotkey is pressed and processing begins.
-    /// Indicates the overlay should appear in "Thinking" state.
+    /// Raised when the hotkey is pressed and selected text has been captured.
+    /// The event argument contains the captured text.
+    /// The subscriber should bring the window to the foreground, navigate to the
+    /// TTS page, and paste the text into the input workspace.
     /// </summary>
-    public event EventHandler? ReadAloudStarted;
-
-    /// <summary>
-    /// Raised when audio playback actually begins (first audio chunk is playing).
-    /// Indicates the overlay should transition to "Playing" state.
-    /// </summary>
-    public event EventHandler? ReadAloudPlaying;
-
-    /// <summary>
-    /// Raised when read-aloud finishes naturally (playback complete).
-    /// Indicates the overlay should fade out.
-    /// </summary>
-    public event EventHandler? ReadAloudCompleted;
-
-    /// <summary>
-    /// Raised when read-aloud is cancelled (user toggled hotkey or error).
-    /// Indicates the overlay should be dismissed instantly.
-    /// </summary>
-    public event EventHandler? ReadAloudCancelled;
-
-    /// <summary>
-    /// The default voice ID to use for reading aloud.
-    /// Can be updated by the UI when the user selects a different voice.
-    /// Falls back to settings if not explicitly set.
-    /// </summary>
-    public string? VoiceId { get; set; }
-
-    /// <summary>
-    /// Speech speed multiplier (1.0 = normal).
-    /// </summary>
-    public float Speed { get; set; } = 1.0f;
+    public event EventHandler<ReadAloudTextCapturedEventArgs>? TextCaptured;
 
     /// <summary>
     /// The currently configured hotkey combination.
@@ -78,17 +46,15 @@ public sealed class ReadAloudHotkeyService : IDisposable
 
     public ReadAloudHotkeyService(
         ISelectedTextService selectedTextService,
-        ITextToSpeechService textToSpeechService,
         SettingsService settingsService)
     {
         _selectedTextService = selectedTextService ?? throw new ArgumentNullException(nameof(selectedTextService));
-        _textToSpeechService = textToSpeechService ?? throw new ArgumentNullException(nameof(textToSpeechService));
         _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
     }
 
     /// <summary>
     /// Registers the read-aloud hotkey. Reads the hotkey from settings if available,
-    /// otherwise uses the provided hotkey or the default (Ctrl+Alt+Ä).
+    /// otherwise uses the provided hotkey or the default (Ctrl+Win+Ä).
     /// </summary>
     public bool Register(HotkeyRegistration? hotkey = null)
     {
@@ -98,10 +64,6 @@ public sealed class ReadAloudHotkeyService : IDisposable
         var resolvedHotkey = hotkey
             ?? HotkeyRegistration.TryParse(TtsSettings.ReadAloudHotkey)
             ?? DefaultHotkey;
-
-        // Apply voice from settings if not explicitly set
-        if (VoiceId is null && TtsSettings.DefaultVoiceId is not null)
-            VoiceId = TtsSettings.DefaultVoiceId;
 
         _hotkeyService.HotkeyPressed += OnHotkeyPressed;
         return _hotkeyService.Register(hotkey: resolvedHotkey);
@@ -117,117 +79,56 @@ public sealed class ReadAloudHotkeyService : IDisposable
         _hotkeyService.HotkeyPressed -= OnHotkeyPressed;
         _hotkeyService.Unregister();
 
-        // Refresh voice from settings
-        VoiceId = TtsSettings.DefaultVoiceId;
-
         return Register();
-    }
-
-    /// <summary>
-    /// Stops any currently playing read-aloud speech.
-    /// </summary>
-    public void StopReading()
-    {
-        _currentReadCts?.Cancel();
-        _currentReadCts = null;
     }
 
     public void Dispose()
     {
         if (_disposed) return;
         _disposed = true;
-        _currentReadCts?.Cancel();
-        _currentReadCts?.Dispose();
         _hotkeyService.HotkeyPressed -= OnHotkeyPressed;
         _hotkeyService.Dispose();
     }
 
     private async void OnHotkeyPressed(object? sender, EventArgs e)
     {
-        // If already reading, cancel and dismiss (toggle behavior)
-        if (_isReading)
-        {
-            _currentReadCts?.Cancel();
-            _currentReadCts?.Dispose();
-            _currentReadCts = null;
-            _isReading = false;
-            ReadAloudCancelled?.Invoke(this, EventArgs.Empty);
-            Trace.TraceInformation("[ReadAloudHotkeyService] Read-aloud toggled off");
-            return;
-        }
-
         try
         {
-            _currentReadCts?.Dispose();
-            _currentReadCts = new CancellationTokenSource();
-            _isReading = true;
-            var ct = _currentReadCts.Token;
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
 
-            // Signal overlay to show in thinking state immediately
-            ReadAloudStarted?.Invoke(this, EventArgs.Empty);
-
-            // Capture selected text
-            var text = await _selectedTextService.CaptureSelectedTextAsync(ct);
+            // Capture selected text from the active application
+            var text = await _selectedTextService.CaptureSelectedTextAsync(cts.Token);
             if (string.IsNullOrWhiteSpace(text))
             {
-                Trace.TraceInformation("[ReadAloudHotkeyService] No text selected, nothing to read");
-                _isReading = false;
-                ReadAloudCancelled?.Invoke(this, EventArgs.Empty);
+                Trace.TraceInformation("[ReadAloudHotkeyService] No text selected, nothing to do");
                 return;
             }
 
-            // Ensure TTS model is loaded
-            if (!_textToSpeechService.IsLoaded)
-            {
-                Trace.TraceInformation("[ReadAloudHotkeyService] Loading TTS model...");
-                _textToSpeechService.LoadModel();
-            }
+            Trace.TraceInformation("[ReadAloudHotkeyService] Captured text ({0} chars), signaling main window",
+                text.Length);
 
-            // Determine voice to use: explicit VoiceId > settings > first available
-            var voiceId = VoiceId ?? TtsSettings.DefaultVoiceId;
-            if (string.IsNullOrEmpty(voiceId))
-            {
-                var voices = _textToSpeechService.GetAvailableVoices();
-                voiceId = voices.Count > 0 ? voices[0].Id : null;
-            }
-
-            if (voiceId == null)
-            {
-                Trace.TraceWarning("[ReadAloudHotkeyService] No voices available for TTS");
-                _isReading = false;
-                ReadAloudCancelled?.Invoke(this, EventArgs.Empty);
-                return;
-            }
-
-            // Resolve playback device from settings
-            var deviceNumber = -1; // system default
-            if (int.TryParse(TtsSettings.PlaybackDeviceId, System.Globalization.NumberStyles.Integer,
-                    System.Globalization.CultureInfo.InvariantCulture, out var parsedDevice))
-            {
-                deviceNumber = parsedDevice;
-            }
-
-            Trace.TraceInformation("[ReadAloudHotkeyService] Reading aloud: \"{0}\" (voice={1}, speed={2}, device={3})",
-                text.Length > 50 ? text[..50] + "..." : text, voiceId, Speed, deviceNumber);
-
-            await _textToSpeechService.SpeakAsync(text, voiceId, Speed, deviceNumber, ct,
-                onPlaybackStarted: () => ReadAloudPlaying?.Invoke(this, EventArgs.Empty));
-
-            // Playback completed naturally
-            _isReading = false;
-            ReadAloudCompleted?.Invoke(this, EventArgs.Empty);
+            TextCaptured?.Invoke(this, new ReadAloudTextCapturedEventArgs(text));
         }
         catch (OperationCanceledException)
         {
-            Trace.TraceInformation("[ReadAloudHotkeyService] Read-aloud cancelled");
-            _isReading = false;
-            ReadAloudCancelled?.Invoke(this, EventArgs.Empty);
+            Trace.TraceInformation("[ReadAloudHotkeyService] Text capture timed out");
         }
         catch (Exception ex)
         {
-            Trace.TraceError("[ReadAloudHotkeyService] Error during read-aloud: {0}", ex);
-            _isReading = false;
-            ReadAloudCancelled?.Invoke(this, EventArgs.Empty);
+            Trace.TraceError("[ReadAloudHotkeyService] Error during text capture: {0}", ex);
         }
+    }
+}
+
+/// <summary>
+/// Event arguments for <see cref="ReadAloudHotkeyService.TextCaptured"/>.
+/// </summary>
+public sealed class ReadAloudTextCapturedEventArgs : EventArgs
+{
+    public string Text { get; }
+
+    public ReadAloudTextCapturedEventArgs(string text)
+    {
+        Text = text;
     }
 }

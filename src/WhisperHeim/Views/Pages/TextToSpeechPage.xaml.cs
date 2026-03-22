@@ -768,6 +768,18 @@ public partial class TextToSpeechPage : UserControl
         }
     }
 
+    // ── Public API ──
+
+    /// <summary>
+    /// Sets the TTS input workspace text programmatically.
+    /// Called by the main window when the read-aloud hotkey captures text from another application.
+    /// Replaces any existing text in the input workspace.
+    /// </summary>
+    public void SetInputText(string text)
+    {
+        SpeechTextInput.Text = text;
+    }
+
     // ── Helpers ──
 
     /// <summary>

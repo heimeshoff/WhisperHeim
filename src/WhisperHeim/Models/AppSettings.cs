@@ -145,8 +145,8 @@ public sealed class TtsSettings
     public string? DefaultVoiceId { get; set; }
 
     /// <summary>
-    /// Read-aloud hotkey combination as a string like "Shift+Win+Ä".
-    /// Null means use the default (Shift+Win+Ä).
+    /// Read-aloud hotkey combination as a string like "Ctrl+Win+Ä".
+    /// Null means use the default (Ctrl+Win+Ä).
     /// </summary>
     [JsonPropertyName("readAloudHotkey")]
     public string? ReadAloudHotkey { get; set; }

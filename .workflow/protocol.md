@@ -2,6 +2,93 @@
 
 ---
 
+## 2026-03-22 -- Task Completed: 059 - Rework Read-Aloud Hotkey to Navigate to TTS Page
+
+**Type:** Task Completion
+**Task:** 059 - Rework Read-Aloud Hotkey to Navigate to TTS Page
+**Summary:** Changed hotkey from Shift+Win+Ä to Ctrl+Win+Ä with new flow: captures selected text, brings window to foreground, navigates to TTS page, pastes text. Removed all overlay infrastructure (3 files deleted) and inline TTS logic.
+**Files changed:** 7+ files
+
+---
+
+## 2026-03-22 -- Task Completed: 057 - Redesign WhisperHeim Logo
+
+**Type:** Task Completion
+**Task:** 057 - Redesign WhisperHeim Logo
+**Summary:** Replaced gradient borders with solid blue border + transparent blue-tinted background, replaced SymbolIcon with custom two-tone XAML paths (blue mic head, orange stand), added programmatic window icon generation for taskbar/Alt+Tab.
+**Files changed:** 4 files
+
+---
+
+## 2026-03-22 -- Batch Started: [057, 059]
+
+**Type:** Batch Start
+**Tasks:** 057 - Redesign WhisperHeim Logo, 059 - Rework Read-Aloud Hotkey to Navigate to TTS Page
+**Mode:** Parallel (batch of 2)
+
+---
+
+## 2026-03-22 -- Idea Captured: Make Templates Work
+
+**Type:** Idea Capture
+**Mode:** Quick
+**Filed to:** ideas/2026-03-22-make-templates-work.md
+
+---
+
+## 2026-03-22 -- Idea Captured: Configurable Config Path for Cloud Sync
+
+**Type:** Idea Capture
+**Mode:** Quick
+**Filed to:** ideas/2026-03-22-configurable-config-path.md
+
+---
+
+## 2026-03-22 -- Idea Captured: Show Full Logo in Collapsed Sidebar
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/060-collapsed-sidebar-logo-visible.md
+**Summary:** Increase collapsed sidebar width from 60px to 64px so the logo isn't clipped. Hide app name when collapsed, show both logo and name when expanded.
+
+---
+
+## 2026-03-22 -- Idea Captured: Rework Read-Aloud Hotkey
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/059-rework-read-aloud-hotkey.md
+**Summary:** Change hotkey to Ctrl+Win+Ä, rework flow to capture text → bring window to foreground → navigate to TTS page → paste into input workspace. Remove read-aloud overlay entirely.
+
+---
+
+## 2026-03-22 -- Idea Captured: Layout Fixes and Branding Cleanup
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/058-layout-fixes-and-branding-cleanup.md
+**Summary:** Fix transcript card overflow, fix Transcripts and TTS pages not filling available width, remove "LOCAL-FIRST AI" sidebar subtitle.
+
+---
+
+## 2026-03-22 -- Idea Captured: Redesign WhisperHeim Logo
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/057-logo-redesign.md
+**Summary:** Redesign logo with subtle blue-tinted transparent background, solid blue border (no gradient), two-tone XAML microphone (blue head, orange stand), and set as taskbar/window icon.
+
+---
+
+## 2026-03-22 17:27 -- Task Completed: 051 - Reduce Templates List Column Width
+
+**Type:** Task Completion
+**Task:** 051 - Reduce Templates List Column Width
+**Summary:** Reduced templates list column from 300px to 200px with responsive min/max constraints, tightened padding for more edit space.
+**Files changed:** 2 files
+
+---
+
 ## 2026-03-22 17:25 -- Task Started: 051 - Reduce Templates List Column Width
 
 **Type:** Task Start

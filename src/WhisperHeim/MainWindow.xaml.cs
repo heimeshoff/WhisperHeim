@@ -61,7 +61,7 @@ public partial class MainWindow : FluentWindow
     // Text-to-speech for the TTS page
     private readonly ITextToSpeechService _textToSpeechService;
 
-    // Read-aloud hotkey service (for overlay lifecycle events)
+    // Read-aloud hotkey service (captures selected text and signals navigation)
     private readonly ReadAloudHotkeyService _readAloudHotkeyService;
 
     // Hotkey and orchestration
@@ -78,9 +78,6 @@ public partial class MainWindow : FluentWindow
 
     // Dictation overlay indicator
     private DictationOverlayWindow? _overlayWindow;
-
-    // Read-aloud overlay indicator
-    private ReadAloudOverlayWindow? _readAloudOverlayWindow;
 
     // Cache pages so they are not recreated on every navigation
     private readonly Dictionary<string, object> _pageCache = new();
@@ -143,6 +140,9 @@ public partial class MainWindow : FluentWindow
         _callRecordingIcon = CreateMicrophoneIcon(Brushes.Orange);
         TrayIcon.Icon = _idleIcon;
 
+        // Set the window/taskbar icon to the two-tone logo
+        Icon = CreateTwoToneLogoIcon();
+
         // Start minimized to tray - don't show the window
         Visibility = Visibility.Hidden;
         ShowInTaskbar = false;
@@ -181,8 +181,8 @@ public partial class MainWindow : FluentWindow
         // Initialize the dictation overlay if enabled in settings
         InitializeOverlay();
 
-        // Initialize the read-aloud overlay and wire up lifecycle events
-        InitializeReadAloudOverlay();
+        // Wire up read-aloud hotkey: captures text and navigates to TTS page
+        _readAloudHotkeyService.TextCaptured += OnReadAloudTextCaptured;
 
         Trace.TraceInformation(
             "[MainWindow] Orchestrator started. Dictation hotkey: {0}",
@@ -223,58 +223,36 @@ public partial class MainWindow : FluentWindow
     }
 
     /// <summary>
-    /// Creates and configures the read-aloud overlay window and wires up lifecycle events.
+    /// Handles the read-aloud hotkey: brings window to foreground, navigates to TTS page,
+    /// and pastes the captured text into the input workspace.
     /// </summary>
-    private void InitializeReadAloudOverlay()
-    {
-        var overlaySettings = _settingsService.Current.Overlay;
-        if (!overlaySettings.Enabled)
-        {
-            Trace.TraceInformation("[MainWindow] Read-aloud overlay disabled (overlay disabled in settings).");
-            return;
-        }
-
-        _readAloudOverlayWindow = new ReadAloudOverlayWindow();
-        _readAloudOverlayWindow.ApplySettings(overlaySettings);
-
-        // Subscribe to read-aloud lifecycle events
-        _readAloudHotkeyService.ReadAloudStarted += OnReadAloudStarted;
-        _readAloudHotkeyService.ReadAloudPlaying += OnReadAloudPlaying;
-        _readAloudHotkeyService.ReadAloudCompleted += OnReadAloudCompleted;
-        _readAloudHotkeyService.ReadAloudCancelled += OnReadAloudCancelled;
-
-        Trace.TraceInformation("[MainWindow] Read-aloud overlay initialized.");
-    }
-
-    private void OnReadAloudStarted(object? sender, EventArgs e)
+    private void OnReadAloudTextCaptured(object? sender, ReadAloudTextCapturedEventArgs e)
     {
         Application.Current?.Dispatcher?.BeginInvoke(() =>
         {
-            _readAloudOverlayWindow?.ShowOverlay();
-        });
-    }
+            // Bring the window to the foreground, restoring from minimized if needed
+            ShowWindow();
 
-    private void OnReadAloudPlaying(object? sender, EventArgs e)
-    {
-        Application.Current?.Dispatcher?.BeginInvoke(() =>
-        {
-            _readAloudOverlayWindow?.SetState(Views.ReadAloudOverlayState.Playing);
-        });
-    }
+            // Navigate to the Text to Speech page
+            NavigateTo("TextToSpeech");
 
-    private void OnReadAloudCompleted(object? sender, EventArgs e)
-    {
-        Application.Current?.Dispatcher?.BeginInvoke(() =>
-        {
-            _readAloudOverlayWindow?.HideOverlay();
-        });
-    }
+            // Select the TTS nav item to keep sidebar in sync
+            foreach (var item in NavList.Items.OfType<System.Windows.Controls.ListBoxItem>())
+            {
+                if (item.Tag is string tag && tag == "TextToSpeech")
+                {
+                    NavList.SelectedItem = item;
+                    break;
+                }
+            }
 
-    private void OnReadAloudCancelled(object? sender, EventArgs e)
-    {
-        Application.Current?.Dispatcher?.BeginInvoke(() =>
-        {
-            _readAloudOverlayWindow?.DismissOverlay();
+            // Set the captured text into the TTS input workspace
+            if (_pageCache.TryGetValue("TextToSpeech", out var page) && page is TextToSpeechPage ttsPage)
+            {
+                ttsPage.SetInputText(e.Text);
+            }
+
+            Trace.TraceInformation("[MainWindow] Read-aloud: navigated to TTS page with {0} chars of text.", e.Text.Length);
         });
     }
 
@@ -506,6 +484,48 @@ public partial class MainWindow : FluentWindow
     }
 
     /// <summary>
+    /// Creates the two-tone microphone logo for the window/taskbar icon.
+    /// Blue capsule head + orange stand, on a subtle blue-tinted background with blue border.
+    /// </summary>
+    private static ImageSource CreateTwoToneLogoIcon()
+    {
+        const int size = 32;
+        var visual = new DrawingVisual();
+        using (var ctx = visual.RenderOpen())
+        {
+            // Background: subtle blue tint
+            ctx.DrawRoundedRectangle(
+                new SolidColorBrush(Color.FromArgb(0x30, 0x25, 0xab, 0xfe)),
+                new Pen(new SolidColorBrush(Color.FromRgb(0x25, 0xab, 0xfe)), 1.5),
+                new Rect(1, 1, size - 2, size - 2), 6, 6);
+
+            // Scale factor to fit the 24x24 paths into the icon with padding
+            const double scale = 0.85;
+            const double offset = (size - 24 * scale) / 2;
+
+            var blueBrush = new SolidColorBrush(Color.FromRgb(0x25, 0xab, 0xfe));
+            var orangeBrush = new SolidColorBrush(Color.FromRgb(0xff, 0x8b, 0x00));
+
+            // Microphone head (capsule) - Blue
+            var headGeometry = Geometry.Parse("M12,2 C9.79,2 8,3.79 8,6 L8,12 C8,14.21 9.79,16 12,16 C14.21,16 16,14.21 16,12 L16,6 C16,3.79 14.21,2 12,2 Z");
+            // Microphone stand (arc + stem + base) - Orange
+            var standGeometry = Geometry.Parse("M6,11 L6,12 C6,15.31 8.69,18 12,18 C15.31,18 18,15.31 18,12 L18,11 L16.5,11 L16.5,12 C16.5,14.49 14.49,16.5 12,16.5 C9.51,16.5 7.5,14.49 7.5,12 L7.5,11 Z M11.25,18.5 L11.25,21 L8.5,21 L8.5,22.5 L15.5,22.5 L15.5,21 L12.75,21 L12.75,18.5 Z");
+
+            ctx.PushTransform(new TranslateTransform(offset, offset));
+            ctx.PushTransform(new ScaleTransform(scale, scale));
+            ctx.DrawGeometry(blueBrush, null, headGeometry);
+            ctx.DrawGeometry(orangeBrush, null, standGeometry);
+            ctx.Pop();
+            ctx.Pop();
+        }
+
+        var bitmap = new RenderTargetBitmap(size, size, 96, 96, PixelFormats.Pbgra32);
+        bitmap.Render(visual);
+        bitmap.Freeze();
+        return bitmap;
+    }
+
+    /// <summary>
     /// Shows a brief notification when a template is matched (or not).
     /// Called on the UI thread.
     /// </summary>
@@ -551,14 +571,10 @@ public partial class MainWindow : FluentWindow
             _callRecordingService.StreamFailed -= OnCallRecordingStreamFailed;
 
             // Unsubscribe from read-aloud events
-            _readAloudHotkeyService.ReadAloudStarted -= OnReadAloudStarted;
-            _readAloudHotkeyService.ReadAloudPlaying -= OnReadAloudPlaying;
-            _readAloudHotkeyService.ReadAloudCompleted -= OnReadAloudCompleted;
-            _readAloudHotkeyService.ReadAloudCancelled -= OnReadAloudCancelled;
+            _readAloudHotkeyService.TextCaptured -= OnReadAloudTextCaptured;
 
             // Clean up orchestrator, overlay, hotkey, and call recording services on actual exit
             _overlayWindow?.Close();
-            _readAloudOverlayWindow?.Close();
             _orchestrator?.Dispose();
             _hotkeyService.Dispose();
             _callRecordingHotkeyService.Dispose();
