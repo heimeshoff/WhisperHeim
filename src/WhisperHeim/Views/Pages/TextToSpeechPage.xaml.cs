@@ -667,8 +667,11 @@ public partial class TextToSpeechPage : UserControl
                 Background = new SolidColorBrush(Color.FromRgb(0xFF, 0xFF, 0xFF)),
                 CornerRadius = new CornerRadius(8),
                 Padding = new Thickness(12),
-                Margin = new Thickness(0, 0, 0, 8)
+                Margin = new Thickness(0, 0, 0, 8),
+                Cursor = System.Windows.Input.Cursors.Hand,
+                Tag = name // voice ID for selection
             };
+            card.MouseLeftButtonUp += LibraryVoice_Click;
 
             var panel = new DockPanel();
             var nameBlock = new TextBlock
@@ -712,6 +715,23 @@ public partial class TextToSpeechPage : UserControl
             panel.Children.Add(sizeBlock);
             card.Child = panel;
             VoicesList.Items.Add(card);
+        }
+    }
+
+    private void LibraryVoice_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (sender is not Border { Tag: string voiceName })
+            return;
+
+        // Find and select the matching voice in the combo box
+        for (int i = 0; i < VoiceCombo.Items.Count; i++)
+        {
+            if (VoiceCombo.Items[i] is VoiceComboItem item && item.VoiceId == voiceName)
+            {
+                VoiceCombo.SelectedIndex = i;
+                // VoiceCombo_SelectionChanged will persist DefaultVoiceId
+                break;
+            }
         }
     }
 
