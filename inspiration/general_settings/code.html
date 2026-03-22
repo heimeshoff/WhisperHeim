@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-tertiary-fixed": "#311300",
+              "on-primary": "#ffffff",
+              "primary-fixed": "#d3e3ff",
+              "inverse-on-surface": "#f1f1f1",
+              "tertiary-fixed": "#ffdbc8",
+              "primary": "#005faa",
+              "tertiary-container": "#bc5b00",
+              "surface-tint": "#0060ab",
+              "on-surface": "#1a1c1c",
+              "on-tertiary-container": "#ffffff",
+              "secondary-container": "#b8d3fd",
+              "primary-container": "#0078d4",
+              "error-container": "#ffdad6",
+              "on-tertiary": "#ffffff",
+              "on-error": "#ffffff",
+              "on-background": "#1a1c1c",
+              "outline-variant": "#c0c7d4",
+              "secondary-fixed": "#d3e3ff",
+              "on-secondary": "#ffffff",
+              "on-secondary-fixed-variant": "#2d486b",
+              "surface-container-low": "#f3f3f3",
+              "tertiary-fixed-dim": "#ffb689",
+              "surface-container": "#eeeeee",
+              "on-secondary-fixed": "#001c39",
+              "surface-container-lowest": "#ffffff",
+              "error": "#ba1a1a",
+              "surface-container-highest": "#e2e2e2",
+              "on-error-container": "#93000a",
+              "tertiary": "#974700",
+              "inverse-primary": "#a3c9ff",
+              "inverse-surface": "#2f3131",
+              "on-primary-container": "#ffffff",
+              "surface": "#f9f9f9",
+              "on-primary-fixed-variant": "#004883",
+              "secondary-fixed-dim": "#adc8f2",
+              "secondary": "#456084",
+              "on-primary-fixed": "#001c39",
+              "on-surface-variant": "#404752",
+              "on-secondary-container": "#405b7f",
+              "primary-fixed-dim": "#a3c9ff",
+              "surface-container-high": "#e8e8e8",
+              "surface-bright": "#f9f9f9",
+              "surface-variant": "#e2e2e2",
+              "outline": "#717783",
+              "background": "#f9f9f9",
+              "surface-dim": "#dadada",
+              "on-tertiary-fixed-variant": "#743500"
+            },
+            fontFamily: {
+              "headline": ["Inter", "sans-serif"],
+              "body": ["Inter", "sans-serif"],
+              "label": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .mica-effect {
+            backdrop-filter: blur(40px) saturate(150%);
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- Top Navigation Anchor -->
+<header class="fixed top-0 w-full h-12 bg-slate-50/70 dark:bg-slate-900/70 backdrop-blur-xl flex items-center justify-between px-4 z-[100] shadow-[0_8px_32px_rgba(0,96,171,0.06)]">
+<div class="flex items-center gap-2">
+<img alt="App Logo" class="w-6 h-6 rounded-sm" data-alt="WhisperHeim minimalist AI logo icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDnUOf-9bLpNEBV44kc5ZulTZONO0FfJvFcznvI17CLBbOze4C4s7-0tHBQ7lai9i_Z6rTNm3qWnMOI3g8M1xbRbNxPuhNPlYDYDBeeOfLhcCC6FYa0K2b-YYxKmDLkSm0xzL2Gb9qv8C4pZYg_5MT13RT5I60KUeMY4wXZI596D2h0wOTOAQpL-w8iIGSH8cgFnIzmquVJxw1tdhNkmQqi-xAyRrlIgRrWmUXQWU6dVmjXx2yC0sED9qf1SEfVo9mWnYrYZZxwA9A"/>
+<span class="text-sm font-semibold text-slate-900 dark:text-slate-100 font-['Segoe_UI_Variable','Inter'] tracking-tight">WhisperHeim</span>
+</div>
+<div class="flex items-center gap-1">
+<button class="w-10 h-8 flex items-center justify-center text-slate-500 hover:bg-slate-200/50 transition-colors">
+<span class="material-symbols-outlined text-[18px]" data-icon="remove">remove</span>
+</button>
+<button class="w-10 h-8 flex items-center justify-center text-slate-500 hover:bg-slate-200/50 transition-colors">
+<span class="material-symbols-outlined text-[16px]" data-icon="check_box_outline_blank">check_box_outline_blank</span>
+</button>
+<button class="w-10 h-8 flex items-center justify-center text-slate-500 hover:bg-error/10 hover:text-error transition-colors">
+<span class="material-symbols-outlined text-[18px]" data-icon="close">close</span>
+</button>
+</div>
+</header>
+<div class="flex pt-12 min-h-screen">
+<!-- Sidebar Navigation -->
+<aside class="fixed left-0 top-12 h-[calc(100vh-48px)] w-64 bg-slate-100/50 dark:bg-slate-950/50 mica-effect flex flex-col p-4 border-r border-slate-200/10 z-40">
+<div class="mb-8 px-4">
+<h1 class="text-lg font-bold tracking-tighter text-slate-900 dark:text-slate-50">WhisperHeim</h1>
+<p class="text-[10px] font-medium uppercase tracking-wider text-slate-500">Local-First AI</p>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-full px-4 py-2 transition-all active:scale-95 duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="mic">mic</span>
+<span class="font-['Segoe_UI_Variable','Inter'] text-xs font-medium uppercase tracking-wider">Dictation</span>
+</a>
+<a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-full px-4 py-2 transition-all active:scale-95 duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="folder_open">folder_open</span>
+<span class="font-['Segoe_UI_Variable','Inter'] text-xs font-medium uppercase tracking-wider">Library</span>
+</a>
+<a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-full px-4 py-2 transition-all active:scale-95 duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="memory">memory</span>
+<span class="font-['Segoe_UI_Variable','Inter'] text-xs font-medium uppercase tracking-wider">Models</span>
+</a>
+<!-- Active Tab: Settings -->
+<a class="flex items-center gap-3 bg-blue-600 dark:bg-blue-500 text-white rounded-full px-4 py-2 transition-all scale-95 duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="settings" style="font-variation-settings: 'FILL' 1;">settings</span>
+<span class="font-['Segoe_UI_Variable','Inter'] text-xs font-medium uppercase tracking-wider">Settings</span>
+</a>
+<a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-full px-4 py-2 transition-all active:scale-95 duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="help_outline">help_outline</span>
+<span class="font-['Segoe_UI_Variable','Inter'] text-xs font-medium uppercase tracking-wider">Help</span>
+</a>
+</nav>
+<div class="mt-auto px-4 py-4 bg-surface-container-low/50 rounded-xl">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-fixed text-xs font-bold">
+                        JD
+                    </div>
+<div class="flex flex-col">
+<span class="text-xs font-semibold text-on-surface">Local User</span>
+<span class="text-[10px] text-on-surface-variant">V1.2.0 Stable</span>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 ml-64 p-12 bg-surface">
+<div class="max-w-4xl mx-auto">
+<header class="mb-12">
+<h2 class="text-4xl font-bold tracking-tight text-on-surface mb-2">General</h2>
+<p class="text-on-surface-variant text-lg">Manage your application preferences and behavioral settings.</p>
+</header>
+<!-- Settings Content: Bento Style Layout -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<!-- App Start Section -->
+<section class="col-span-2">
+<div class="flex items-center gap-2 mb-6">
+<span class="material-symbols-outlined text-primary text-[20px]" data-icon="power_settings_new">power_settings_new</span>
+<h3 class="text-sm font-bold uppercase tracking-widest text-on-surface-variant">App Start</h3>
+</div>
+<div class="space-y-4">
+<!-- Setting Card 1 -->
+<div class="bg-surface-container-lowest p-6 rounded-xl flex items-center justify-between transition-all hover:bg-surface-bright group">
+<div class="flex flex-col gap-1">
+<span class="text-on-surface font-semibold text-base">Start minimized</span>
+<p class="text-on-surface-variant text-sm">Open the application in the system tray instead of a window.</p>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-surface-container-lowest after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+<!-- Setting Card 2 -->
+<div class="bg-surface-container-lowest p-6 rounded-xl flex items-center justify-between transition-all hover:bg-surface-bright">
+<div class="flex flex-col gap-1">
+<span class="text-on-surface font-semibold text-base">Launch at startup</span>
+<p class="text-on-surface-variant text-sm">Automatically run WhisperHeim when your operating system starts.</p>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-surface-container-lowest after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+</div>
+</section>
+<!-- Language and Interface (Example of asymmetric content) -->
+<section class="bg-surface-container-low p-8 rounded-xl flex flex-col justify-between">
+<div>
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-primary text-[20px]" data-icon="translate">translate</span>
+<h3 class="text-sm font-bold uppercase tracking-widest text-on-surface-variant">Interface Language</h3>
+</div>
+<p class="text-on-surface-variant text-sm mb-6">Select the language used throughout the application UI.</p>
+</div>
+<div class="relative group">
+<select class="w-full bg-surface-container-highest border-none rounded-lg py-3 px-4 text-on-surface focus:ring-2 focus:ring-primary/20 appearance-none">
+<option>English (United States)</option>
+<option>Deutsch</option>
+<option>Français</option>
+<option>Español</option>
+</select>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant" data-icon="expand_more">expand_more</span>
+</div>
+</section>
+<!-- App Theme (Example of Glassmorphism card) -->
+<section class="bg-primary/5 p-8 rounded-xl border border-primary/10">
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-primary text-[20px]" data-icon="palette">palette</span>
+<h3 class="text-sm font-bold uppercase tracking-widest text-on-surface-variant">Appearance</h3>
+</div>
+<div class="grid grid-cols-3 gap-3">
+<button class="flex flex-col items-center gap-2 p-3 bg-surface-container-lowest rounded-lg border-2 border-primary shadow-sm">
+<div class="w-full h-12 bg-surface rounded-md border border-outline-variant/20"></div>
+<span class="text-[10px] font-bold uppercase">Light</span>
+</button>
+<button class="flex flex-col items-center gap-2 p-3 bg-surface-container-lowest/50 rounded-lg hover:bg-surface-container-lowest transition-all">
+<div class="w-full h-12 bg-slate-900 rounded-md"></div>
+<span class="text-[10px] font-bold uppercase">Dark</span>
+</button>
+<button class="flex flex-col items-center gap-2 p-3 bg-surface-container-lowest/50 rounded-lg hover:bg-surface-container-lowest transition-all">
+<div class="w-full h-12 bg-gradient-to-br from-surface to-slate-900 rounded-md"></div>
+<span class="text-[10px] font-bold uppercase">System</span>
+</button>
+</div>
+</section>
+<!-- Advanced Toggle (Editorial Authority) -->
+<div class="col-span-2 mt-8 py-8 border-t border-outline-variant/10">
+<div class="flex items-center justify-between">
+<div>
+<h4 class="text-on-surface font-semibold">Enable Advanced Mode</h4>
+<p class="text-on-surface-variant text-sm">Expose experimental local LLM parameters and API debug tools.</p>
+</div>
+<button class="px-6 py-2 bg-gradient-to-br from-primary to-primary-container text-on-primary rounded-xl font-medium shadow-lg hover:opacity-90 transition-all active:scale-95">
+                                Enable Features
+                            </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Background Decorative Element (Tonal Delta) -->
+<div class="fixed top-0 right-0 -z-10 w-1/3 h-full bg-gradient-to-l from-primary/5 to-transparent pointer-events-none"></div>
+</body></html>

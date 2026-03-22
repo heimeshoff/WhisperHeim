@@ -1,0 +1,222 @@
+<UserControl x:Class="WhisperHeim.Views.Pages.TranscribeFilesPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             AllowDrop="True"
+             Drop="OnDrop"
+             DragEnter="OnDragEnter"
+             DragLeave="OnDragLeave"
+             DragOver="OnDragOver">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+        <Style x:Key="SubtleText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        </Style>
+        <Style x:Key="SectionLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Background="{DynamicResource ApplicationBackgroundBrush}">
+        <StackPanel Margin="40,36,40,32" MaxWidth="900"
+                    HorizontalAlignment="Center">
+            <!-- Header -->
+            <TextBlock Text="Transcribe Files"
+                       FontSize="36" FontWeight="Bold"
+                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                       Margin="0,0,0,6" />
+            <TextBlock Text="Convert your audio and video recordings into text locally. Your data never leaves this machine."
+                       Style="{StaticResource SubtleText}"
+                       TextWrapping="Wrap"
+                       MaxWidth="600"
+                       HorizontalAlignment="Left"
+                       Margin="0,0,0,36" />
+
+            <!-- Drop Zone with glow effect -->
+            <Border x:Name="DropZone"
+                    MinHeight="200"
+                    CornerRadius="12"
+                    Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="2"
+                    Margin="0,0,0,36">
+                <StackPanel HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Margin="32">
+                    <!-- Upload icon circle -->
+                    <Border Width="64" Height="64"
+                            CornerRadius="32"
+                            Background="#FFD3E3FF"
+                            HorizontalAlignment="Center"
+                            Margin="0,0,0,20">
+                        <ui:SymbolIcon Symbol="ArrowUpload24"
+                                       FontSize="28"
+                                       Foreground="#FF005FAA"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center" />
+                    </Border>
+                    <TextBlock Text="Drop audio or video files here"
+                               HorizontalAlignment="Center"
+                               FontSize="18" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                               Margin="0,0,0,6" />
+                    <TextBlock Text="Supported formats: MP3, WAV, M4A, MP4, MOV (Max 500MB)"
+                               HorizontalAlignment="Center"
+                               FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               Margin="0,0,0,24" />
+                    <!-- Browse Files gradient CTA -->
+                    <Button x:Name="PickFilesButton"
+                            Click="OnPickFilesClick"
+                            HorizontalAlignment="Center"
+                            Foreground="White"
+                            FontWeight="SemiBold"
+                            Padding="28,12"
+                            Cursor="Hand">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border CornerRadius="12" Padding="{TemplateBinding Padding}">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                            <GradientStop Color="#FF005FAA" Offset="0" />
+                                            <GradientStop Color="#FF0078D4" Offset="1" />
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="#FF005FAA" Opacity="0.2" BlurRadius="20" ShadowDepth="6" Direction="270" />
+                                    </Border.Effect>
+                                    <StackPanel Orientation="Horizontal">
+                                        <ui:SymbolIcon Symbol="Add24" Foreground="White" Margin="0,0,8,0" />
+                                        <TextBlock Text="Browse Files" Foreground="White" VerticalAlignment="Center"
+                                                   FontWeight="Medium" />
+                                    </StackPanel>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </StackPanel>
+            </Border>
+
+            <!-- Results Header -->
+            <TextBlock Text="RECENT TRANSCRIPTIONS"
+                       Style="{StaticResource SectionLabel}"
+                       Margin="0,0,0,16" />
+
+            <!-- Results List -->
+            <ItemsControl x:Name="ResultsList"
+                          ItemsSource="{Binding Items}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                CornerRadius="12"
+                                Padding="24"
+                                Margin="0,0,0,16">
+                            <Border.Effect>
+                                <DropShadowEffect Color="#FF005FAA" Opacity="0.03" BlurRadius="16" ShadowDepth="4" Direction="270" />
+                            </Border.Effect>
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <!-- File name and status -->
+                                <DockPanel Grid.Row="0" Margin="0,0,0,10">
+                                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
+                                        <Border Width="40" Height="40" CornerRadius="8"
+                                                Background="{DynamicResource SubtleFillColorSecondaryBrush}" Margin="0,0,14,0">
+                                            <ui:SymbolIcon Symbol="MusicNote124" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Border>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding FileName}"
+                                                       FontWeight="SemiBold"
+                                                       FontSize="14"
+                                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                            <TextBlock Text="{Binding StatusText}"
+                                                       FontSize="11"
+                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                       Margin="0,2,0,0" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding StatusText}"
+                                               DockPanel.Dock="Right"
+                                               HorizontalAlignment="Right"
+                                               Foreground="#FF005FAA"
+                                               FontWeight="Bold"
+                                               FontSize="13"
+                                               VerticalAlignment="Center" />
+                                </DockPanel>
+
+                                <!-- Progress bar -->
+                                <Grid Grid.Row="1" Height="4" Margin="0,0,0,12"
+                                      Visibility="{Binding IsTranscribing, Converter={StaticResource BoolToVisibility}}">
+                                    <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}" CornerRadius="2" />
+                                    <Border CornerRadius="2" HorizontalAlignment="Left"
+                                            Width="{Binding Progress}">
+                                        <Border.Background>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                <GradientStop Color="#FF005FAA" Offset="0" />
+                                                <GradientStop Color="#FF0078D4" Offset="1" />
+                                            </LinearGradientBrush>
+                                        </Border.Background>
+                                    </Border>
+                                </Grid>
+
+                                <!-- Transcript text -->
+                                <Border Grid.Row="2"
+                                        Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="8"
+                                        Padding="16,12"
+                                        Margin="0,0,0,12"
+                                        Visibility="{Binding HasResult, Converter={StaticResource BoolToVisibility}}">
+                                    <TextBlock Text="{Binding TranscriptText}"
+                                               TextWrapping="Wrap"
+                                               FontSize="13"
+                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                               LineHeight="20" />
+                                </Border>
+
+                                <!-- Duration and buttons -->
+                                <DockPanel Grid.Row="3"
+                                           Visibility="{Binding HasResult, Converter={StaticResource BoolToVisibility}}">
+                                    <TextBlock Text="{Binding DurationText}"
+                                               DockPanel.Dock="Left"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                               FontSize="11"
+                                               VerticalAlignment="Center" />
+                                    <StackPanel DockPanel.Dock="Right"
+                                                Orientation="Horizontal"
+                                                HorizontalAlignment="Right">
+                                        <Button Click="OnCopyClick"
+                                                Tag="{Binding}"
+                                                Margin="0,0,8,0" Padding="10,6"
+                                                Background="Transparent" BorderThickness="0"
+                                                Foreground="#FF005FAA" FontSize="11" FontWeight="SemiBold"
+                                                Cursor="Hand" Content="Copy Transcript" />
+                                        <Button Click="OnSaveClick"
+                                                Tag="{Binding}" Padding="10,6"
+                                                Background="Transparent" BorderThickness="0"
+                                                Foreground="#FF005FAA" FontSize="11" FontWeight="SemiBold"
+                                                Cursor="Hand" Content="Save as .txt" />
+                                    </StackPanel>
+                                </DockPanel>
+
+                                <!-- Error text -->
+                                <TextBlock Grid.Row="2"
+                                           Text="{Binding ErrorText}"
+                                           Foreground="#FFBA1A1A"
+                                           TextWrapping="Wrap"
+                                           FontSize="13"
+                                           Visibility="{Binding HasError, Converter={StaticResource BoolToVisibility}}" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

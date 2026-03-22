@@ -1,0 +1,222 @@
+<UserControl x:Class="WhisperHeim.Views.Pages.GeneralPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Background="{DynamicResource ApplicationBackgroundBrush}">
+        <StackPanel Margin="40,36,40,32" MaxWidth="900"
+                    HorizontalAlignment="Center">
+
+            <!-- ═══════ Hero Section ═══════ -->
+            <StackPanel HorizontalAlignment="Center" Margin="0,20,0,48">
+                <!-- Logo with blue border -->
+                <Border Width="88" Height="88"
+                        CornerRadius="18" Margin="0,0,0,20"
+                        HorizontalAlignment="Center"
+                        BorderThickness="3"
+                        BorderBrush="#FF25abfe"
+                        Background="#1025abfe">
+                    <Viewbox Margin="12">
+                        <Canvas Width="24" Height="24">
+                            <!-- Microphone head (capsule) - Blue -->
+                            <Path Fill="#FF25abfe"
+                                  Data="M12,2 C9.79,2 8,3.79 8,6 L8,12 C8,14.21 9.79,16 12,16 C14.21,16 16,14.21 16,12 L16,6 C16,3.79 14.21,2 12,2 Z" />
+                            <!-- Microphone stand (arc + stem + base) - Orange -->
+                            <Path Fill="#FFff8b00"
+                                  Data="M6,11 L6,12 C6,15.31 8.69,18 12,18 C15.31,18 18,15.31 18,12 L18,11 L16.5,11 L16.5,12 C16.5,14.49 14.49,16.5 12,16.5 C9.51,16.5 7.5,14.49 7.5,12 L7.5,11 Z M11.25,18.5 L11.25,21 L8.5,21 L8.5,22.5 L15.5,22.5 L15.5,21 L12.75,21 L12.75,18.5 Z" />
+                        </Canvas>
+                    </Viewbox>
+                </Border>
+
+                <!-- App name + version -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,8">
+                    <TextBlock Text="WhisperHeim"
+                               FontSize="40" FontWeight="ExtraBold"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                    <TextBlock Text="v1.0"
+                               FontSize="18" FontWeight="Medium"
+                               Foreground="#66005FAA"
+                               VerticalAlignment="Top"
+                               Margin="8,8,0,0" />
+                </StackPanel>
+
+                <TextBlock Text="High-fidelity local transcription powered by the quiet engine of modern neural networks."
+                           FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                           HorizontalAlignment="Center"
+                           TextAlignment="Center"
+                           TextWrapping="Wrap"
+                           MaxWidth="460" />
+            </StackPanel>
+
+            <!-- ═══════ App Start Section ═══════ -->
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                <ui:SymbolIcon Symbol="Power24" Foreground="#FF005FAA" Margin="0,0,10,0" />
+                <TextBlock Text="APP START"
+                           FontSize="10" FontWeight="Bold"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                           VerticalAlignment="Center" />
+            </StackPanel>
+
+            <!-- Start minimized card -->
+            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" CornerRadius="12" Padding="24" Margin="0,0,0,12">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center" MaxWidth="400">
+                        <TextBlock Text="Start minimized"
+                                   FontSize="15" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        <TextBlock Text="Open the application in the system tray instead of a window."
+                                   FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   Margin="0,4,0,0"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                    <ui:ToggleSwitch x:Name="StartMinimizedCheck"
+                                     IsChecked="{Binding StartMinimized, Mode=TwoWay}"
+                                     Checked="OnSettingChanged"
+                                     Unchecked="OnSettingChanged"
+                                     DockPanel.Dock="Right"
+                                     HorizontalAlignment="Right"
+                                     VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
+            <!-- Launch at startup card -->
+            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" CornerRadius="12" Padding="24" Margin="0,0,0,40">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center" MaxWidth="400">
+                        <TextBlock Text="Launch at startup"
+                                   FontSize="15" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        <TextBlock Text="Automatically run WhisperHeim when your operating system starts."
+                                   FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   Margin="0,4,0,0"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                    <ui:ToggleSwitch x:Name="LaunchAtStartupCheck"
+                                     IsChecked="{Binding LaunchAtStartup, Mode=TwoWay}"
+                                     Checked="OnSettingChanged"
+                                     Unchecked="OnSettingChanged"
+                                     DockPanel.Dock="Right"
+                                     HorizontalAlignment="Right"
+                                     VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
+            <!-- ═══════ Data Storage Section ═══════ -->
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                <ui:SymbolIcon Symbol="Folder24" Foreground="#FF005FAA" Margin="0,0,10,0" />
+                <TextBlock Text="DATA STORAGE"
+                           FontSize="10" FontWeight="Bold"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                           VerticalAlignment="Center" />
+            </StackPanel>
+
+            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" CornerRadius="12" Padding="24" Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock Text="Data folder"
+                               FontSize="15" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                    <TextBlock Text="Choose where your recordings, settings, and voice samples are stored. Use a cloud-synced folder (Google Drive, OneDrive) to share data across devices."
+                               FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               Margin="0,4,0,16"
+                               TextWrapping="Wrap" />
+                    <DockPanel>
+                        <ui:Button x:Name="BrowseDataPath"
+                                   Content="Browse..."
+                                   Appearance="Primary"
+                                   DockPanel.Dock="Right"
+                                   Margin="12,0,0,0"
+                                   VerticalAlignment="Center"
+                                   Click="BrowseDataPath_Click" />
+                        <ui:Button x:Name="ResetDataPath"
+                                   Content="Reset"
+                                   DockPanel.Dock="Right"
+                                   Margin="8,0,0,0"
+                                   VerticalAlignment="Center"
+                                   Click="ResetDataPath_Click" />
+                        <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                                CornerRadius="8" Padding="12,8">
+                            <TextBlock x:Name="DataPathDisplay"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                       TextTrimming="CharacterEllipsis"
+                                       VerticalAlignment="Center" />
+                        </Border>
+                    </DockPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" CornerRadius="12" Padding="24" Margin="0,0,0,40">
+                <StackPanel>
+                    <TextBlock FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}">
+                        <Run FontWeight="SemiBold">Synced:</Run>
+                        <Run>settings, recordings, voice samples</Run>
+                    </TextBlock>
+                    <TextBlock FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="0,4,0,0">
+                        <Run FontWeight="SemiBold">Local only:</Run>
+                        <Run>AI models (~800 MB), window position, audio devices, logs</Run>
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+
+            <!-- ═══════ Appearance Section ═══════ -->
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                <ui:SymbolIcon Symbol="PaintBrush24" Foreground="#FF005FAA" Margin="0,0,10,0" />
+                <TextBlock Text="APPEARANCE"
+                           FontSize="10" FontWeight="Bold"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                           VerticalAlignment="Center" />
+            </StackPanel>
+
+            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" CornerRadius="12" Padding="24" Margin="0,0,0,40">
+                <StackPanel>
+                    <TextBlock Text="Choose your preferred color scheme."
+                               FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               Margin="0,0,0,20" />
+                    <UniformGrid Columns="3">
+                        <!-- Light theme -->
+                        <Border x:Name="ThemeLight" Margin="0,0,8,0" Cursor="Hand"
+                                Background="Transparent" CornerRadius="12" Padding="12"
+                                MouseLeftButtonUp="ThemeLight_Click">
+                            <StackPanel HorizontalAlignment="Center">
+                                <Border Width="80" Height="52" CornerRadius="8"
+                                        Background="#FFF9F9F9" Margin="0,0,0,8"
+                                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" />
+                                <TextBlock Text="LIGHT" FontSize="9" FontWeight="Bold"
+                                           HorizontalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                        </Border>
+                        <!-- Dark theme -->
+                        <Border x:Name="ThemeDark" Margin="4,0" Cursor="Hand"
+                                Background="Transparent" CornerRadius="12" Padding="12"
+                                MouseLeftButtonUp="ThemeDark_Click">
+                            <StackPanel HorizontalAlignment="Center">
+                                <Border Width="80" Height="52" CornerRadius="8"
+                                        Background="#FF2F3131" Margin="0,0,0,8"
+                                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" />
+                                <TextBlock Text="DARK" FontSize="9" FontWeight="Bold"
+                                           HorizontalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                        </Border>
+                        <!-- System theme -->
+                        <Border x:Name="ThemeSystem" Margin="8,0,0,0" Cursor="Hand"
+                                Background="Transparent" CornerRadius="12" Padding="12"
+                                MouseLeftButtonUp="ThemeSystem_Click">
+                            <StackPanel HorizontalAlignment="Center">
+                                <Border Width="80" Height="52" CornerRadius="8" Margin="0,0,0,8"
+                                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                            <GradientStop Color="#FFF9F9F9" Offset="0" />
+                                            <GradientStop Color="#FF2F3131" Offset="1" />
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                </Border>
+                                <TextBlock Text="SYSTEM" FontSize="9" FontWeight="Bold"
+                                           HorizontalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                        </Border>
+                    </UniformGrid>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

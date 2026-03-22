@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "on-tertiary-fixed": "#311300",
+            "on-primary": "#ffffff",
+            "primary-fixed": "#d3e3ff",
+            "inverse-on-surface": "#f1f1f1",
+            "tertiary-fixed": "#ffdbc8",
+            "primary": "#005faa",
+            "tertiary-container": "#bc5b00",
+            "surface-tint": "#0060ab",
+            "on-surface": "#1a1c1c",
+            "on-tertiary-container": "#ffffff",
+            "secondary-container": "#b8d3fd",
+            "primary-container": "#0078d4",
+            "error-container": "#ffdad6",
+            "on-tertiary": "#ffffff",
+            "on-error": "#ffffff",
+            "on-background": "#1a1c1c",
+            "outline-variant": "#c0c7d4",
+            "secondary-fixed": "#d3e3ff",
+            "on-secondary": "#ffffff",
+            "on-secondary-fixed-variant": "#2d486b",
+            "surface-container-low": "#f3f3f3",
+            "tertiary-fixed-dim": "#ffb689",
+            "surface-container": "#eeeeee",
+            "on-secondary-fixed": "#001c39",
+            "surface-container-lowest": "#ffffff",
+            "error": "#ba1a1a",
+            "surface-container-highest": "#e2e2e2",
+            "on-error-container": "#93000a",
+            "tertiary": "#974700",
+            "inverse-primary": "#a3c9ff",
+            "inverse-surface": "#2f3131",
+            "on-primary-container": "#ffffff",
+            "surface": "#f9f9f9",
+            "on-primary-fixed-variant": "#004883",
+            "secondary-fixed-dim": "#adc8f2",
+            "secondary": "#456084",
+            "on-primary-fixed": "#001c39",
+            "on-surface-variant": "#404752",
+            "on-secondary-container": "#405b7f",
+            "primary-fixed-dim": "#a3c9ff",
+            "surface-container-high": "#e8e8e8",
+            "surface-bright": "#f9f9f9",
+            "surface-variant": "#e2e2e2",
+            "outline": "#717783",
+            "background": "#f9f9f9",
+            "surface-dim": "#dadada",
+            "on-tertiary-fixed-variant": "#743500"
+          },
+          fontFamily: {
+            "headline": ["Inter"],
+            "body": ["Inter"],
+            "label": ["Inter"]
+          },
+          borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+        },
+      },
+    }
+  </script>
+<style>
+    .mica-effect {
+      backdrop-filter: blur(20px) saturate(180%);
+      background-color: rgba(243, 243, 243, 0.7);
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+    }
+    .status-pulse {
+      box-shadow: 0 0 0 0 rgba(0, 95, 170, 0.4);
+    }
+  </style>
+</head>
+<body class="bg-[#1a1c1c] font-body text-on-surface flex items-center justify-center h-screen overflow-hidden" data-alt="Abstract soft blue and grey wallpaper" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuARlsskh6vl9kpkhs0lX8cUIr-sWJtjpPd6dBg6Cgmj3Mjf_g1Si1VvLC8u2sBtZ7dGzBHdUToDKIXGTZXeenYPHFXPSjqs5tBFU3JbA4H4T5kBV2mo3RQWePz4k27Oi-L61ofSanW6WEj5SfFA5k1l-3MCXqodEUV6WKfmT8dG0mT8C_dzCNNwYtrcgwpH7DOVyVQbeM3ZQ3qP1TAlNsKwcWlG7KfF0w5OgcCIRgetI0mNGX_lTBlgcs24YjqlfoIuVyA1NZOzpls'); background-size: cover; background-position: center;">
+<!-- Desktop Overlay Simulation Container -->
+<div class="relative w-full h-full flex flex-col items-center justify-start pt-12">
+<!-- Floating WhisperHeim Pill Overlay -->
+<div class="mica-effect border border-white/10 rounded-full px-1.5 py-1.5 flex items-center gap-3 shadow-[0_8px_32px_rgba(0,96,171,0.12)] transition-all duration-300 hover:scale-105 active:scale-95 group">
+<!-- Status Indicator Dot/Mic -->
+<div class="relative flex items-center justify-center">
+<!-- Pulse Effect for Processing State -->
+<div class="absolute inset-0 rounded-full bg-primary/20 scale-150 blur-sm"></div>
+<div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white shadow-sm z-10 transition-colors duration-500">
+<span class="material-symbols-outlined text-[20px]" data-weight="fill" style="font-variation-settings: 'FILL' 1;">mic</span>
+</div>
+</div>
+<!-- Content Area: Listening State -->
+<div class="flex flex-col pr-4 overflow-hidden max-w-[180px]">
+<span class="text-[11px] font-bold tracking-tight text-primary leading-none uppercase">Listening</span>
+<div class="flex items-end gap-[2px] h-3 mt-1">
+<div class="w-1 bg-primary/80 rounded-full h-1/2"></div>
+<div class="w-1 bg-primary/80 rounded-full h-3/4"></div>
+<div class="w-1 bg-primary/80 rounded-full h-full"></div>
+<div class="w-1 bg-primary/80 rounded-full h-2/3"></div>
+<div class="w-1 bg-primary/80 rounded-full h-1/2"></div>
+</div>
+</div>
+<!-- Quick Actions (Hidden by default, visible on hover) -->
+<div class="hidden group-hover:flex items-center gap-1 border-l border-outline-variant/20 pl-2 pr-1">
+<button class="p-1.5 hover:bg-surface-container-high rounded-full text-on-surface-variant transition-colors">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+</div>
+<!-- Alternative States (Visual Sandbox) -->
+<div class="absolute bottom-12 flex gap-6">
+<!-- Processing State Pill -->
+<div class="mica-effect border border-white/10 rounded-full px-1.5 py-1.5 flex items-center gap-3 shadow-lg">
+<div class="w-10 h-10 rounded-full bg-tertiary flex items-center justify-center text-white z-10">
+<span class="material-symbols-outlined text-[20px]">memory</span>
+</div>
+<div class="flex flex-col pr-4">
+<span class="text-[11px] font-bold tracking-tight text-tertiary leading-none uppercase">Processing</span>
+<span class="text-[12px] font-medium text-on-surface-variant mt-0.5 whitespace-nowrap">Local inference...</span>
+</div>
+</div>
+<!-- Idle State (Minimal Dot) -->
+<div class="mica-effect border border-white/10 rounded-full p-1.5 flex items-center shadow-lg hover:w-32 transition-all duration-500 overflow-hidden">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined text-[20px]">mic_off</span>
+</div>
+<div class="flex flex-col ml-3 opacity-0 hover:opacity-100 transition-opacity">
+<span class="text-[11px] font-bold tracking-tight text-on-surface-variant leading-none uppercase">Idle</span>
+</div>
+</div>
+</div>
+<!-- Instructional Hint -->
+<div class="mt-8 px-4 py-2 rounded-lg bg-black/20 backdrop-blur-md text-white/80 text-[11px] tracking-wide font-medium">
+      ALT + SPACE TO TOGGLE DICTATION
+    </div>
+</div>
+<!-- Hidden TopAppBar for Brand Integrity (as per Shared Components Logic for context) -->
+<header class="fixed top-0 w-full h-12 flex items-center justify-between px-4 z-[100] bg-slate-50/70 dark:bg-slate-900/70 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,96,171,0.06)] opacity-0 pointer-events-none">
+<div class="text-sm font-semibold text-slate-900 dark:text-slate-100 font-['Segoe_UI_Variable','Inter']">WhisperHeim</div>
+</header>
+</body></html>

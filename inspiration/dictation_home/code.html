@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-tertiary-fixed": "#311300",
+              "on-primary": "#ffffff",
+              "primary-fixed": "#d3e3ff",
+              "inverse-on-surface": "#f1f1f1",
+              "tertiary-fixed": "#ffdbc8",
+              "primary": "#005faa",
+              "tertiary-container": "#bc5b00",
+              "surface-tint": "#0060ab",
+              "on-surface": "#1a1c1c",
+              "on-tertiary-container": "#ffffff",
+              "secondary-container": "#b8d3fd",
+              "primary-container": "#0078d4",
+              "error-container": "#ffdad6",
+              "on-tertiary": "#ffffff",
+              "on-error": "#ffffff",
+              "on-background": "#1a1c1c",
+              "outline-variant": "#c0c7d4",
+              "secondary-fixed": "#d3e3ff",
+              "on-secondary": "#ffffff",
+              "on-secondary-fixed-variant": "#2d486b",
+              "surface-container-low": "#f3f3f3",
+              "tertiary-fixed-dim": "#ffb689",
+              "surface-container": "#eeeeee",
+              "on-secondary-fixed": "#001c39",
+              "surface-container-lowest": "#ffffff",
+              "error": "#ba1a1a",
+              "surface-container-highest": "#e2e2e2",
+              "on-error-container": "#93000a",
+              "tertiary": "#974700",
+              "inverse-primary": "#a3c9ff",
+              "inverse-surface": "#2f3131",
+              "on-primary-container": "#ffffff",
+              "surface": "#f9f9f9",
+              "on-primary-fixed-variant": "#004883",
+              "secondary-fixed-dim": "#adc8f2",
+              "secondary": "#456084",
+              "on-primary-fixed": "#001c39",
+              "on-surface-variant": "#404752",
+              "on-secondary-container": "#405b7f",
+              "primary-fixed-dim": "#a3c9ff",
+              "surface-container-high": "#e8e8e8",
+              "surface-bright": "#f9f9f9",
+              "surface-variant": "#e2e2e2",
+              "outline": "#717783",
+              "background": "#f9f9f9",
+              "surface-dim": "#dadada",
+              "on-tertiary-fixed-variant": "#743500"
+            },
+            fontFamily: {
+              "headline": ["Inter"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .bg-mica {
+            backdrop-filter: blur(40px) saturate(180%);
+        }
+    </style>
+</head>
+<body class="bg-surface font-body text-on-surface selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- TopAppBar Shell -->
+<header class="fixed top-0 w-full h-12 bg-slate-50/70 dark:bg-slate-900/70 backdrop-blur-xl flex items-center justify-between px-4 z-[100] shadow-[0_8px_32px_rgba(0,96,171,0.06)]">
+<div class="flex items-center gap-2">
+<span class="text-sm font-semibold text-slate-900 dark:text-slate-100">WhisperHeim</span>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2">
+<button class="p-1.5 rounded-md hover:bg-slate-200/50 transition-colors">
+<span class="material-symbols-outlined text-slate-500" style="font-size: 18px;">remove</span>
+</button>
+<button class="p-1.5 rounded-md hover:bg-slate-200/50 transition-colors">
+<span class="material-symbols-outlined text-slate-500" style="font-size: 18px;">check_box_outline_blank</span>
+</button>
+<button class="p-1.5 rounded-md hover:bg-slate-200/50 transition-colors">
+<span class="material-symbols-outlined text-slate-500" style="font-size: 18px;">close</span>
+</button>
+</div>
+</div>
+</header>
+<!-- SideNavBar Shell -->
+<aside class="fixed left-0 top-12 h-[calc(100vh-48px)] w-64 bg-slate-100/50 dark:bg-slate-950/50 backdrop-blur-2xl flex flex-col p-4 border-r border-slate-200/10 dark:border-slate-800/10 z-50">
+<div class="mb-8 px-4">
+<h1 class="text-lg font-bold tracking-tighter text-slate-900 dark:text-slate-50">WhisperHeim</h1>
+<p class="text-[10px] font-medium uppercase tracking-wider text-on-surface-variant">Local-First AI</p>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 bg-blue-600 text-white rounded-full px-4 py-2 my-1 scale-95 active:scale-90 transition-all" href="#">
+<span class="material-symbols-outlined" style="font-size: 20px;">mic</span>
+<span class="text-xs font-medium uppercase tracking-wider">Dictation</span>
+</a>
+<a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 rounded-full px-4 py-2 my-1 scale-95 active:scale-90 transition-all" href="#">
+<span class="material-symbols-outlined" style="font-size: 20px;">folder_open</span>
+<span class="text-xs font-medium uppercase tracking-wider">Library</span>
+</a>
+<a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 rounded-full px-4 py-2 my-1 scale-95 active:scale-90 transition-all" href="#">
+<span class="material-symbols-outlined" style="font-size: 20px;">memory</span>
+<span class="text-xs font-medium uppercase tracking-wider">Models</span>
+</a>
+<a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 rounded-full px-4 py-2 my-1 scale-95 active:scale-90 transition-all" href="#">
+<span class="material-symbols-outlined" style="font-size: 20px;">settings</span>
+<span class="text-xs font-medium uppercase tracking-wider">Settings</span>
+</a>
+<a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 rounded-full px-4 py-2 my-1 scale-95 active:scale-90 transition-all" href="#">
+<span class="material-symbols-outlined" style="font-size: 20px;">help_outline</span>
+<span class="text-xs font-medium uppercase tracking-wider">Help</span>
+</a>
+</nav>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-64 mt-12 min-h-screen bg-surface p-8 lg:p-12">
+<div class="max-w-5xl mx-auto space-y-10">
+<!-- Header Section -->
+<header class="space-y-2">
+<h2 class="text-4xl font-bold tracking-tight text-on-surface">Dictation</h2>
+<p class="text-on-surface-variant max-w-xl">Transform your voice into text locally and securely. Experience near-instant transcription with zero data leakage.</p>
+</header>
+<!-- Top Controls Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+<!-- 1. Microphone Selector -->
+<div class="bg-surface-container-low p-6 rounded-xl space-y-4">
+<label class="block text-xs font-bold uppercase tracking-widest text-on-surface-variant">Audio Input Device</label>
+<div class="relative group">
+<select class="w-full appearance-none bg-surface-container-highest border-none rounded-lg px-4 py-3 pr-10 focus:ring-2 focus:ring-primary transition-all text-sm font-medium">
+<option>HyperX QuadCast S (Default)</option>
+<option>MacBook Pro Microphone</option>
+<option>Sony WH-1000XM4 Hands-Free</option>
+</select>
+<div class="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-on-surface-variant">expand_more</span>
+</div>
+</div>
+<div class="flex items-center gap-2 px-1">
+<div class="flex gap-0.5">
+<div class="w-1 h-3 bg-primary rounded-full"></div>
+<div class="w-1 h-3 bg-primary/40 rounded-full"></div>
+<div class="w-1 h-3 bg-primary/20 rounded-full"></div>
+<div class="w-1 h-3 bg-primary/10 rounded-full"></div>
+</div>
+<span class="text-[10px] text-on-surface-variant">Input Levels: Nominal</span>
+</div>
+</div>
+<!-- 2. Device Warning -->
+<div class="bg-tertiary-fixed text-on-tertiary-fixed p-6 rounded-xl flex gap-4 items-start shadow-sm">
+<span class="material-symbols-outlined mt-0.5" style="font-variation-settings: 'FILL' 1;">warning</span>
+<div class="space-y-1">
+<h4 class="font-bold text-sm">Action Required</h4>
+<p class="text-sm leading-relaxed opacity-90">Microphone access is currently paused or disconnected. Please ensure your device is plugged in or grant permission in system settings.</p>
+</div>
+</div>
+</div>
+<!-- Bento Content Layout -->
+<div class="grid grid-cols-12 gap-8">
+<!-- 4. Test Area (The Canvas) -->
+<section class="col-span-12 lg:col-span-8 space-y-4">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-3">
+<div class="relative flex h-3 w-3">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+</div>
+<span class="text-sm font-semibold tracking-tight text-primary">Speak now</span>
+</div>
+<div class="flex gap-2">
+<button class="px-3 py-1.5 text-xs font-medium rounded-lg hover:bg-surface-container-high transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">content_copy</span> Copy
+                            </button>
+<button class="px-3 py-1.5 text-xs font-medium rounded-lg hover:bg-surface-container-high transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">delete_outline</span> Clear
+                            </button>
+</div>
+</div>
+<div class="relative group">
+<textarea class="w-full h-80 bg-surface-container-lowest rounded-xl p-8 text-xl leading-relaxed text-on-surface border-none focus:ring-0 placeholder:text-surface-container-highest resize-none shadow-[0_4px_24px_rgba(0,0,0,0.02)]" placeholder="Your transcription will appear here as you speak..."></textarea>
+<div class="absolute bottom-6 right-6 flex items-center gap-4">
+<div class="h-10 w-40 bg-surface-container-high/50 rounded-full flex items-center justify-center backdrop-blur-md">
+<div class="flex gap-1 items-center">
+<div class="w-1 h-3 bg-primary animate-[pulse_1s_infinite]"></div>
+<div class="w-1 h-5 bg-primary animate-[pulse_1.2s_infinite]"></div>
+<div class="w-1 h-2 bg-primary animate-[pulse_0.8s_infinite]"></div>
+<div class="w-1 h-6 bg-primary animate-[pulse_1.4s_infinite]"></div>
+<div class="w-1 h-4 bg-primary animate-[pulse_1.1s_infinite]"></div>
+<div class="w-1 h-3 bg-primary animate-[pulse_0.9s_infinite]"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="flex justify-center">
+<button class="group flex items-center gap-3 bg-gradient-to-br from-primary to-primary-container text-white px-8 py-4 rounded-xl font-bold shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 active:scale-95 transition-all">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform">stop_circle</span>
+                            Stop Dictation
+                        </button>
+</div>
+</section>
+<!-- 3. Hotkey Reference Card -->
+<section class="col-span-12 lg:col-span-4 space-y-6">
+<div class="bg-surface-container-lowest p-8 rounded-xl shadow-[0_8px_32px_rgba(0,96,171,0.06)] border border-outline-variant/10">
+<div class="flex items-center gap-3 mb-6">
+<span class="material-symbols-outlined text-primary">keyboard_command_key</span>
+<h3 class="text-sm font-bold uppercase tracking-widest text-on-surface">Hotkeys</h3>
+</div>
+<div class="space-y-4">
+<!-- Shortcut Grid -->
+<div class="flex items-center justify-between group">
+<span class="text-xs font-medium text-on-surface-variant">Start/Stop</span>
+<div class="flex gap-1">
+<kbd class="px-2 py-1 bg-surface-container-high rounded text-[10px] font-bold border-b-2 border-slate-400">Ctrl</kbd>
+<kbd class="px-2 py-1 bg-surface-container-high rounded text-[10px] font-bold border-b-2 border-slate-400">Win</kbd>
+</div>
+</div>
+<div class="flex items-center justify-between group">
+<span class="text-xs font-medium text-on-surface-variant">Dictate Selection</span>
+<div class="flex gap-1">
+<kbd class="px-2 py-1 bg-surface-container-high rounded text-[10px] font-bold border-b-2 border-slate-400">Ctrl</kbd>
+<kbd class="px-2 py-1 bg-surface-container-high rounded text-[10px] font-bold border-b-2 border-slate-400">Win</kbd>
+<kbd class="px-2 py-1 bg-surface-container-high rounded text-[10px] font-bold border-b-2 border-slate-400">Ä</kbd>
+</div>
+</div>
+<div class="flex items-center justify-between group">
+<span class="text-xs font-medium text-on-surface-variant">Clear Text</span>
+<div class="flex gap-1">
+<kbd class="px-2 py-1 bg-surface-container-high rounded text-[10px] font-bold border-b-2 border-slate-400">Shift</kbd>
+<kbd class="px-2 py-1 bg-surface-container-high rounded text-[10px] font-bold border-b-2 border-slate-400">Esc</kbd>
+</div>
+</div>
+<div class="flex items-center justify-between group">
+<span class="text-xs font-medium text-on-surface-variant">Force Model Reload</span>
+<div class="flex gap-1">
+<kbd class="px-2 py-1 bg-surface-container-high rounded text-[10px] font-bold border-b-2 border-slate-400">F5</kbd>
+</div>
+</div>
+</div>
+<div class="mt-8 pt-6 border-t border-outline-variant/10">
+<p class="text-[10px] text-on-surface-variant leading-relaxed">Global hotkeys work even when WhisperHeim is minimized to the system tray.</p>
+</div>
+</div>
+<!-- Additional Context Card -->
+<div class="bg-primary/5 p-6 rounded-xl border border-primary/10">
+<div class="flex items-center gap-3 mb-3">
+<span class="material-symbols-outlined text-primary" style="font-size: 20px;">bolt</span>
+<span class="text-xs font-bold uppercase tracking-wider text-primary">Model Info</span>
+</div>
+<p class="text-xs text-on-surface-variant mb-4">You are using <strong>Turbo v3</strong> (Quantized). Estimated latency: <span class="text-primary font-bold">140ms</span>.</p>
+<div class="w-full bg-surface-container-high h-1 rounded-full overflow-hidden">
+<div class="bg-primary h-full w-[85%]"></div>
+</div>
+<div class="flex justify-between mt-2">
+<span class="text-[9px] text-on-surface-variant">GPU Memory</span>
+<span class="text-[9px] text-on-surface-variant">3.2 GB / 4.0 GB</span>
+</div>
+</div>
+</section>
+</div>
+</div>
+</main>
+</body></html>

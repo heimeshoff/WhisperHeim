@@ -1,0 +1,1005 @@
+# Protocol
+
+---
+
+## 2026-03-22 -- Task Completed: 063 - Configurable Data Path
+
+**Type:** Task Completion
+**Task:** 063 - Configurable Config/Data Path for Cloud Sync
+**Summary:** Implemented bootstrap config in %APPDATA%, DataPathService for path resolution, folder picker in Settings UI, per-session recording folders, machine-local settings split, and migration from old flat structure. 32 tests pass.
+**Files changed:** 13 files
+
+---
+
+## 2026-03-22 -- Task Completed: 065 - About Page with Profile
+
+**Type:** Task Completion
+**Task:** 065 - About Page with Profile, Contact Links & Ko-fi
+**Summary:** Added profile section with photo and bio, contact links (website, Bluesky, LinkedIn), Ko-fi support button, and GitHub link. Wired page into sidebar navigation with collapse support.
+**Files changed:** 7 files
+
+---
+
+## 2026-03-22 -- Task Completed: 066 - Template Delete Hover Trash
+
+**Type:** Task Completion
+**Task:** 066 - Template Delete with Hover Trash Icon & Confirmation Dialog
+**Summary:** Added hover trash icon to template list items with fade animation (matching TranscriptsPage pattern), wired to DeleteConfirmationDialog, removed old Delete Template button from detail panel.
+**Files changed:** 2 files
+
+---
+
+## 2026-03-22 -- Batch Started: [063, 065, 066]
+
+**Type:** Batch Start
+**Tasks:** 063 - Configurable Data Path, 065 - About Page with Profile, 066 - Template Delete Hover Trash
+**Mode:** Parallel (batch of 3)
+
+---
+
+## 2026-03-22 -- Idea Captured: Template Delete with Hover Trash Icon
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/066-template-delete-hover-trash.md
+**Summary:** Replace the detail panel "Delete Template" button with a hover trash icon on each template card, using the existing DeleteConfirmationDialog. Matches the recordings deletion pattern.
+
+---
+
+## 2026-03-22 -- Idea Captured: About Page with Profile & Ko-fi
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/065-about-page-with-profile.md
+**Summary:** Add personal profile, contact links, Ko-fi support button, and GitHub link to the About page (modeled after VocalFold). Wire the existing AboutPage into the sidebar navigation.
+
+---
+
+## 2026-03-22 -- Task Completed: 064 - Fix Opaque Backgrounds and Delete Dialog
+
+**Type:** Task Completion
+**Task:** 064 - Fix Opaque Backgrounds and Delete Dialog
+**Summary:** Removed opaque ApplicationBackgroundBrush from TranscriptsPage and TemplatesPage root grids so mica shows through. Replaced glass effect on DeleteConfirmationDialog with solid theme-aware CardBackgroundFillColorDefaultBrush.
+**Files changed:** 4 files
+
+---
+
+## 2026-03-22 -- Task Completed: 062 - TTS Page Layout Cleanup
+
+**Type:** Task Completion
+**Task:** 062 - TTS Page Layout Cleanup
+**Summary:** Removed "INPUT WORKSPACE" label and relocated voice/speaker selector below play/stop buttons, left-aligned. Build verified clean.
+**Files changed:** 2 files
+
+---
+
+## 2026-03-22 -- Task Completed: 061 - Update Dictation Hotkey Labels
+
+**Type:** Task Completion
+**Task:** 061 - Update Dictation Hotkey Labels
+**Summary:** Labels already matched acceptance criteria — no code changes needed.
+**Files changed:** 1 file
+
+---
+
+## 2026-03-22 -- Batch Started: [061, 062, 064]
+
+**Type:** Batch Start
+**Tasks:** 061 - Update Dictation Hotkey Labels, 062 - TTS Page Layout Cleanup, 064 - Fix Opaque Backgrounds and Delete Dialog
+**Mode:** Parallel (batch of 3)
+
+---
+
+## 2026-03-22 -- Idea Captured: Fix Opaque Backgrounds and Delete Dialog
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/063-fix-opaque-backgrounds-and-dialog.md
+**Summary:** Fix recordings & templates pages having wrong opaque background (should match other screens). Replace ugly glass/transparency effect on delete confirmation dialog with solid theme-aware surface color.
+
+---
+
+## 2026-03-22 -- Idea Promoted: Configurable Config/Data Path for Cloud Sync
+
+**Type:** Idea Promotion
+**From:** ideas/2026-03-22-configurable-config-path.md
+**To:** tasks/todo/063-configurable-data-path.md
+**Summary:** Configurable data path with bootstrap config, per-session recording folders, cloud sync support via Google Drive.
+
+---
+
+## 2026-03-22 -- Idea Refined: Configurable Config/Data Path for Cloud Sync
+
+**Type:** Idea Refinement
+**Idea:** ideas/2026-03-22-configurable-config-path.md
+**Status:** Ready
+**Summary:** Resolved all open questions: defined sync vs. local split, chose last-write-wins for conflicts, lightweight path validation. Redesigned recordings as first-class data with per-session folders. Idea is ready to promote.
+
+---
+
+## 2026-03-22 -- Idea Captured: TTS Page Layout Cleanup
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/062-tts-page-layout-cleanup.md
+**Summary:** Remove "INPUT WORKSPACE" label from TTS card header; relocate voice selector ComboBox to below play/stop buttons, left-aligned.
+
+---
+
+## 2026-03-22 -- Idea Captured: Update Dictation Page Hotkey Labels
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/061-update-dictation-hotkey-labels.md
+**Summary:** Fix hotkey labels on dictation page: rename Start/Stop to Dictation, correct Read Aloud shortcut from Shift+Win+A to Ctrl+Win+^, keep Call Recording as-is.
+
+---
+
+## 2026-03-22 -- Task Completed: 060 - Show Full Logo in Collapsed Sidebar
+
+**Type:** Task Completion
+**Task:** 060 - Show Full Logo in Collapsed Sidebar
+**Summary:** Increased SidebarCollapsedWidth from 60px to 64px and adjusted logo margin to 0 when collapsed, ensuring the 32px logo fits perfectly centered with no clipping.
+**Files changed:** 2 files
+
+---
+
+## 2026-03-22 -- Task Started: 060 - Show Full Logo in Collapsed Sidebar
+
+**Type:** Task Start
+**Task:** 060 - Show Full Logo in Collapsed Sidebar
+**Milestone:** --
+
+---
+
+## 2026-03-22 -- Task Completed: 058 - Layout Fixes and Branding Cleanup
+
+**Type:** Task Completion
+**Task:** 058 - Layout Fixes and Branding Cleanup
+**Summary:** Fixed transcript list card overflow with ClipToBounds, made Transcripts and TTS pages stretch to fill available width, removed "LOCAL-FIRST AI" subtitle from sidebar.
+**Files changed:** 4 files
+
+---
+
+## 2026-03-22 -- Task Started: 058 - Layout Fixes and Branding Cleanup
+
+**Type:** Task Start
+**Task:** 058 - Layout Fixes and Branding Cleanup
+**Milestone:** --
+
+---
+
+## 2026-03-22 -- Task Completed: 059 - Rework Read-Aloud Hotkey to Navigate to TTS Page
+
+**Type:** Task Completion
+**Task:** 059 - Rework Read-Aloud Hotkey to Navigate to TTS Page
+**Summary:** Changed hotkey from Shift+Win+Ä to Ctrl+Win+Ä with new flow: captures selected text, brings window to foreground, navigates to TTS page, pastes text. Removed all overlay infrastructure (3 files deleted) and inline TTS logic.
+**Files changed:** 7+ files
+
+---
+
+## 2026-03-22 -- Task Completed: 057 - Redesign WhisperHeim Logo
+
+**Type:** Task Completion
+**Task:** 057 - Redesign WhisperHeim Logo
+**Summary:** Replaced gradient borders with solid blue border + transparent blue-tinted background, replaced SymbolIcon with custom two-tone XAML paths (blue mic head, orange stand), added programmatic window icon generation for taskbar/Alt+Tab.
+**Files changed:** 4 files
+
+---
+
+## 2026-03-22 -- Batch Started: [057, 059]
+
+**Type:** Batch Start
+**Tasks:** 057 - Redesign WhisperHeim Logo, 059 - Rework Read-Aloud Hotkey to Navigate to TTS Page
+**Mode:** Parallel (batch of 2)
+
+---
+
+## 2026-03-22 -- Idea Captured: Make Templates Work
+
+**Type:** Idea Capture
+**Mode:** Quick
+**Filed to:** ideas/2026-03-22-make-templates-work.md
+
+---
+
+## 2026-03-22 -- Idea Captured: Configurable Config Path for Cloud Sync
+
+**Type:** Idea Capture
+**Mode:** Quick
+**Filed to:** ideas/2026-03-22-configurable-config-path.md
+
+---
+
+## 2026-03-22 -- Idea Captured: Show Full Logo in Collapsed Sidebar
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/060-collapsed-sidebar-logo-visible.md
+**Summary:** Increase collapsed sidebar width from 60px to 64px so the logo isn't clipped. Hide app name when collapsed, show both logo and name when expanded.
+
+---
+
+## 2026-03-22 -- Idea Captured: Rework Read-Aloud Hotkey
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/059-rework-read-aloud-hotkey.md
+**Summary:** Change hotkey to Ctrl+Win+Ä, rework flow to capture text → bring window to foreground → navigate to TTS page → paste into input workspace. Remove read-aloud overlay entirely.
+
+---
+
+## 2026-03-22 -- Idea Captured: Layout Fixes and Branding Cleanup
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/058-layout-fixes-and-branding-cleanup.md
+**Summary:** Fix transcript card overflow, fix Transcripts and TTS pages not filling available width, remove "LOCAL-FIRST AI" sidebar subtitle.
+
+---
+
+## 2026-03-22 -- Idea Captured: Redesign WhisperHeim Logo
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/057-logo-redesign.md
+**Summary:** Redesign logo with subtle blue-tinted transparent background, solid blue border (no gradient), two-tone XAML microphone (blue head, orange stand), and set as taskbar/window icon.
+
+---
+
+## 2026-03-22 17:27 -- Task Completed: 051 - Reduce Templates List Column Width
+
+**Type:** Task Completion
+**Task:** 051 - Reduce Templates List Column Width
+**Summary:** Reduced templates list column from 300px to 200px with responsive min/max constraints, tightened padding for more edit space.
+**Files changed:** 2 files
+
+---
+
+## 2026-03-22 17:25 -- Task Started: 051 - Reduce Templates List Column Width
+
+**Type:** Task Start
+**Task:** 051 - Reduce Templates List Column Width
+**Milestone:** --
+
+---
+
+## 2026-03-22 17:24 -- Task Completed: 054 - Hover Trash Icon per Transcript
+
+**Type:** Task Completion
+**Task:** 054 - Hover Trash Icon per Transcript
+**Summary:** Replaced "Delete Selected" button with per-item hover trash icon at bottom-right of each transcript card, triggering existing delete confirmation.
+**Files changed:** 3 files
+
+---
+
+## 2026-03-22 17:23 -- Task Completed: 045 - Consistent Max-Width Across All Pages
+
+**Type:** Task Completion
+**Task:** 045 - Consistent Max-Width Across All Pages
+**Summary:** Standardized MaxWidth=900 with centered alignment across 6 pages for consistent content width on wide screens.
+**Files changed:** 7 files
+
+---
+
+## 2026-03-22 17:19 -- Batch Started: [045, 054]
+
+**Type:** Batch Start
+**Tasks:** 045 - Consistent Max-Width Across All Pages, 054 - Hover Trash Icon per Transcript
+**Mode:** Parallel (batch of 2)
+
+---
+
+## 2026-03-22 17:18 -- Task Completed: 056 - Link AI Model Cards to GitHub Projects
+
+**Type:** Task Completion
+**Task:** 056 - Link AI Model Cards to GitHub Projects
+**Summary:** Added clickable project links to all 6 AI model cards on GeneralPage and AboutPage, opening GitHub/HuggingFace pages in default browser.
+**Files changed:** 6 files
+
+---
+
+## 2026-03-22 17:17 -- Task Completed: 053 - Reduce Transcripts List Column Width
+
+**Type:** Task Completion
+**Task:** 053 - Reduce Transcripts List Column Width
+**Summary:** Reduced transcripts list column from fixed 280px to 200px with MinWidth=160/MaxWidth=280 for responsive behavior.
+**Files changed:** 2 files
+
+---
+
+## 2026-03-22 17:16 -- Task Completed: 050 - Collapsible Sidebar Menu
+
+**Type:** Task Completion
+**Task:** 050 - Collapsible Sidebar Menu
+**Summary:** Implemented collapsible sidebar with toggle button, animated between 200px and 60px icons-only mode, state persisted in settings.
+**Files changed:** 4 files
+
+---
+
+## 2026-03-22 17:11 -- Batch Started: [050, 053, 056]
+
+**Type:** Batch Start
+**Tasks:** 050 - Collapsible Sidebar Menu, 053 - Reduce Transcripts List Column Width, 056 - Link AI Model Cards to GitHub Projects
+**Mode:** Parallel (batch of 3)
+
+---
+
+## 2026-03-22 17:10 -- Task Completed: 055 - Rename Export Button to MD
+
+**Type:** Task Completion
+**Task:** 055 - Rename Export Button to MD
+**Summary:** Renamed "EXPORT" button to "MD" in TranscriptsPage for consistent naming (MD, JSON, TXT).
+**Files changed:** 2 files
+
+---
+
+## 2026-03-22 17:09 -- Task Completed: 049 - Add WhisperHeim Logo to Sidebar
+
+**Type:** Task Completion
+**Task:** 049 - Add WhisperHeim Logo to Sidebar
+**Summary:** Added logo with blue-to-orange gradient to sidebar header, updated GeneralPage and AboutPage logos to use brand colors.
+**Files changed:** 4 files
+
+---
+
+## 2026-03-22 17:08 -- Task Completed: 047 - Fix TTS Voice Cards Dark Mode Background
+
+**Type:** Task Completion
+**Task:** 047 - Fix TTS Voice Cards Dark Mode Background
+**Summary:** Replaced hardcoded white background with theme-aware CardBackgroundFillColorDefaultBrush and brightened delete button for dark mode.
+**Files changed:** 2 files
+
+---
+
+## 2026-03-22 17:06 -- Batch Started: [047, 049, 055]
+
+**Type:** Batch Start
+**Tasks:** 047 - Fix TTS Voice Cards Dark Mode Background, 049 - Add WhisperHeim Logo to Sidebar, 055 - Rename Export Button to MD
+**Mode:** Parallel (batch of 3)
+
+---
+
+## 2026-03-22 17:05 -- Task Completed: 052 - Remove Magic Replace from Edit Template
+
+**Type:** Task Completion
+**Task:** 052 - Remove Magic Replace from Edit Template
+**Summary:** Removed magic replace UI card, clipboard placeholder pill, and clipboard expansion logic from template editor.
+**Files changed:** 3 files
+
+---
+
+## 2026-03-22 17:04 -- Task Completed: 048 - Tray Icon Green When Recording
+
+**Type:** Task Completion
+**Task:** 048 - Tray Icon Green When Recording
+**Summary:** Changed tray icon recording color from red to green (0x44CC44), matching the overlay indicator.
+**Files changed:** 2 files
+
+---
+
+## 2026-03-22 17:03 -- Task Completed: 046 - Remember Window Size and Position
+
+**Type:** Task Completion
+**Task:** 046 - Remember Window Size and Position
+**Summary:** Implemented window size/position persistence with 1200x800 default, save on close, restore on startup with off-screen guard using Win32 EnumDisplayMonitors.
+**Files changed:** 4 files
+
+---
+
+## 2026-03-22 17:00 -- Batch Started: [046, 048, 052]
+
+**Type:** Batch Start
+**Tasks:** 046 - Remember Window Size and Position, 048 - Tray Icon Green When Recording, 052 - Remove Magic Replace from Edit Template
+**Mode:** Parallel (batch of 3)
+
+---
+
+## 2026-03-22 16:45 -- Ideas Captured: UI Polish Batch
+
+**Type:** Idea Capture
+**Mode:** Deep (batch)
+**Tasks created:**
+- `tasks/todo/048-tray-icon-green-recording.md` — Tray icon green instead of red when recording
+- `tasks/todo/049-sidebar-logo.md` — Add logo to sidebar with blue (#25abfe) + orange (#ff8b00) colors
+- `tasks/todo/050-collapsible-sidebar.md` — Collapsible sidebar menu (Medium)
+- `tasks/todo/051-templates-column-width.md` — Reduce templates list column width
+- `tasks/todo/052-remove-magic-replace.md` — Remove magic replace from edit template
+- `tasks/todo/053-transcripts-list-width.md` — Reduce transcripts list column width
+- `tasks/todo/054-hover-delete-transcript.md` — Hover trash icon per transcript instead of delete button
+- `tasks/todo/055-export-button-rename-md.md` — Rename Export button to MD
+- `tasks/todo/056-model-cards-github-links.md` — Link AI model cards to GitHub projects
+
+---
+
+## 2026-03-22 16:35 -- Idea Captured: TTS Voice Cards Dark Mode
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/047-tts-voice-cards-dark-mode.md
+**Summary:** Library voice cards in TTS page use hardcoded white background instead of theme-aware brush. Breaks dark mode.
+
+---
+
+## 2026-03-22 16:30 -- Idea Captured: Window Size and Position
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/046-window-size-and-position.md
+**Summary:** Default window size 1200x800 centered. Persist size/position across restarts. Reset to centered if saved position is off-screen.
+
+---
+
+## 2026-03-22 16:20 -- Idea Captured: Consistent Page Max-Width
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/045-consistent-page-max-width.md
+**Summary:** Apply the Transcripts page's max-width constraint to all other pages for visual consistency across the app.
+
+---
+
+## 2026-03-22 16:15 -- Task Completed: 044 - Fix Theme Persistence and Settings Highlight
+
+**Type:** Task Completion
+**Task:** 044 - Fix Theme Persistence and Settings Highlight
+**Summary:** Fixed theme persistence by adding theme restoration on app startup in App.xaml.cs and fixed theme card highlighting in GeneralPage.xaml.cs by moving HighlightActiveTheme() to a Loaded event handler.
+**Files changed:** 2 files
+
+---
+
+## 2026-03-22 16:10 -- Task Started: 044 - Fix Theme Persistence and Settings Highlight
+
+**Type:** Task Start
+**Task:** 044 - Fix Theme Persistence and Settings Highlight
+**Milestone:** --
+
+---
+
+## 2026-03-22 16:00 -- Idea Captured: Fix Theme Persistence
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/044-theme-persistence.md
+**Summary:** Theme choice (Light/Dark/System) not restored on startup and not highlighted in settings. Two small fixes needed in App.xaml.cs and GeneralPage.xaml.cs.
+
+---
+
+## 2026-03-22 15:30 -- Task Completed: 043 - Faithful Quiet Engine Restyling
+
+**Type:** Task Completion
+**Task:** 043 - Faithful Quiet Engine Restyling (All Pages)
+**Summary:** Faithfully restyled all 7 pages + sidebar to match inspiration mockups. Applied bento grid layouts, gradient CTAs, kbd pill key caps, ambient tinted shadows, surface hierarchy, ghost borders, editorial typography. Build succeeds.
+**Files changed:** 9 files
+
+---
+
+## 2026-03-22 15:20 -- Task Started: 043 - Faithful Quiet Engine Restyling
+
+**Type:** Task Start
+**Task:** 043 - Faithful Quiet Engine Restyling (All Pages)
+**Milestone:** M5 - UI Redesign
+
+---
+
+## 2026-03-22 15:10 -- Task Completed: 042 - TTS Voice Pre-Caching on Startup
+
+**Type:** Task Completion
+**Task:** 042 - TTS Voice Pre-Caching on Startup
+**Summary:** Enabled sherpa-onnx embedding cache (capacity 10), added in-memory WAV sample cache, and WarmUpAsync() triggered from App.xaml.cs on background thread after UI startup.
+**Files changed:** 4 files
+
+---
+
+## 2026-03-22 -- Task Created: 043 - Faithful Quiet Engine Restyling
+
+**Type:** Task Creation
+**Task:** 043 - Faithful Quiet Engine Restyling (All Pages)
+**Summary:** Redo the visual restyling from Task 040 Phase 3 to faithfully match all inspiration mockups. Covers all 7 pages + sidebar with bento grid layouts, gradient CTAs, ghost borders, ambient shadows, kbd pills, and editorial typography.
+
+---
+
+## 2026-03-22 15:05 -- Task Started: 042 - TTS Voice Pre-Caching on Startup
+
+**Type:** Task Start
+**Task:** 042 - TTS Voice Pre-Caching on Startup
+**Milestone:** —
+
+---
+
+## 2026-03-22 15:00 -- Task Completed: 041 - Default Read-Aloud Voice
+
+**Type:** Task Completion
+**Task:** 041 - Default Read-Aloud Voice
+**Summary:** VoiceCombo selection now persists DefaultVoiceId to TtsSettings, and page load pre-selects the saved voice with fallback.
+**Files changed:** 3 files
+
+---
+
+## 2026-03-22 14:55 -- Task Started: 041 - Default Read-Aloud Voice
+
+**Type:** Task Start
+**Task:** 041 - Default Read-Aloud Voice
+**Milestone:** —
+
+---
+
+## 2026-03-22 14:50 -- Task Completed: 040 - UI Redesign Navigation & TTS Merge
+
+**Type:** Task Completion
+**Task:** 040 - UI Redesign Navigation & TTS Merge
+**Summary:** Merged VoiceCloningPage and VoiceLoopbackCapturePage into TextToSpeechPage, restructured sidebar from 9 to 7 items, restyled all pages to Quiet Engine design language. Build succeeds.
+**Files changed:** 15 files
+
+---
+
+## 2026-03-22 -- Idea Captured: TTS Voice Pre-Caching on Startup
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/042-tts-voice-warm-up.md
+**Summary:** Pre-cache the default TTS voice on app startup via background thread — load TTS model, warm the sherpa-onnx embedding cache with a dummy generation, and keep the default voice's WAV samples in memory. Eliminates the ~1-3s encoder delay on first read-aloud hotkey press.
+
+---
+
+## 2026-03-22 14:40 -- Task Started: 040 - UI Redesign Navigation & TTS Merge
+
+**Type:** Task Start
+**Task:** 040 - UI Redesign Navigation & TTS Merge
+**Milestone:** M5 - UI Redesign
+
+---
+
+## 2026-03-22 14:35 -- Task Completed: 038 - Transcript Audio Playback
+
+**Type:** Task Completion
+**Task:** 038 - Transcript Audio Playback
+**Summary:** Audio preserved alongside transcripts, segment click-to-play with NAudio, play/pause/stop controls, position tracking, currently-playing segment highlight. Old transcripts gracefully hide playback.
+**Files changed:** 6 files
+
+---
+
+## 2026-03-22 14:25 -- Task Started: 038 - Transcript Audio Playback
+
+**Type:** Task Start
+**Task:** 038 - Transcript Audio Playback
+**Milestone:** M2 - Audio Capture + Call Transcription
+
+---
+
+## 2026-03-22 14:20 -- Task Completed: 037 - Speaker Name Editing
+
+**Type:** Task Completion
+**Task:** 037 - Speaker Name Editing
+**Summary:** Implemented global rename (click speaker label) and per-segment override (Shift+Click) with SpeakerNameMap dictionary and SpeakerOverride property. 32 tests pass (10 new).
+**Files changed:** 6 files
+
+---
+
+## 2026-03-22 14:15 -- Task Started: 037 - Speaker Name Editing
+
+**Type:** Task Start
+**Task:** 037 - Speaker Name Editing
+**Milestone:** M2 - Audio Capture + Call Transcription
+
+---
+
+## 2026-03-22 14:10 -- Task Completed: 039 - Read-Aloud Overlay Indicator
+
+**Type:** Task Completion
+**Task:** 039 - Read-Aloud Overlay Indicator
+**Summary:** Implemented purple-themed read-aloud overlay with Thinking (pulsing/spinning) and Playing (sound wave) animations, lifecycle events on ReadAloudHotkeyService, and onPlaybackStarted callback in SpeakAsync.
+**Files changed:** 8 files
+
+---
+
+## 2026-03-22 14:05 -- Task Completed: 036 - Transcript Naming
+
+**Type:** Task Completion
+**Task:** 036 - Transcript Naming
+**Summary:** Added editable Name property to CallTranscript model with JSON persistence, editable TextBox in transcript viewer header, name display in transcript list, and backward compatibility for existing transcripts.
+**Files changed:** 7 files
+
+---
+
+## 2026-03-22 14:00 -- Batch Started: [036, 039]
+
+**Type:** Batch Start
+**Tasks:** 036 - Transcript Naming, 039 - Read-Aloud Overlay Indicator
+**Mode:** Parallel (batch of 2)
+
+---
+
+## 2026-03-22 -- Idea Captured: Default Read-Aloud Voice from TTS Page
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/041-default-read-aloud-voice.md
+**Summary:** Persist the voice selected on the TTS page as the default for the read-aloud hotkey (Shift+Win+Ä). Small wiring change — settings model and hotkey service already support it, just needs the UI to write it back.
+
+---
+
+## 2026-03-22 -- Idea Captured: UI Redesign — Navigation & TTS Merge
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/040-ui-redesign-navigation-and-tts-merge.md
+**Summary:** Restructure sidebar from 9 to 7 items (Dictation, Templates, Recordings, Transcriptions, Text to Speech, Settings, Models). Merge TextToSpeechPage + VoiceCloningPage + VoiceLoopbackCapturePage into a single unified TTS page. Apply "Quiet Engine" design language from inspiration files across all pages.
+
+---
+
+## 2026-03-21 23:30 -- Idea Captured: Read-Aloud Overlay Indicator
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/039-read-aloud-overlay.md
+**Summary:** Visual overlay indicator for the read-aloud hotkey (Shift+Win+Ä) — shows thinking state while model loads, animated playback state while reading, auto-dismisses on completion, toggle-stops on re-press. Same position as dictation overlay but distinct color.
+
+---
+
+## 2026-03-21 22:15 -- Research: TTS Naturalness & Sentence Boundary Artifacts
+
+**Type:** Research
+**Topic:** Why Pocket TTS output sounds rushed with voice-breaking artifacts between sentences, and how to fix it
+**File:** research/tts-naturalness-and-pacing.md
+**Key findings:**
+- sherpa-onnx splits text into sentences, generates each independently via `GenerateSingleSentence()`, and concatenates audio with NO silence between them -- this is the root cause of the "rushed" and "breaking voice" artifacts
+- Several `Extra` parameters are available but unused: `frames_after_eos` (default 3), `temperature` (default 0.7), configurable via `genConfig.Extra` hashtable
+- `NumSteps` (flow matching diffusion iterations) can be increased from 5 to 8-10 for smoother audio quality
+- Best fix: app-level sentence splitting with configurable silence injection (300ms+) between generated segments
+- The 15s reference audio gets truncated to 12s; int8 quantization may also degrade voice cloning fidelity
+
+---
+
+## 2026-03-21 21:40 -- Idea Captured: Transcript Usability Improvements
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/036-transcript-naming.md, tasks/todo/037-speaker-name-editing.md, tasks/todo/038-transcript-audio-playback.md
+**Summary:** Three tasks to improve transcript usability long-term: (1) editable transcript names with auto-default from date/time, (2) speaker name editing with global rename + per-segment override, (3) click-to-play audio playback from segments with WAV files preserved alongside transcripts. All added to M2 milestone.
+
+---
+
+## 2026-03-21 21:35 -- Milestone M4 Complete: Text-to-Speech (Kyutai Pocket TTS)
+
+**Type:** Milestone Completion
+**Milestone:** M4 - Text-to-Speech
+**Tasks completed:** 023, 029, 030, 031, 032, 033, 034, 035 (7 subtasks + parent)
+**Summary:** Full TTS milestone implemented — Pocket TTS engine via sherpa-onnx, voice cloning from mic and system audio, read-selected-text hotkey, TTS UI page, MP3/OGG/WAV export, configurable settings.
+
+---
+
+## 2026-03-21 21:30 -- Task Completed: 034 - Audio export (MP3/OGG/WAV)
+
+**Type:** Task Completion
+**Task:** 034 - Audio export (MP3/OGG/WAV)
+**Summary:** Created AudioExportService with WAV, MP3 (resampled to 44.1kHz via MediaFoundationEncoder), and OGG/Opus (resampled to 48kHz via Concentus) export. Added "Save as..." button to TextToSpeechPage with SaveFileDialog and format selection.
+**Files changed:** 4 files
+
+---
+
+## 2026-03-21 21:20 -- Task Started: 034 - Audio export (MP3/OGG)
+
+**Type:** Task Start
+**Task:** 034 - Audio export (MP3/OGG/WAV)
+**Milestone:** M4 - Text-to-Speech
+
+---
+
+## 2026-03-21 21:15 -- Task Completed: 035 - TTS settings + hotkey configuration
+
+**Type:** Task Completion
+**Task:** 035 - TTS settings + hotkey configuration
+**Summary:** Added TtsSettings model with DefaultVoiceId, ReadAloudHotkey, PlaybackDeviceId persisted via SettingsService. ReadAloudHotkeyService now reads hotkey config from settings with live re-registration. SpeakAsync accepts playback device parameter.
+**Files changed:** 6 files
+
+---
+
+## 2026-03-21 21:12 -- Task Completed: 033 - TTS UI page
+
+**Type:** Task Completion
+**Task:** 033 - TTS UI page
+**Summary:** Created TextToSpeechPage with multi-line text input, voice selector (built-in + custom), Play/Stop with CancellationTokenSource, indeterminate progress bar, and voice preview button. Wired into MainWindow sidebar navigation.
+**Files changed:** 5 files
+
+---
+
+## 2026-03-21 21:05 -- Batch Started: [033, 035]
+
+**Type:** Batch Start
+**Tasks:** 033 - TTS UI page, 035 - TTS settings + hotkey configuration
+**Mode:** Parallel (batch of 2)
+
+---
+
+## 2026-03-21 21:00 -- Task Completed: 032 - Read selected text via global hotkey
+
+**Type:** Task Completion
+**Task:** 032 - Read selected text via global hotkey
+**Summary:** Implemented SelectedTextService with cascading capture (UI Automation TextPattern first, then SendInput Ctrl+C with clipboard backup/restore) and ReadAloudHotkeyService (Ctrl+Shift+R default) that speaks captured text via ITextToSpeechService.
+**Files changed:** 5 files
+
+---
+
+## 2026-03-21 20:58 -- Task Completed: 031 - Voice cloning from system audio loopback
+
+**Type:** Task Completion
+**Task:** 031 - Voice cloning from system audio loopback
+**Summary:** Created HighQualityLoopbackService capturing system audio at native 48kHz via WasapiLoopbackCapture. Built VoiceLoopbackCapturePage UI with device selection, level meter, duration display, voice naming, and save to voices directory.
+**Files changed:** 6 files
+
+---
+
+## 2026-03-21 20:55 -- Task Completed: 030 - Voice cloning from microphone recording
+
+**Type:** Task Completion
+**Task:** 030 - Voice cloning from microphone recording
+**Summary:** Implemented HighQualityRecorderService recording mic at 44.1kHz and VoiceCloningPage UI with level meter, duration tracking, 5s minimum indicator, device selection, voice naming, and background noise warning.
+**Files changed:** 7 files
+
+---
+
+## 2026-03-21 20:50 -- Batch Started: [030, 031, 032]
+
+**Type:** Batch Start
+**Tasks:** 030 - Voice cloning from mic, 031 - Voice cloning from loopback, 032 - Read selected text via hotkey
+**Mode:** Parallel (batch of 3)
+
+---
+
+## 2026-03-21 20:45 -- Task Completed: 029 - Pocket TTS engine service + model download
+
+**Type:** Task Completion
+**Task:** 029 - Pocket TTS engine service + model download + built-in voice playback
+**Summary:** Implemented ITextToSpeechService with Pocket TTS via sherpa-onnx C# bindings. Supports GenerateAudioAsync, streaming generation with callback, and SpeakAsync with NAudio WaveOutEvent playback at 24kHz. Added PocketTtsInt8 model (~200MB, 9 files) to ModelManagerService for auto-download from HuggingFace. Build succeeds.
+**Files changed:** 5 files
+
+---
+
+## 2026-03-21 19:15 -- Task Started: 029 - Pocket TTS engine service + model download
+
+**Type:** Task Start
+**Task:** 029 - Pocket TTS engine service + model download + built-in voice playback
+**Milestone:** M4 - Text-to-Speech
+
+---
+
+## 2026-03-21 18:50 -- Idea Captured: Kyutai Pocket TTS Integration
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/023-tts-pocket-tts.md (parent) + subtasks 029–035
+**Summary:** Full TTS milestone using Kyutai Pocket TTS — voice cloning from mic/loopback, read-selected-text hotkey (UI Automation + Ctrl+C fallback), TTS UI page, MP3/OGG export, and settings. Researched feasibility of all components: Pocket TTS runs CPU-only via sherpa-onnx (already a dependency), text selection capture is proven pattern, loopback capture infrastructure exists. English-only, 7 tasks total.
+
+---
+
+## 2026-03-21 -- Task Completed: 028 - Post-recording transcription pipeline with progress UI
+
+**Type:** Task Completion
+**Task:** 028 - Post-recording transcription pipeline with progress UI
+**Summary:** Created TranscriptionProgressDialog with dual progress bars, stage description, and cancel button. Wired into MainWindow to auto-trigger pipeline when recording stops, with navigation to TranscriptsPage on success.
+**Files changed:** 4 files
+
+---
+
+## 2026-03-21 -- Task Started: 028 - Post-recording transcription pipeline with progress UI
+
+**Type:** Task Start
+**Task:** 028 - Post-recording transcription pipeline with progress UI
+**Milestone:** M2 - Audio Capture + Call Transcription
+
+---
+
+## 2026-03-21 -- Task Completed: 027 - Tray context menu for start/stop call recording
+
+**Type:** Task Completion
+**Task:** 027 - Tray context menu for start/stop call recording
+**Summary:** Added "Start Call Recording" tray menu item with Record24 icon, Ctrl+Win+R hotkey, and live recording state feedback (orange tray icon, duration in menu text and tooltip). Added DurationUpdated to ICallRecordingService interface.
+**Files changed:** 4 files
+
+---
+
+## 2026-03-21 -- Task Started: 027 - Tray context menu for start/stop call recording
+
+**Type:** Task Start
+**Task:** 027 - Tray context menu for start/stop call recording
+**Milestone:** M2 - Audio Capture + Call Transcription
+
+---
+
+## 2026-03-21 -- Task Completed: 026 - Wire call recording services in app startup
+
+**Type:** Task Completion
+**Task:** 026 - Wire call recording services in app startup
+**Summary:** Wired CallRecordingService, CallTranscriptionPipeline, CallRecordingHotkeyService, SpeakerDiarizationService, and TranscriptStorageService in App.xaml.cs and passed them to MainWindow constructor as fields.
+**Files changed:** 3 files
+
+---
+
+## 2026-03-21 -- Task Started: 026 - Wire call recording services in app startup
+
+**Type:** Task Start
+**Task:** 026 - Wire call recording services in app startup
+**Milestone:** M2 - Audio Capture + Call Transcription
+
+---
+
+## 2026-03-21 -- Planning: Call Recording UI Integration
+
+**Type:** Planning
+**Summary:** Planned 3 tasks to wire up the existing call recording backend to the UI — service registration, tray context menu with Ctrl+Win+R hotkey, and post-recording transcription progress dialog with auto-navigation.
+**Milestones created/updated:** M2 (added tasks 026-028)
+**Tasks created:** 026-wire-call-recording-services, 027-tray-menu-call-recording, 028-post-recording-transcription-ui
+**Tasks moved to backlog:** none
+**Ideas incorporated:** none
+
+---
+
+## 2026-03-21 -- Task Completed: 025 - Overlay Microphone State Visualization
+
+**Type:** Task Completion
+**Task:** 025 - Overlay Microphone State Visualization
+**Summary:** Implemented dynamic overlay mic states (green idle, green+RMS-driven ring scaling while speaking, grey for no mic, red for errors). Added OverlayMicState enum, replaced hardcoded red with animated color brushes, wired real-time audio amplitude through orchestrator to drive smooth ring scaling.
+**Files changed:** 5 files
+
+---
+
+## 2026-03-21 -- Task Started: 025 - Overlay Microphone State Visualization
+
+**Type:** Task Start
+**Task:** 025 - Overlay Microphone State Visualization
+**Milestone:** --
+
+---
+
+## 2026-03-21 -- Idea Captured: Overlay Mic State Visualization
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/025-overlay-mic-state-visualization.md
+**Summary:** Dynamic mic icon colors (green=idle/speaking, grey=no mic, red=error) with amplitude-driven ring scaling animation during speech. Overlay only.
+
+---
+
+## 2026-03-21 -- Task Completed: 024 - Windows Auto-Launch
+
+**Type:** Task Completion
+**Task:** 024 - Windows Auto-Launch
+**Summary:** StartupService manages HKCU Run registry, --minimized flag for tray-only auto-start, path refresh on each launch.
+**Files changed:** 5 files
+
+---
+
+## 2026-03-21 -- Task Completed: 014 - Microphone Selection
+
+**Type:** Task Completion
+**Task:** 014 - Microphone Selection
+**Summary:** Dropdown on Dictation page with NAudio device enumeration, persisted selection, fallback for missing devices.
+**Files changed:** 5 files
+
+---
+
+## 2026-03-21 -- Task Completed: 005 - Model Manager
+
+**Type:** Task Completion
+**Task:** 005 - Model Manager
+**Summary:** Auto-downloads Parakeet TDT 0.6B int8 (~661MB) and Silero VAD (~2MB) on first run with progress dialog and cancellation.
+**Files changed:** 9 files
+
+---
+
+## 2026-03-21 -- Task Completed: 007 - Silero VAD Integration
+
+**Type:** Task Completion
+**Task:** 007 - Silero VAD Integration
+**Summary:** ONNX Runtime-based Silero VAD with state machine, configurable thresholds, pre-speech padding, SpeechStarted/SpeechEnded events.
+**Files changed:** 4 files
+
+---
+
+## 2026-03-21 -- Task Completed: 004 - Global Hotkey
+
+**Type:** Task Completion
+**Task:** 004 - Global Hotkey
+**Summary:** Win32 RegisterHotKey/UnregisterHotKey with configurable Ctrl+LWin hotkey, event system, and conflict handling.
+**Files changed:** 4 files
+
+---
+
+## 2026-03-21 -- Task Completed: 003 - Settings Infrastructure
+
+**Type:** Task Completion
+**Task:** 003 - Settings Infrastructure
+**Summary:** JSON settings with AppSettings model, SettingsService for %APPDATA% persistence, and 4 navigable settings pages in MainWindow.
+**Files changed:** 13 files
+
+---
+
+## 2026-03-21 -- Batch Started: [003, 004, 007]
+
+**Type:** Batch Start
+**Tasks:** 003 - Settings Infrastructure, 004 - Global Hotkey, 007 - Silero VAD Integration
+**Mode:** Parallel (batch of 3)
+
+---
+
+## 2026-03-21 -- Task Completed: 010 - Input Simulation
+
+**Type:** Task Completion
+**Task:** 010 - Input Simulation
+**Summary:** Win32 SendInput P/Invoke with KEYEVENTF_UNICODE, backspace correction, configurable delay, cancellation support.
+**Files changed:** 4 files
+
+---
+
+## 2026-03-21 -- Task Completed: 006 - Audio Capture Service
+
+**Type:** Task Completion
+**Task:** 006 - Audio Capture Service
+**Summary:** NAudio WaveInEvent capture at 16kHz/mono, float32 conversion, thread-safe ring buffer, device enumeration. 8 passing unit tests.
+**Files changed:** 8 files
+
+---
+
+## 2026-03-21 -- Task Completed: 002 - Tray Icon and Window
+
+**Type:** Task Completion
+**Task:** 002 - Tray Icon and Window
+**Summary:** FluentWindow with Mica backdrop, tray icon with Segoe Fluent microphone glyph, show/hide toggle, right-click context menu.
+**Files changed:** 5 files
+
+---
+
+## 2026-03-21 -- Batch Started: [002, 006, 010]
+
+**Type:** Batch Start
+**Tasks:** 002 - Tray Icon and Window, 006 - Audio Capture Service, 010 - Input Simulation
+**Mode:** Parallel (batch of 3)
+
+---
+
+## 2026-03-21 -- Task Completed: 001 - Project Scaffolding
+
+**Type:** Task Completion
+**Task:** 001 - Project Scaffolding
+**Summary:** Created .NET 9 WPF solution with all core NuGet packages, x64-only config, and ShutdownMode=OnExplicitShutdown. Builds with 0 warnings.
+**Files changed:** 8 files
+
+---
+
+## 2026-03-21 -- Task Started: 001 - Project Scaffolding
+
+**Type:** Task Start
+**Task:** 001 - Project Scaffolding
+**Milestone:** M1 - Live Dictation + Core App
+
+---
+
+## 2026-03-21 -- Planning: Full roadmap and task breakdown for all milestones
+
+**Type:** Planning
+**Summary:** Created 4-milestone roadmap with 24 tasks. M1 (Live Dictation + Core App) has 15 tasks covering project setup through end-to-end dictation with overlay and templates. M2 (Call Transcription) has 5 tasks for WASAPI loopback, diarization, and transcript export. M3 (Voice Messages) has 3 tasks including backlogged Telegram bot. M4 (TTS) is a single placeholder task in backlog.
+**Milestones created:** M1, M2, M3, M4
+**Tasks created:** 001 through 024
+**Tasks moved to backlog:** 022-telegram-bot, 023-tts-integration
+**Ideas incorporated:** None (no ideas existed)
+
+---
+
+## 2026-03-21 -- Brainstorm: Initial product vision for WhisperHeim
+
+**Type:** Brainstorm
+**Summary:** Defined WhisperHeim as a local-first, Windows 11 tray app unifying all voice workflows: live streaming dictation, call transcription with speaker diarization, voice message transcription, and text-to-speech. Chose C#/WPF with WPF UI for the native shell, Parakeet TDT 0.6B for ASR, sherpa-onnx for diarization, and Silero VAD for streaming.
+**Vision updated:** Yes
+**Key decisions:**
+- Complete restart from VocalFold -- new architecture, no code reuse
+- C# across the board (systems-level complexity favors C# over F#)
+- WPF + WPF UI (not WinUI 3) for tray app with PowerToys aesthetics
+- Parakeet TDT 0.6B over Whisper (faster, no hallucinations, EN/DE sufficient)
+- sherpa-onnx for both ASR and diarization (native .NET, no Python sidecar)
+- WASAPI loopback for system audio capture (call transcription = Milestone 2)
+- Text-to-speech deferred to Milestone 4, details TBD
+- No voice commands -- templates only, triggered by hotkey + voice
+- Telegram bot integration as stretch goal for voice message transcription
+
+---

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>WhisperHeim - Transcribe Files</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        .mica-effect {
+            backdrop-filter: blur(20px);
+        }
+        .ghost-border {
+            border: 1px solid rgba(113, 119, 131, 0.15);
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              colors: {
+                "on-tertiary-fixed": "#311300",
+                "on-primary": "#ffffff",
+                "primary-fixed": "#d3e3ff",
+                "inverse-on-surface": "#f1f1f1",
+                "tertiary-fixed": "#ffdbc8",
+                "primary": "#005faa",
+                "tertiary-container": "#bc5b00",
+                "surface-tint": "#0060ab",
+                "on-surface": "#1a1c1c",
+                "on-tertiary-container": "#ffffff",
+                "secondary-container": "#b8d3fd",
+                "primary-container": "#0078d4",
+                "error-container": "#ffdad6",
+                "on-tertiary": "#ffffff",
+                "on-error": "#ffffff",
+                "on-background": "#1a1c1c",
+                "outline-variant": "#c0c7d4",
+                "secondary-fixed": "#d3e3ff",
+                "on-secondary": "#ffffff",
+                "on-secondary-fixed-variant": "#2d486b",
+                "surface-container-low": "#f3f3f3",
+                "tertiary-fixed-dim": "#ffb689",
+                "surface-container": "#eeeeee",
+                "on-secondary-fixed": "#001c39",
+                "surface-container-lowest": "#ffffff",
+                "error": "#ba1a1a",
+                "surface-container-highest": "#e2e2e2",
+                "on-error-container": "#93000a",
+                "tertiary": "#974700",
+                "inverse-primary": "#a3c9ff",
+                "inverse-surface": "#2f3131",
+                "on-primary-container": "#ffffff",
+                "surface": "#f9f9f9",
+                "on-primary-fixed-variant": "#004883",
+                "secondary-fixed-dim": "#adc8f2",
+                "secondary": "#456084",
+                "on-primary-fixed": "#001c39",
+                "on-surface-variant": "#404752",
+                "on-secondary-container": "#405b7f",
+                "primary-fixed-dim": "#a3c9ff",
+                "surface-container-high": "#e8e8e8",
+                "surface-bright": "#f9f9f9",
+                "surface-variant": "#e2e2e2",
+                "outline": "#717783",
+                "background": "#f9f9f9",
+                "surface-dim": "#dadada",
+                "on-tertiary-fixed-variant": "#743500"
+              },
+              fontFamily: {
+                "headline": ["Inter"],
+                "body": ["Inter"],
+                "label": ["Inter"]
+              },
+              borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+            },
+          },
+        }
+      </script>
+</head>
+<body class="bg-surface text-on-surface min-h-screen">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full h-12 bg-slate-50/70 dark:bg-slate-900/70 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,96,171,0.06)] flex items-center justify-between px-4 w-full z-[100]">
+<div class="flex items-center gap-2">
+<span class="text-sm font-semibold text-slate-900 dark:text-slate-100 font-['Segoe_UI_Variable','Inter'] tracking-tight">WhisperHeim</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors p-1 rounded">
+<span class="material-symbols-outlined" data-icon="remove">remove</span>
+</button>
+<button class="text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors p-1 rounded">
+<span class="material-symbols-outlined" data-icon="check_box_outline_blank">check_box_outline_blank</span>
+</button>
+<button class="text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors p-1 rounded">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+</div>
+</header>
+<!-- Sidebar Navigation -->
+<aside class="fixed left-0 top-12 h-[calc(100vh-48px)] w-64 bg-slate-100/50 dark:bg-slate-950/50 backdrop-blur-2xl flex flex-col p-4 border-r border-slate-200/10 dark:border-slate-800/10 z-50">
+<div class="mb-8 px-4">
+<h2 class="text-lg font-bold tracking-tighter text-slate-900 dark:text-slate-50">WhisperHeim</h2>
+<p class="text-[10px] font-medium uppercase tracking-wider text-on-surface-variant opacity-60">Local-First AI</p>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 bg-blue-600 dark:bg-blue-500 text-white rounded-full px-4 py-2 my-1 scale-95 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="mic" style="font-variation-settings: 'FILL' 1;">mic</span>
+<span class="font-['Segoe_UI_Variable','Inter'] text-xs font-medium uppercase tracking-wider">Dictation</span>
+</a>
+<a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-full px-4 py-2 my-1 transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="folder_open">folder_open</span>
+<span class="font-['Segoe_UI_Variable','Inter'] text-xs font-medium uppercase tracking-wider">Library</span>
+</a>
+<a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-full px-4 py-2 my-1 transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="memory">memory</span>
+<span class="font-['Segoe_UI_Variable','Inter'] text-xs font-medium uppercase tracking-wider">Models</span>
+</a>
+<a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-full px-4 py-2 my-1 transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-['Segoe_UI_Variable','Inter'] text-xs font-medium uppercase tracking-wider">Settings</span>
+</a>
+<a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-full px-4 py-2 my-1 transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+<span class="font-['Segoe_UI_Variable','Inter'] text-xs font-medium uppercase tracking-wider">Help</span>
+</a>
+</nav>
+<div class="mt-auto p-4 flex items-center gap-3 bg-surface-container rounded-xl">
+<div class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined text-sm" data-icon="person">person</span>
+</div>
+<div class="overflow-hidden">
+<p class="text-xs font-bold truncate">Local Node</p>
+<p class="text-[10px] text-on-surface-variant truncate">v4.2.0-stable</p>
+</div>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-64 pt-20 pb-12 px-8 min-h-screen bg-surface">
+<div class="max-w-5xl mx-auto">
+<!-- Header Section -->
+<div class="mb-10">
+<h1 class="text-4xl font-bold tracking-tight text-on-surface mb-2 font-headline">Transcribe Files</h1>
+<p class="text-on-surface-variant max-w-2xl">Convert your audio and video recordings into text locally. Your data never leaves this machine.</p>
+</div>
+<!-- Bento Layout Container -->
+<div class="grid grid-cols-12 gap-8">
+<!-- 1. Large prominent Drop Zone -->
+<div class="col-span-12">
+<div class="relative group">
+<div class="absolute -inset-1 bg-gradient-to-r from-primary to-primary-container rounded-xl blur opacity-10 group-hover:opacity-20 transition duration-1000 group-hover:duration-200"></div>
+<div class="relative bg-surface-container-low rounded-xl border-2 border-dashed border-outline-variant p-12 flex flex-col items-center justify-center text-center transition-all hover:border-primary/50">
+<div class="w-16 h-16 bg-primary-fixed rounded-full flex items-center justify-center mb-6 text-primary">
+<span class="material-symbols-outlined text-4xl" data-icon="cloud_upload">cloud_upload</span>
+</div>
+<h3 class="text-xl font-semibold mb-2">Drop audio or video files here</h3>
+<p class="text-on-surface-variant text-sm mb-8">Supported formats: MP3, WAV, M4A, MP4, MOV (Max 500MB)</p>
+<button class="bg-gradient-to-br from-primary to-primary-container text-white px-8 py-3 rounded-xl font-medium shadow-lg hover:shadow-primary/20 transition-all active:scale-95 flex items-center gap-2">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+                                Browse Files
+                            </button>
+</div>
+</div>
+</div>
+<!-- 2. Results List Header -->
+<div class="col-span-12 mt-4 flex items-center justify-between">
+<h2 class="text-sm font-bold uppercase tracking-widest text-on-surface-variant/70 font-label">Recent Transcriptions</h2>
+<div class="flex gap-2">
+<button class="p-2 rounded-lg bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="filter_list">filter_list</span>
+</button>
+<button class="p-2 rounded-lg bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="delete_sweep">delete_sweep</span>
+</button>
+</div>
+</div>
+<!-- 3. Results List of Transcription Cards -->
+<div class="col-span-12 space-y-4">
+<!-- Card: Processing State -->
+<div class="bg-surface-container-lowest rounded-xl p-6 shadow-sm border border-transparent hover:border-primary/10 transition-all flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 bg-secondary-container rounded-lg flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined" data-icon="audio_file">audio_file</span>
+</div>
+<div>
+<h4 class="font-semibold text-on-surface">Weekly_Sync_Feb14.mp3</h4>
+<p class="text-xs text-on-surface-variant flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                                        Processing with Large-v3 model...
+                                    </p>
+</div>
+</div>
+<div class="text-right">
+<span class="text-sm font-bold text-primary">64%</span>
+</div>
+</div>
+<!-- Progress Bar -->
+<div class="w-full h-1 bg-surface-container-high rounded-full overflow-hidden">
+<div class="h-full bg-gradient-to-r from-primary to-primary-container rounded-full" style="width: 64%"></div>
+</div>
+<div class="bg-surface-container-low/50 rounded-lg p-4 italic text-on-surface-variant text-sm border-l-2 border-primary/20">
+                            "...and then we looked at the quarterly results for the engineering team, noticing a 15% uptick in deployment frequency since moving to the new CI/CD pipeline..."
+                        </div>
+</div>
+<!-- Card: Done State -->
+<div class="bg-surface-container-lowest rounded-xl p-6 shadow-sm border border-transparent hover:border-primary/10 transition-all">
+<div class="flex flex-col md:flex-row gap-6">
+<div class="flex-1">
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 bg-surface-container-highest rounded-lg flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="movie">movie</span>
+</div>
+<div>
+<h4 class="font-semibold text-on-surface">Interview_Draft_02.mp4</h4>
+<p class="text-xs text-on-surface-variant">Completed 12 minutes ago • 14:22 duration</p>
+</div>
+</div>
+<div class="flex gap-1">
+<span class="px-2 py-1 rounded bg-green-100 text-green-700 text-[10px] font-bold uppercase tracking-tight">Success</span>
+</div>
+</div>
+<div class="bg-surface-container-low rounded-lg p-4 text-on-surface text-sm leading-relaxed mb-4">
+<strong>Speaker 1:</strong> Can you describe the primary goals for the WhisperHeim project over the next two quarters? <br/><br/>
+<strong>Speaker 2:</strong> Absolutely. Our focus is squarely on privacy and speed. We want users to feel that they have a world-class AI transcription engine that works completely offline. No telemetry, no cloud processing, just raw local power.
+                                </div>
+<div class="flex items-center gap-3">
+<button class="flex items-center gap-2 text-primary text-xs font-semibold hover:bg-primary-fixed px-3 py-2 rounded-lg transition-all">
+<span class="material-symbols-outlined text-sm" data-icon="content_copy">content_copy</span>
+                                        Copy Transcript
+                                    </button>
+<button class="flex items-center gap-2 text-primary text-xs font-semibold hover:bg-primary-fixed px-3 py-2 rounded-lg transition-all">
+<span class="material-symbols-outlined text-sm" data-icon="save">save</span>
+                                        Save as .txt
+                                    </button>
+<div class="ml-auto flex items-center gap-4">
+<button class="text-on-surface-variant hover:text-error transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="delete">delete</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Card: Done State (Simplified) -->
+<div class="bg-surface-container-lowest rounded-xl p-6 shadow-sm border border-transparent hover:border-primary/10 transition-all flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 bg-surface-container-highest rounded-lg flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+</div>
+<div>
+<h4 class="font-semibold text-on-surface">Lecture_Notes_History.mp3</h4>
+<p class="text-xs text-on-surface-variant">Yesterday at 4:30 PM • 52:10 duration</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 rounded-full hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="visibility">visibility</span>
+</button>
+<button class="p-2 rounded-full hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="download">download</span>
+</button>
+<button class="p-2 rounded-full hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Contextual Information -->
+<div class="mt-12 p-6 bg-surface-container-low rounded-2xl flex items-start gap-4 border border-outline-variant/10">
+<span class="material-symbols-outlined text-primary" data-icon="info">info</span>
+<div>
+<h5 class="text-sm font-bold mb-1">Model: Whisper Large v3 (Local)</h5>
+<p class="text-xs text-on-surface-variant leading-relaxed">WhisperHeim uses OpenAI's Whisper models running natively on your hardware. For faster results, try the Base or Small models in settings. Your CPU is currently at 42% utilization.</p>
+</div>
+</div>
+</div>
+</main>
+<!-- Contextual FAB (Only on relevant screens) -->
+<button class="fixed bottom-8 right-8 w-14 h-14 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-90 transition-all z-[100] group">
+<span class="material-symbols-outlined text-2xl" data-icon="add">add</span>
+<span class="absolute right-16 bg-on-surface text-surface text-xs font-bold py-2 px-4 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">New Transcription</span>
+</button>
+</body></html>
