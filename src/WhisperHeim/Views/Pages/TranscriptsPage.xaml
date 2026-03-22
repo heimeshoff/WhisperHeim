@@ -48,7 +48,7 @@
         </Border>
 
         <!-- Main Content -->
-        <Grid Grid.Row="1" Margin="24,20,24,16">
+        <Grid Grid.Row="1" Margin="24,20,24,16" MaxWidth="900" HorizontalAlignment="Center">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -114,7 +114,6 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
-                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
                     <TextBlock Grid.Row="0" Text="RECENT TRANSCRIPTS"
@@ -157,43 +156,83 @@
                         </ListBox.ItemContainerStyle>
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <StackPanel>
-                                    <DockPanel Margin="0,0,0,4">
-                                        <TextBlock Text="{Binding DateDisplay}"
-                                                   FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                                   DockPanel.Dock="Right" HorizontalAlignment="Right"
-                                                   VerticalAlignment="Top" />
-                                        <TextBlock Text="{Binding Name}"
-                                                   FontWeight="SemiBold"
-                                                   FontSize="13"
-                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                                   TextTrimming="CharacterEllipsis" />
-                                    </DockPanel>
-                                    <TextBlock Text="{Binding DurationDisplay}"
-                                               FontSize="10"
-                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                                    <TextBlock Text="{Binding PreviewText}"
-                                               FontSize="10"
-                                               Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                               TextTrimming="CharacterEllipsis"
-                                               Margin="0,2,0,0" />
-                                </StackPanel>
+                                <Grid x:Name="ItemRoot">
+                                    <StackPanel>
+                                        <DockPanel Margin="0,0,0,4">
+                                            <TextBlock Text="{Binding DateDisplay}"
+                                                       FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                       DockPanel.Dock="Right" HorizontalAlignment="Right"
+                                                       VerticalAlignment="Top" />
+                                            <TextBlock Text="{Binding Name}"
+                                                       FontWeight="SemiBold"
+                                                       FontSize="13"
+                                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                       TextTrimming="CharacterEllipsis" />
+                                        </DockPanel>
+                                        <TextBlock Text="{Binding DurationDisplay}"
+                                                   FontSize="10"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                        <TextBlock Text="{Binding PreviewText}"
+                                                   FontSize="10"
+                                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Margin="0,2,0,0" />
+                                    </StackPanel>
+                                    <!-- Hover trash icon -->
+                                    <Button x:Name="DeleteItemButton"
+                                            Click="DeleteTranscriptItem_Click"
+                                            VerticalAlignment="Bottom"
+                                            HorizontalAlignment="Right"
+                                            Margin="0,0,-4,-2"
+                                            Padding="4"
+                                            Cursor="Hand"
+                                            Visibility="Hidden"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            ToolTip="Delete transcript">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border x:Name="IconBd" CornerRadius="6" Padding="{TemplateBinding Padding}"
+                                                        Background="Transparent">
+                                                    <ui:SymbolIcon Symbol="Delete24" FontSize="14"
+                                                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="IconBd" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                    </Button>
+                                    <Grid.Triggers>
+                                        <EventTrigger RoutedEvent="MouseEnter">
+                                            <BeginStoryboard>
+                                                <Storyboard>
+                                                    <ObjectAnimationUsingKeyFrames Storyboard.TargetName="DeleteItemButton"
+                                                                                   Storyboard.TargetProperty="Visibility">
+                                                        <DiscreteObjectKeyFrame KeyTime="0:0:0"
+                                                                                Value="{x:Static Visibility.Visible}" />
+                                                    </ObjectAnimationUsingKeyFrames>
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </EventTrigger>
+                                        <EventTrigger RoutedEvent="MouseLeave">
+                                            <BeginStoryboard>
+                                                <Storyboard>
+                                                    <ObjectAnimationUsingKeyFrames Storyboard.TargetName="DeleteItemButton"
+                                                                                   Storyboard.TargetProperty="Visibility">
+                                                        <DiscreteObjectKeyFrame KeyTime="0:0:0"
+                                                                                Value="{x:Static Visibility.Hidden}" />
+                                                    </ObjectAnimationUsingKeyFrames>
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </EventTrigger>
+                                    </Grid.Triggers>
+                                </Grid>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
-
-                    <Button Grid.Row="2"
-                            Content="Delete Selected"
-                            Margin="0,12,0,0"
-                            HorizontalAlignment="Stretch"
-                            Click="DeleteTranscript_Click"
-                            x:Name="DeleteButton"
-                            IsEnabled="False"
-                            Foreground="#FFBA1A1A"
-                            Background="Transparent"
-                            BorderThickness="0"
-                            Padding="12,8"
-                            Cursor="Hand" />
                 </Grid>
 
                 <!-- RIGHT: Transcript viewer -->

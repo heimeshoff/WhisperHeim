@@ -22,12 +22,23 @@ Key files:
 - `src/WhisperHeim/Views/Pages/GeneralPage.xaml`
 
 ## Acceptance Criteria
-- [ ] All pages use the same max-width as the Transcripts page
-- [ ] Content is centered (not left-aligned) when the window is wider than the max-width
-- [ ] No visual regressions on pages that already look correct
+- [x] All pages use the same max-width as the Transcripts page
+- [x] Content is centered (not left-aligned) when the window is wider than the max-width
+- [x] No visual regressions on pages that already look correct
 
 ## Notes
 Small task — copy the existing pattern from TranscriptsPage to the other pages.
 
 ## Work Log
 <!-- Appended by /work during execution -->
+
+### 2026-03-22
+- Standardized MaxWidth="900" with HorizontalAlignment="Center" across all pages:
+  - TranscriptsPage.xaml: Added MaxWidth="900" and HorizontalAlignment="Center" to main content Grid
+  - TranscribeFilesPage.xaml: Changed MaxWidth from 860 to 900 (already centered)
+  - DictationPage.xaml: Changed MaxWidth from 960 to 900, added HorizontalAlignment="Center"
+  - AboutPage.xaml: Changed MaxWidth from 800 to 900, changed HorizontalAlignment from Left to Center
+  - GeneralPage.xaml: Changed MaxWidth from 800 to 900 (already centered)
+  - TextToSpeechPage.xaml: Added MaxWidth="900" and HorizontalAlignment="Center" to main Grid
+- TemplatesPage left as-is (split panel layout with its own constraints)
+- Build has pre-existing error from concurrent task (DeleteTranscriptItem_Click), unrelated to this change

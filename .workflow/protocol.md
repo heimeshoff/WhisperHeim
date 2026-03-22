@@ -2,6 +2,41 @@
 
 ---
 
+## 2026-03-22 17:19 -- Batch Started: [045, 054]
+
+**Type:** Batch Start
+**Tasks:** 045 - Consistent Max-Width Across All Pages, 054 - Hover Trash Icon per Transcript
+**Mode:** Parallel (batch of 2)
+
+---
+
+## 2026-03-22 17:18 -- Task Completed: 056 - Link AI Model Cards to GitHub Projects
+
+**Type:** Task Completion
+**Task:** 056 - Link AI Model Cards to GitHub Projects
+**Summary:** Added clickable project links to all 6 AI model cards on GeneralPage and AboutPage, opening GitHub/HuggingFace pages in default browser.
+**Files changed:** 6 files
+
+---
+
+## 2026-03-22 17:17 -- Task Completed: 053 - Reduce Transcripts List Column Width
+
+**Type:** Task Completion
+**Task:** 053 - Reduce Transcripts List Column Width
+**Summary:** Reduced transcripts list column from fixed 280px to 200px with MinWidth=160/MaxWidth=280 for responsive behavior.
+**Files changed:** 2 files
+
+---
+
+## 2026-03-22 17:16 -- Task Completed: 050 - Collapsible Sidebar Menu
+
+**Type:** Task Completion
+**Task:** 050 - Collapsible Sidebar Menu
+**Summary:** Implemented collapsible sidebar with toggle button, animated between 200px and 60px icons-only mode, state persisted in settings.
+**Files changed:** 4 files
+
+---
+
 ## 2026-03-22 17:11 -- Batch Started: [050, 053, 056]
 
 **Type:** Batch Start

@@ -21,7 +21,7 @@
     </UserControl.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" Background="{DynamicResource ApplicationBackgroundBrush}">
-        <StackPanel Margin="40,36,40,32" MaxWidth="860"
+        <StackPanel Margin="40,36,40,32" MaxWidth="900"
                     HorizontalAlignment="Center">
             <!-- Header -->
             <TextBlock Text="Transcribe Files"

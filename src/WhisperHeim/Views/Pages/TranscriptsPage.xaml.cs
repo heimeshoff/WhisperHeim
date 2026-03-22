@@ -122,8 +122,6 @@ public partial class TranscriptsPage : UserControl
             return;
         }
 
-        DeleteButton.IsEnabled = true;
-
         try
         {
             var transcript = await _storageService.LoadAsync(item.FilePath);
@@ -454,18 +452,23 @@ public partial class TranscriptsPage : UserControl
 
         _selectedTranscript = null;
         _currentSegmentViewModels = null;
-        DeleteButton.IsEnabled = false;
         PlaceholderText.Visibility = Visibility.Visible;
         ViewerHeader.Visibility = Visibility.Collapsed;
         ActionPanel.Visibility = Visibility.Collapsed;
         SegmentList.ItemsSource = null;
     }
 
-    private void DeleteTranscript_Click(object sender, RoutedEventArgs e)
+    private void DeleteTranscriptItem_Click(object sender, RoutedEventArgs e)
     {
-        if (TranscriptList.SelectedItem is not TranscriptListItem item)
+        if (sender is not FrameworkElement element || element.DataContext is not TranscriptListItem item)
             return;
 
+        DeleteTranscriptItem(item);
+        e.Handled = true; // Prevent the click from selecting the item
+    }
+
+    private void DeleteTranscriptItem(TranscriptListItem item)
+    {
         var displayName = !string.IsNullOrEmpty(item.Name) ? item.Name : item.DateDisplay;
         var dialog = new WhisperHeim.Views.DeleteConfirmationDialog(displayName)
         {
