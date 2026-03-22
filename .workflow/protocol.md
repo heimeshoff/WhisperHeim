@@ -2,6 +2,59 @@
 
 ---
 
+## 2026-03-22 -- Task Completed: 063 - Configurable Data Path
+
+**Type:** Task Completion
+**Task:** 063 - Configurable Config/Data Path for Cloud Sync
+**Summary:** Implemented bootstrap config in %APPDATA%, DataPathService for path resolution, folder picker in Settings UI, per-session recording folders, machine-local settings split, and migration from old flat structure. 32 tests pass.
+**Files changed:** 13 files
+
+---
+
+## 2026-03-22 -- Task Completed: 065 - About Page with Profile
+
+**Type:** Task Completion
+**Task:** 065 - About Page with Profile, Contact Links & Ko-fi
+**Summary:** Added profile section with photo and bio, contact links (website, Bluesky, LinkedIn), Ko-fi support button, and GitHub link. Wired page into sidebar navigation with collapse support.
+**Files changed:** 7 files
+
+---
+
+## 2026-03-22 -- Task Completed: 066 - Template Delete Hover Trash
+
+**Type:** Task Completion
+**Task:** 066 - Template Delete with Hover Trash Icon & Confirmation Dialog
+**Summary:** Added hover trash icon to template list items with fade animation (matching TranscriptsPage pattern), wired to DeleteConfirmationDialog, removed old Delete Template button from detail panel.
+**Files changed:** 2 files
+
+---
+
+## 2026-03-22 -- Batch Started: [063, 065, 066]
+
+**Type:** Batch Start
+**Tasks:** 063 - Configurable Data Path, 065 - About Page with Profile, 066 - Template Delete Hover Trash
+**Mode:** Parallel (batch of 3)
+
+---
+
+## 2026-03-22 -- Idea Captured: Template Delete with Hover Trash Icon
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/066-template-delete-hover-trash.md
+**Summary:** Replace the detail panel "Delete Template" button with a hover trash icon on each template card, using the existing DeleteConfirmationDialog. Matches the recordings deletion pattern.
+
+---
+
+## 2026-03-22 -- Idea Captured: About Page with Profile & Ko-fi
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/065-about-page-with-profile.md
+**Summary:** Add personal profile, contact links, Ko-fi support button, and GitHub link to the About page (modeled after VocalFold). Wire the existing AboutPage into the sidebar navigation.
+
+---
+
 ## 2026-03-22 -- Task Completed: 064 - Fix Opaque Backgrounds and Delete Dialog
 
 **Type:** Task Completion
