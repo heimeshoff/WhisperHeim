@@ -2,6 +2,86 @@
 
 ---
 
+## 2026-03-22 -- Task Completed: 064 - Fix Opaque Backgrounds and Delete Dialog
+
+**Type:** Task Completion
+**Task:** 064 - Fix Opaque Backgrounds and Delete Dialog
+**Summary:** Removed opaque ApplicationBackgroundBrush from TranscriptsPage and TemplatesPage root grids so mica shows through. Replaced glass effect on DeleteConfirmationDialog with solid theme-aware CardBackgroundFillColorDefaultBrush.
+**Files changed:** 4 files
+
+---
+
+## 2026-03-22 -- Task Completed: 062 - TTS Page Layout Cleanup
+
+**Type:** Task Completion
+**Task:** 062 - TTS Page Layout Cleanup
+**Summary:** Removed "INPUT WORKSPACE" label and relocated voice/speaker selector below play/stop buttons, left-aligned. Build verified clean.
+**Files changed:** 2 files
+
+---
+
+## 2026-03-22 -- Task Completed: 061 - Update Dictation Hotkey Labels
+
+**Type:** Task Completion
+**Task:** 061 - Update Dictation Hotkey Labels
+**Summary:** Labels already matched acceptance criteria — no code changes needed.
+**Files changed:** 1 file
+
+---
+
+## 2026-03-22 -- Batch Started: [061, 062, 064]
+
+**Type:** Batch Start
+**Tasks:** 061 - Update Dictation Hotkey Labels, 062 - TTS Page Layout Cleanup, 064 - Fix Opaque Backgrounds and Delete Dialog
+**Mode:** Parallel (batch of 3)
+
+---
+
+## 2026-03-22 -- Idea Captured: Fix Opaque Backgrounds and Delete Dialog
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/063-fix-opaque-backgrounds-and-dialog.md
+**Summary:** Fix recordings & templates pages having wrong opaque background (should match other screens). Replace ugly glass/transparency effect on delete confirmation dialog with solid theme-aware surface color.
+
+---
+
+## 2026-03-22 -- Idea Promoted: Configurable Config/Data Path for Cloud Sync
+
+**Type:** Idea Promotion
+**From:** ideas/2026-03-22-configurable-config-path.md
+**To:** tasks/todo/063-configurable-data-path.md
+**Summary:** Configurable data path with bootstrap config, per-session recording folders, cloud sync support via Google Drive.
+
+---
+
+## 2026-03-22 -- Idea Refined: Configurable Config/Data Path for Cloud Sync
+
+**Type:** Idea Refinement
+**Idea:** ideas/2026-03-22-configurable-config-path.md
+**Status:** Ready
+**Summary:** Resolved all open questions: defined sync vs. local split, chose last-write-wins for conflicts, lightweight path validation. Redesigned recordings as first-class data with per-session folders. Idea is ready to promote.
+
+---
+
+## 2026-03-22 -- Idea Captured: TTS Page Layout Cleanup
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/062-tts-page-layout-cleanup.md
+**Summary:** Remove "INPUT WORKSPACE" label from TTS card header; relocate voice selector ComboBox to below play/stop buttons, left-aligned.
+
+---
+
+## 2026-03-22 -- Idea Captured: Update Dictation Page Hotkey Labels
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/061-update-dictation-hotkey-labels.md
+**Summary:** Fix hotkey labels on dictation page: rename Start/Stop to Dictation, correct Read Aloud shortcut from Shift+Win+A to Ctrl+Win+^, keep Call Recording as-is.
+
+---
+
 ## 2026-03-22 -- Task Completed: 060 - Show Full Logo in Collapsed Sidebar
 
 **Type:** Task Completion
