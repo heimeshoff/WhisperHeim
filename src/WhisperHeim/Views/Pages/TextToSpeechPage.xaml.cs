@@ -664,7 +664,7 @@ public partial class TextToSpeechPage : UserControl
 
             var card = new Border
             {
-                Background = new SolidColorBrush(Color.FromRgb(0xFF, 0xFF, 0xFF)),
+                Background = (System.Windows.Media.Brush)FindResource("CardBackgroundFillColorDefaultBrush"),
                 CornerRadius = new CornerRadius(8),
                 Padding = new Thickness(12),
                 Margin = new Thickness(0, 0, 0, 8),
@@ -691,7 +691,7 @@ public partial class TextToSpeechPage : UserControl
                 Padding = new Thickness(6, 2, 6, 2),
                 Background = System.Windows.Media.Brushes.Transparent,
                 BorderThickness = new Thickness(0),
-                Foreground = new SolidColorBrush(Color.FromRgb(0xBA, 0x1A, 0x1A)),
+                Foreground = new SolidColorBrush(Color.FromRgb(0xE8, 0x3A, 0x3A)),
                 Cursor = System.Windows.Input.Cursors.Hand,
                 VerticalAlignment = VerticalAlignment.Center,
                 Tag = wavFile // store file path for deletion

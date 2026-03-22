@@ -2,6 +2,41 @@
 
 ---
 
+## 2026-03-22 17:06 -- Batch Started: [047, 049, 055]
+
+**Type:** Batch Start
+**Tasks:** 047 - Fix TTS Voice Cards Dark Mode Background, 049 - Add WhisperHeim Logo to Sidebar, 055 - Rename Export Button to MD
+**Mode:** Parallel (batch of 3)
+
+---
+
+## 2026-03-22 17:05 -- Task Completed: 052 - Remove Magic Replace from Edit Template
+
+**Type:** Task Completion
+**Task:** 052 - Remove Magic Replace from Edit Template
+**Summary:** Removed magic replace UI card, clipboard placeholder pill, and clipboard expansion logic from template editor.
+**Files changed:** 3 files
+
+---
+
+## 2026-03-22 17:04 -- Task Completed: 048 - Tray Icon Green When Recording
+
+**Type:** Task Completion
+**Task:** 048 - Tray Icon Green When Recording
+**Summary:** Changed tray icon recording color from red to green (0x44CC44), matching the overlay indicator.
+**Files changed:** 2 files
+
+---
+
+## 2026-03-22 17:03 -- Task Completed: 046 - Remember Window Size and Position
+
+**Type:** Task Completion
+**Task:** 046 - Remember Window Size and Position
+**Summary:** Implemented window size/position persistence with 1200x800 default, save on close, restore on startup with off-screen guard using Win32 EnumDisplayMonitors.
+**Files changed:** 4 files
+
+---
+
 ## 2026-03-22 17:00 -- Batch Started: [046, 048, 052]
 
 **Type:** Batch Start

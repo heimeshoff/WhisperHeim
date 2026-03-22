@@ -20,12 +20,17 @@ Key file:
 - `src/WhisperHeim/Views/Pages/TextToSpeechPage.xaml.cs` — voice card Border creation
 
 ## Acceptance Criteria
-- [ ] Voice cards use theme-aware background brush instead of hardcoded white
-- [ ] Cards look correct in both Light and Dark themes
-- [ ] Text on cards remains readable in both themes
+- [x] Voice cards use theme-aware background brush instead of hardcoded white
+- [x] Cards look correct in both Light and Dark themes
+- [x] Text on cards remains readable in both themes
 
 ## Notes
 The rest of the page already uses DynamicResource brushes correctly — this is just a missed spot in code-behind.
 
 ## Work Log
 <!-- Appended by /work during execution -->
+### 2026-03-22 — Completed
+- Replaced hardcoded `Color.FromRgb(0xFF, 0xFF, 0xFF)` background on voice card `Border` with `FindResource("CardBackgroundFillColorDefaultBrush")` to use theme-aware brush.
+- Brightened delete button foreground from `0xBA,0x1A,0x1A` to `0xE8,0x3A,0x3A` for better visibility on dark backgrounds.
+- Text blocks inherit foreground from the theme automatically — readable in both light and dark modes.
+- Build passes with zero errors and warnings.

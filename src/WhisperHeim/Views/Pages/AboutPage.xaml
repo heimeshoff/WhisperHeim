@@ -15,15 +15,21 @@
                         Padding="3">
                     <Border.Background>
                         <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                            <GradientStop Color="#FF005FAA" Offset="0" />
-                            <GradientStop Color="#FF0078D4" Offset="1" />
+                            <GradientStop Color="#FF25abfe" Offset="0" />
+                            <GradientStop Color="#FFff8b00" Offset="1" />
                         </LinearGradientBrush>
                     </Border.Background>
                     <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" CornerRadius="14">
                         <ui:SymbolIcon Symbol="Mic24" FontSize="36"
-                                       Foreground="#FF005FAA"
                                        HorizontalAlignment="Center"
-                                       VerticalAlignment="Center" />
+                                       VerticalAlignment="Center">
+                            <ui:SymbolIcon.Foreground>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#FF25abfe" Offset="0" />
+                                    <GradientStop Color="#FFff8b00" Offset="1" />
+                                </LinearGradientBrush>
+                            </ui:SymbolIcon.Foreground>
+                        </ui:SymbolIcon>
                     </Border>
                 </Border>
 

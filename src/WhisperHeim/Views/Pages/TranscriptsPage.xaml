@@ -373,7 +373,7 @@
                                             </Border.Background>
                                             <StackPanel Orientation="Horizontal">
                                                 <ui:SymbolIcon Symbol="ArrowDownload24" Foreground="White" Margin="0,0,6,0" FontSize="14" />
-                                                <TextBlock Text="EXPORT" FontSize="10" FontWeight="Bold"
+                                                <TextBlock Text="MD" FontSize="10" FontWeight="Bold"
                                                            Foreground="White" VerticalAlignment="Center" />
                                             </StackPanel>
                                         </Border>
