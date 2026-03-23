@@ -1,7 +1,8 @@
 <UserControl x:Class="WhisperHeim.Views.Pages.DictationPage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             SizeChanged="Page_SizeChanged">
     <UserControl.Resources>
         <!-- Quiet Engine: Subtle body text -->
         <Style x:Key="SubtleText" TargetType="TextBlock">
@@ -53,16 +54,20 @@
                            HorizontalAlignment="Left" />
             </StackPanel>
 
-            <!-- ═══════ Audio Input Device (full width) ═══════ -->
-            <Grid Grid.Row="1" Margin="0,0,0,32">
+            <!-- ═══════ Audio Input Device Row ═══════ -->
+            <Grid x:Name="AudioInputRow" Grid.Row="1" Margin="0,0,0,32">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="24" />
-                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition x:Name="AudioInputCol" Width="*" />
+                    <ColumnDefinition x:Name="AudioInputGapCol" Width="24" />
+                    <ColumnDefinition x:Name="AudioInputWarningCol" Width="Auto" />
                 </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition x:Name="AudioInputStackedWarningRow" Height="Auto" />
+                </Grid.RowDefinitions>
 
-                <!-- Microphone Selector Card — full width -->
-                <Border Grid.Column="0" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="12" Padding="24">
+                <!-- Microphone Selector Card -->
+                <Border Grid.Column="0" Grid.Row="0" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="12" Padding="24">
                     <StackPanel>
                         <TextBlock Text="AUDIO INPUT DEVICE"
                                    Style="{StaticResource SectionLabel}"
@@ -74,7 +79,7 @@
                 </Border>
 
                 <!-- Device Warning Card (only shows when device missing) -->
-                <Border x:Name="DeviceWarningCard" Grid.Column="2"
+                <Border x:Name="DeviceWarningCard" Grid.Column="2" Grid.Row="0"
                         Background="#FFFFDBC8" CornerRadius="12" Padding="24"
                         Visibility="Collapsed" MinWidth="280">
                     <StackPanel Orientation="Horizontal">
@@ -95,15 +100,19 @@
             </Grid>
 
             <!-- ═══════ Bento Grid (8-col + 4-col) ═══════ -->
-            <Grid Grid.Row="2">
+            <Grid x:Name="BentoGrid" Grid.Row="2">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="8*" />
-                    <ColumnDefinition Width="32" />
-                    <ColumnDefinition Width="4*" />
+                    <ColumnDefinition x:Name="BentoLeftCol" Width="8*" />
+                    <ColumnDefinition x:Name="BentoGapCol" Width="24" />
+                    <ColumnDefinition x:Name="BentoRightCol" Width="4*" />
                 </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition x:Name="BentoStackedRow" Height="Auto" />
+                </Grid.RowDefinitions>
 
                 <!-- LEFT: Transcription Canvas -->
-                <StackPanel Grid.Column="0">
+                <StackPanel x:Name="TranscriptionPanel" Grid.Column="0" Grid.Row="0">
                     <!-- Transcription text area with watermark -->
                     <Grid Margin="0,0,0,12">
                         <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" CornerRadius="12" Padding="0">
@@ -163,7 +172,7 @@
                 </StackPanel>
 
                 <!-- RIGHT: Sidebar Cards -->
-                <StackPanel Grid.Column="2">
+                <StackPanel x:Name="HotkeysPanel" Grid.Column="2" Grid.Row="0">
                     <!-- Hotkeys Card -->
                     <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" CornerRadius="12" Padding="28">
                         <Border.Effect>
@@ -179,9 +188,7 @@
 
                             <!-- Shortcut: Dictation -->
                             <DockPanel Margin="0,0,0,14">
-                                <TextBlock Text="Dictation" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                           VerticalAlignment="Center" DockPanel.Dock="Left" />
-                                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
+                                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
                                     <Border Style="{StaticResource KbdPill}">
                                         <TextBlock Text="Ctrl" Style="{StaticResource KbdText}" />
                                     </Border>
@@ -189,13 +196,13 @@
                                         <TextBlock Text="Win" Style="{StaticResource KbdText}" />
                                     </Border>
                                 </StackPanel>
+                                <TextBlock Text="Dictation" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           VerticalAlignment="Center" HorizontalAlignment="Right" />
                             </DockPanel>
 
                             <!-- Shortcut: Read Aloud -->
                             <DockPanel Margin="0,0,0,14">
-                                <TextBlock Text="Read Aloud" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                           VerticalAlignment="Center" DockPanel.Dock="Left" />
-                                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
+                                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
                                     <Border Style="{StaticResource KbdPill}">
                                         <TextBlock Text="Ctrl" Style="{StaticResource KbdText}" />
                                     </Border>
@@ -206,13 +213,13 @@
                                         <TextBlock Text="^" Style="{StaticResource KbdText}" />
                                     </Border>
                                 </StackPanel>
+                                <TextBlock Text="Read Aloud" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           VerticalAlignment="Center" HorizontalAlignment="Right" />
                             </DockPanel>
 
                             <!-- Shortcut: Template Dictation -->
                             <DockPanel Margin="0,0,0,14">
-                                <TextBlock Text="Template Dictation" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                           VerticalAlignment="Center" DockPanel.Dock="Left" />
-                                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
+                                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
                                     <Border Style="{StaticResource KbdPill}">
                                         <TextBlock Text="Ctrl" Style="{StaticResource KbdText}" />
                                     </Border>
@@ -223,13 +230,13 @@
                                         <TextBlock Text="Alt" Style="{StaticResource KbdText}" />
                                     </Border>
                                 </StackPanel>
+                                <TextBlock Text="Template Dictation" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           VerticalAlignment="Center" HorizontalAlignment="Right" />
                             </DockPanel>
 
                             <!-- Shortcut: Call Recording -->
                             <DockPanel Margin="0,0,0,14">
-                                <TextBlock Text="Call Recording" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                           VerticalAlignment="Center" DockPanel.Dock="Left" />
-                                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
+                                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
                                     <Border Style="{StaticResource KbdPill}">
                                         <TextBlock Text="Ctrl" Style="{StaticResource KbdText}" />
                                     </Border>
@@ -240,6 +247,8 @@
                                         <TextBlock Text="R" Style="{StaticResource KbdText}" />
                                     </Border>
                                 </StackPanel>
+                                <TextBlock Text="Call Recording" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           VerticalAlignment="Center" HorizontalAlignment="Right" />
                             </DockPanel>
 
                             <!-- Footer note -->

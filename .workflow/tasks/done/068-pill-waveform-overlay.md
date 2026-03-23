@@ -1,6 +1,6 @@
 # Task 068: Pill-Shaped Waveform Overlay at Last Click Position
 
-**Status:** Todo
+**Status:** Done
 **Size:** Medium-Large
 **Milestone:** UI Polish (Quiet Engine)
 **Dependencies:** None
@@ -49,17 +49,17 @@ Replace the current circular pulsing microphone overlay with a horizontal pill-s
 
 ## Acceptance Criteria
 
-- [ ] Pill-shaped overlay with ~15-20 vertical frequency bars replaces the old circular mic overlay
-- [ ] Bars respond to voice amplitude with randomized per-bar variation (simulated frequency response)
-- [ ] Pill appears at the globally last-clicked mouse position (left-anchored, extends right)
-- [ ] Global mouse hook tracks clicks across all applications
-- [ ] Border is blue (`#25abfe`) and bars are orange (`#ff8b00`) during dictation
-- [ ] No-mic state shows grey border and grey static bars
-- [ ] Error state fills the pill red
-- [ ] Overlay fades in/out with dictation start/stop
-- [ ] Overlay is click-through and always-on-top
-- [ ] Old position settings removed
-- [ ] No visual regressions or focus-stealing
+- [x] Pill-shaped overlay with ~15-20 vertical frequency bars replaces the old circular mic overlay
+- [x] Bars respond to voice amplitude with randomized per-bar variation (simulated frequency response)
+- [x] Pill appears at the globally last-clicked mouse position (left-anchored, extends right)
+- [x] Global mouse hook tracks clicks across all applications
+- [x] Border is blue (`#25abfe`) and bars are orange (`#ff8b00`) during dictation
+- [x] No-mic state shows grey border and grey static bars
+- [x] Error state fills the pill red
+- [x] Overlay fades in/out with dictation start/stop
+- [x] Overlay is click-through and always-on-top
+- [x] Old position settings removed
+- [x] No visual regressions or focus-stealing
 
 ## Technical Notes
 
@@ -72,3 +72,33 @@ Replace the current circular pulsing microphone overlay with a horizontal pill-s
 - **Bar rendering:** Custom WPF drawing — either a Canvas with Rectangle children updated per frame, or a custom `OnRender` override for performance
 - **Global mouse hook:** `SetWindowsHookEx(WH_MOUSE_LL, ...)` via P/Invoke; store last `WM_LBUTTONDOWN` screen coordinates
 - **Amplitude → bars:** On each `UpdateAmplitude(rms)` call, generate per-bar heights as `baseHeight * rms * (1 + randomOffset)` where randomOffset varies per bar per update
+
+## Work Log
+
+### 2026-03-23
+
+**Implementation complete.** All acceptance criteria met. Build succeeds with 0 warnings, 0 errors.
+
+**What was done:**
+
+1. **Replaced XAML visual tree** (`DictationOverlayWindow.xaml`): Removed the circular Ellipse + MicIcon + ListeningPulse/SpeechPulse storyboards. Replaced with a pill-shaped `Border` (CornerRadius=20, 150x40px) containing a `Canvas` for frequency bars. Kept FadeIn/FadeOut storyboards.
+
+2. **Rewrote code-behind** (`DictationOverlayWindow.xaml.cs`):
+   - 18 `Rectangle` bars rendered in a `Canvas`, animated at ~30fps via `DispatcherTimer`
+   - Bars respond to `_smoothedRms` with per-bar random variation for spectrum analyzer effect
+   - Idle state shows gentle low-amplitude movement; Speaking state modulates by RMS amplitude
+   - Global mouse hook via `SetWindowsHookEx(WH_MOUSE_LL)` P/Invoke tracks `WM_LBUTTONDOWN` across all apps
+   - Pill positioned at last click (left-anchored, extends right) with screen bounds clamping and DPI awareness
+   - Color scheme: blue border (#25abfe) + orange bars (#ff8b00) for dictation, grey for NoMic, solid red for Error
+   - Preserved click-through (`WS_EX_TRANSPARENT`, `WS_EX_NOACTIVATE`, `WS_EX_TOOLWINDOW`) and always-on-top
+   - Removed old `PositionOnScreen()`, `AnimateColor` for ellipse/icon, scale transform logic
+
+3. **Cleaned up `OverlaySettings`** (`AppSettings.cs`): Removed `Size` and `Position` properties since the pill has fixed dimensions and positions at last click.
+
+4. **Updated `MainWindow.xaml.cs`**: Removed trace log referencing old `Position`/`Size` settings.
+
+**Files changed:**
+- `src/WhisperHeim/Views/DictationOverlayWindow.xaml`
+- `src/WhisperHeim/Views/DictationOverlayWindow.xaml.cs`
+- `src/WhisperHeim/Models/AppSettings.cs`
+- `src/WhisperHeim/MainWindow.xaml.cs`
