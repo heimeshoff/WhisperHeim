@@ -24,6 +24,10 @@
 
 | 2026-03-21 | TTS Naturalness & Pacing | [tts-naturalness-and-pacing.md](tts-naturalness-and-pacing.md) | Sentence boundary artifacts caused by per-sentence generation + direct concatenation; fix via Extra params (frames_after_eos, temperature) and app-level silence injection |
 
+## Transcript Analysis with LLM (2026-03-23)
+
+| 2026-03-23 | Transcript Analysis with LLM | [transcript-analysis-with-llm.md](transcript-analysis-with-llm.md) | Claude subscription cannot be used programmatically (blocked since Jan 2026); best alternative is Ollama + Qwen 2.5 14B locally via OllamaSharp NuGet — zero cost, local-first, ~80-90% of GPT-4 quality for extraction tasks |
+
 ## UI Framework (2026-03-21)
 
 - **WPF + WPF UI (lepoco/wpfui)**: Mica, Fluent controls, tray icon via WPF-UI.Tray. Best fit for Windows 11 tray app.

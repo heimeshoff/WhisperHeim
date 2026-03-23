@@ -2,6 +2,55 @@
 
 ---
 
+## 2026-03-23 -- Idea Captured: Transcript Analysis with Local LLM
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/backlog/069-transcript-analysis-with-local-llm.md
+**Summary:** AI-powered transcript analysis using Ollama + local LLM (Qwen 2.5 14B). User-defined prompt templates (action items, decisions, ideas, etc.) run against any recording. Streams results in real-time. Fully local, zero cost.
+
+---
+
+## 2026-03-23 14:30 -- Idea Captured: Pill-Shaped Waveform Overlay
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/068-pill-waveform-overlay.md
+**Summary:** Replace circular pulsing mic overlay with a horizontal pill containing animated frequency bars (orange on blue border, brand colors). Pill anchors at last global mouse click position extending rightward. Bars simulate frequency response driven by RMS amplitude with per-bar random variation. Removes old overlay position settings.
+
+---
+
+## 2026-03-23 -- Research: Transcript Analysis with LLM
+
+**Type:** Research
+**Topic:** How to analyze transcripts with AI using an existing Anthropic subscription, or alternatives
+**File:** research/transcript-analysis-with-llm.md
+**Key findings:**
+- Claude subscription cannot be used programmatically — Anthropic blocked OAuth in third-party apps since Jan 2026, API is separately billed
+- Best alternative: Ollama + local LLM (Qwen 2.5 14B) — zero cost, fully local, aligns with WhisperHeim vision
+- OllamaSharp NuGet provides mature .NET integration via IChatClient (Microsoft.Extensions.AI)
+- 1.5h transcripts (~18K tokens) fit easily in Qwen 2.5's 128K context window
+
+---
+
+## 2026-03-23 -- Idea Captured: Transcripts Page Export Cleanup
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/068-transcripts-export-cleanup.md
+**Summary:** Remove TXT download button from transcripts page, keep only MD and JSON. Change Copy button to copy Markdown format instead of plain text, and add a brief "Copied!" tooltip for feedback.
+
+---
+
+## 2026-03-23 14:00 -- Idea Captured: Dictation Page Responsive Layout
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/067-dictation-page-responsive-layout.md
+**Summary:** Fix card width alignment on dictation page, add responsive stacking (row → column) for narrow windows, make warning card responsive 50/50 → stacked, and swap hotkey row content order (pills left, label right).
+
+---
+
 ## 2026-03-22 -- Task Completed: 063 - Configurable Data Path
 
 **Type:** Task Completion
