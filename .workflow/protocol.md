@@ -2,6 +2,32 @@
 
 ---
 
+## 2026-03-23 -- Task Completed: 069 - Fix Start Minimized Setting
+
+**Type:** Task Completion
+**Task:** 069 - Fix Start Minimized Setting Ignored on Launch
+**Summary:** Replaced --minimized CLI flag check with StartMinimized setting read, removed --minimized from registry command. Build clean.
+**Files changed:** 2 files
+
+---
+
+## 2026-03-23 -- Task Started: 069 - Fix Start Minimized Setting
+
+**Type:** Task Start
+**Task:** 069 - Fix Start Minimized Setting Ignored on Launch
+**Milestone:** Bug Fix
+
+---
+
+## 2026-03-23 -- Idea Captured: Fix Start Minimized Setting Ignored
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/069-fix-start-minimized-setting.md
+**Summary:** StartMinimized setting is ignored because App.xaml.cs checks only the --minimized CLI flag instead of the setting. Fix: use the setting, drop the flag.
+
+---
+
 ## 2026-03-23 -- Task Completed: 068 - Transcripts Export Cleanup
 
 **Type:** Task Completion

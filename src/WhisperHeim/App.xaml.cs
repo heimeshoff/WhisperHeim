@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Linq;
 using System.Windows;
 using WhisperHeim.Services.Audio;
 using WhisperHeim.Services.CallTranscription;
@@ -191,8 +190,8 @@ public partial class App : Application
         _readAloudHotkeyService = new ReadAloudHotkeyService(selectedTextService, _settingsService);
         _readAloudHotkeyService.Register();
 
-        // Determine whether we were launched via auto-start (--minimized flag)
-        var startMinimized = e.Args.Contains("--minimized");
+        // Check the user's "Start Minimized" setting
+        var startMinimized = _settingsService.Current.General.StartMinimized;
 
         // Create the main window with all services
         var mainWindow = new MainWindow(

@@ -20,7 +20,7 @@ public sealed class StartupService
 
     /// <summary>
     /// Returns the command line that should be written to the registry.
-    /// Uses the current exe path with --minimized flag.
+    /// Uses the current exe path (start-minimized behavior is controlled by the app setting).
     /// </summary>
     private static string GetStartupCommand()
     {
@@ -28,7 +28,7 @@ public sealed class StartupService
             ?? System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName
             ?? throw new InvalidOperationException("Cannot determine executable path.");
 
-        return $"\"{exePath}\" --minimized";
+        return $"\"{exePath}\"";
     }
 
     /// <summary>
