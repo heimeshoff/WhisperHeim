@@ -402,6 +402,13 @@
                                     </ControlTemplate>
                                 </Button.Template>
                             </Button>
+                            <TextBlock x:Name="CopiedIndicator"
+                                       Text="Copied!"
+                                       FontSize="11" FontWeight="SemiBold"
+                                       Foreground="#FF0078D4"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,8,0"
+                                       Visibility="Collapsed" />
                             <Button Click="ExportMarkdown_Click"
                                     Margin="0,0,8,0" Padding="14,8" Cursor="Hand"
                                     BorderThickness="0">
@@ -430,10 +437,6 @@
                             </Button>
                             <Button Content="JSON" Click="ExportJson_Click"
                                     Margin="0,0,8,0" Padding="10,8"
-                                    Background="Transparent" BorderThickness="0"
-                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="11" Cursor="Hand" />
-                            <Button Content="TXT" Click="ExportText_Click"
-                                    Padding="10,8"
                                     Background="Transparent" BorderThickness="0"
                                     Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="11" Cursor="Hand" />
                         </StackPanel>

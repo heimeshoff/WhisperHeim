@@ -8,6 +8,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Microsoft.Win32;
 using WhisperHeim.Services.Audio;
 using WhisperHeim.Services.CallTranscription;
@@ -23,6 +24,7 @@ public partial class TranscriptsPage : UserControl
     private readonly ITranscriptStorageService _storageService;
     private readonly List<TranscriptListItem> _allItems = new();
     private readonly TranscriptAudioPlayer _audioPlayer = new();
+    private readonly DispatcherTimer _copiedIndicatorTimer;
     private CallTranscript? _selectedTranscript;
     private List<SegmentViewModel>? _currentSegmentViewModels;
 
@@ -34,6 +36,13 @@ public partial class TranscriptsPage : UserControl
 
         _audioPlayer.PositionChanged += OnAudioPositionChanged;
         _audioPlayer.PlaybackStopped += OnAudioPlaybackStopped;
+
+        _copiedIndicatorTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1.5) };
+        _copiedIndicatorTimer.Tick += (_, _) =>
+        {
+            CopiedIndicator.Visibility = Visibility.Collapsed;
+            _copiedIndicatorTimer.Stop();
+        };
 
         Unloaded += (_, _) =>
         {
@@ -521,10 +530,15 @@ public partial class TranscriptsPage : UserControl
     {
         if (_selectedTranscript is null) return;
 
-        var text = FormatAsPlainText(_selectedTranscript);
-        System.Windows.Clipboard.SetText(text);
+        var markdown = FormatAsMarkdown(_selectedTranscript);
+        System.Windows.Clipboard.SetText(markdown);
 
-        Trace.TraceInformation("[TranscriptsPage] Copied transcript to clipboard");
+        // Show transient "Copied!" indicator
+        CopiedIndicator.Visibility = Visibility.Visible;
+        _copiedIndicatorTimer.Stop();
+        _copiedIndicatorTimer.Start();
+
+        Trace.TraceInformation("[TranscriptsPage] Copied transcript (Markdown) to clipboard");
     }
 
     private void ExportMarkdown_Click(object sender, RoutedEventArgs e)
@@ -562,25 +576,6 @@ public partial class TranscriptsPage : UserControl
             var json = FormatAsJson(_selectedTranscript);
             File.WriteAllText(dialog.FileName, json);
             Trace.TraceInformation("[TranscriptsPage] Exported JSON to {0}", dialog.FileName);
-        }
-    }
-
-    private void ExportText_Click(object sender, RoutedEventArgs e)
-    {
-        if (_selectedTranscript is null) return;
-
-        var dialog = new SaveFileDialog
-        {
-            Filter = "Text files (*.txt)|*.txt",
-            FileName = $"transcript_{_selectedTranscript.RecordingStartedUtc:yyyyMMdd_HHmmss}.txt",
-            Title = "Export Transcript as Plain Text"
-        };
-
-        if (dialog.ShowDialog() == true)
-        {
-            var text = FormatAsPlainText(_selectedTranscript);
-            File.WriteAllText(dialog.FileName, text);
-            Trace.TraceInformation("[TranscriptsPage] Exported text to {0}", dialog.FileName);
         }
     }
 

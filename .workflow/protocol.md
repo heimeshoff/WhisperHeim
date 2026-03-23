@@ -2,6 +2,41 @@
 
 ---
 
+## 2026-03-23 -- Task Completed: 068 - Transcripts Export Cleanup
+
+**Type:** Task Completion
+**Task:** 068 - Transcripts Export Cleanup
+**Summary:** Removed TXT download button, changed Copy to use FormatAsMarkdown(), added transient "Copied!" indicator, removed ExportText_Click handler.
+**Files changed:** 2 files
+
+---
+
+## 2026-03-23 -- Task Completed: 068 - Pill Waveform Overlay
+
+**Type:** Task Completion
+**Task:** 068 - Pill Waveform Overlay
+**Summary:** Replaced circular overlay with pill-shaped frequency bar visualizer (18 bars, RMS-driven). Added global mouse hook for click-position tracking. Applied brand colors. Removed old position/size settings.
+**Files changed:** 4 files
+
+---
+
+## 2026-03-23 -- Task Completed: 067 - Dictation Page Responsive Layout
+
+**Type:** Task Completion
+**Task:** 067 - Dictation Page Responsive Layout
+**Summary:** Aligned bento grid width with audio input card, added responsive stacking at 640px breakpoint, made warning card 50/50 in wide mode, swapped hotkey row content order.
+**Files changed:** 2 files
+
+---
+
+## 2026-03-23 -- Batch Started: [067, 068-pill, 068-export]
+
+**Type:** Batch Start
+**Tasks:** 067 - Dictation Page Responsive Layout, 068 - Pill Waveform Overlay, 068 - Transcripts Export Cleanup
+**Mode:** Parallel (batch of 3)
+
+---
+
 ## 2026-03-23 -- Idea Captured: Transcript Analysis with Local LLM
 
 **Type:** Idea Capture
