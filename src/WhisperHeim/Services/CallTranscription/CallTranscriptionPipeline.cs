@@ -70,8 +70,10 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
         var guid = Guid.NewGuid().ToString("N")[..8];
         var transcriptId = $"{session.StartTimestamp:yyyyMMdd_HHmmss}_{guid}";
 
-        // ── Stage 1: Load audio ─────────────────────────────────────────
-        ReportProgress(progress, PipelineStage.LoadingAudio, 0, "Loading audio files...");
+        // ── Stage 1 & 2: Diarize each stream by reading chunks from disk ─
+        // Never load the full audio into memory. Each chunk is read from the
+        // WAV file, diarized with a fresh native diarizer, then discarded.
+        ReportProgress(progress, PipelineStage.LoadingAudio, 0, "Analyzing audio files...");
 
         Trace.TraceInformation(
             "[CallTranscriptionPipeline] Mic WAV: {0} (exists={1})",
@@ -80,58 +82,86 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
             "[CallTranscriptionPipeline] System WAV: {0} (exists={1})",
             session.SystemWavFilePath, File.Exists(session.SystemWavFilePath));
 
-        var micSamples = await Task.Run(
-            () => LoadWavSamples(session.MicWavFilePath), cancellationToken);
-        cancellationToken.ThrowIfCancellationRequested();
+        bool micExists = File.Exists(session.MicWavFilePath);
+        bool systemExists = File.Exists(session.SystemWavFilePath) &&
+            !string.Equals(session.MicWavFilePath, session.SystemWavFilePath, StringComparison.OrdinalIgnoreCase);
 
-        ReportProgress(progress, PipelineStage.LoadingAudio, 50, "Loading system audio...");
-
-        var systemSamples = await Task.Run(
-            () => LoadWavSamples(session.SystemWavFilePath), cancellationToken);
-        cancellationToken.ThrowIfCancellationRequested();
-
-        ReportProgress(progress, PipelineStage.LoadingAudio, 100, "Audio loaded.");
+        double micDurationSeconds = micExists ? GetWavDuration(session.MicWavFilePath) : 0;
+        double systemDurationSeconds = systemExists ? GetWavDuration(session.SystemWavFilePath) : 0;
 
         Trace.TraceInformation(
-            "[CallTranscriptionPipeline] Loaded audio: mic={0:F1}s, system={1:F1}s",
-            (double)micSamples.Length / ExpectedSampleRate,
-            (double)systemSamples.Length / ExpectedSampleRate);
+            "[CallTranscriptionPipeline] Audio durations: mic={0:F1}s, system={1:F1}s",
+            micDurationSeconds, systemDurationSeconds);
 
-        // ── Stage 2: Diarize ────────────────────────────────────────────
-        ReportProgress(progress, PipelineStage.Diarizing, 0, "Identifying speakers...");
-
-        var diarizationProgress = new Progress<DiarizationProgress>(dp =>
+        // -- Diarize mic stream --
+        DiarizationResult? micDiarization = null;
+        if (micExists && micDurationSeconds > 0.5)
         {
-            ReportProgress(progress, PipelineStage.Diarizing, dp.Percent,
-                $"Diarizing... {dp.Percent:F0}%");
-        });
+            ReportProgress(progress, PipelineStage.Diarizing, 0, "Diarizing microphone...");
 
-        IReadOnlyList<AttributedDiarizationSegment> diarizedSegments;
+            micDiarization = await DiarizeFromFileAsync(
+                session.MicWavFilePath, numSpeakers: 1,
+                dp =>
+                {
+                    var pct = systemExists ? dp.Percent * 0.5 : dp.Percent;
+                    ReportProgress(progress, PipelineStage.Diarizing, pct,
+                        $"Diarizing mic — chunk {dp.ProcessedChunks}/{dp.TotalChunks}");
+                },
+                cancellationToken);
 
-        if (micSamples.Length > 0 && systemSamples.Length > 0)
-        {
-            // Dual-stream diarization for best speaker attribution
-            diarizedSegments = await _diarization.DiarizeDualStreamAsync(
-                micSamples, systemSamples, diarizationProgress, cancellationToken);
+            Trace.TraceInformation(
+                "[CallTranscriptionPipeline] Mic diarization: {0} segments",
+                micDiarization.Segments.Count);
         }
-        else
-        {
-            // Fallback to single-stream if one stream is empty
-            var samples = micSamples.Length > 0 ? micSamples : systemSamples;
-            var result = await _diarization.DiarizeAsync(
-                samples, numSpeakers: -1, diarizationProgress, cancellationToken);
 
-            diarizedSegments = result.Segments
-                .Select(s => new AttributedDiarizationSegment(
-                    s.SpeakerId, s.StartTime, s.EndTime,
-                    micSamples.Length > 0 ? SpeakerSource.Microphone : SpeakerSource.Loopback))
-                .ToList();
+        // -- Diarize system stream --
+        DiarizationResult? systemDiarization = null;
+        if (systemExists && systemDurationSeconds > 0.5)
+        {
+            ReportProgress(progress, PipelineStage.Diarizing, 50, "Diarizing system audio...");
+
+            systemDiarization = await DiarizeFromFileAsync(
+                session.SystemWavFilePath, numSpeakers: -1,
+                dp =>
+                {
+                    ReportProgress(progress, PipelineStage.Diarizing, 50 + dp.Percent * 0.5,
+                        $"Diarizing system — chunk {dp.ProcessedChunks}/{dp.TotalChunks}");
+                },
+                cancellationToken);
+
+            Trace.TraceInformation(
+                "[CallTranscriptionPipeline] System diarization: {0} segments",
+                systemDiarization.Segments.Count);
         }
+
+        // -- Build attributed segments --
+        var diarizedSegments = new List<AttributedDiarizationSegment>();
+
+        if (micDiarization is not null)
+        {
+            foreach (var seg in micDiarization.Segments)
+                diarizedSegments.Add(new AttributedDiarizationSegment(
+                    SpeakerId: 0, seg.StartTime, seg.EndTime, SpeakerSource.Microphone));
+        }
+
+        if (systemDiarization is not null)
+        {
+            foreach (var seg in systemDiarization.Segments)
+                diarizedSegments.Add(new AttributedDiarizationSegment(
+                    SpeakerId: seg.SpeakerId + 1, seg.StartTime, seg.EndTime, SpeakerSource.Loopback));
+        }
+
+        // Fallback: if neither stream had data, nothing to do
+        if (diarizedSegments.Count == 0 && micDiarization is null && systemDiarization is null)
+        {
+            Trace.TraceWarning("[CallTranscriptionPipeline] No audio data to process.");
+        }
+
+        diarizedSegments.Sort((a, b) => a.StartTime.CompareTo(b.StartTime));
 
         ReportProgress(progress, PipelineStage.Diarizing, 100,
             $"Diarization complete: {diarizedSegments.Count} segments found.");
 
-        // Log each diarization segment for diagnostics
         for (int i = 0; i < diarizedSegments.Count; i++)
         {
             var ds = diarizedSegments[i];
@@ -148,11 +178,9 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
             diarizedSegments.Count);
 
         // ── Stage 3: Transcribe each segment ────────────────────────────
+        // Extract audio segments directly from WAV files on disk to avoid
+        // holding the full audio in memory.
         ReportProgress(progress, PipelineStage.Transcribing, 0, "Transcribing segments...");
-
-        // Combine mic and system audio into a single mixed stream for extracting segments.
-        // We use the longer stream's length as the reference.
-        var combinedSamples = MixAudioStreams(micSamples, systemSamples);
 
         var transcriptSegments = new List<TranscriptSegment>();
         int totalSegments = diarizedSegments.Count;
@@ -170,13 +198,13 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
             ReportProgress(progress, PipelineStage.Transcribing, segPercent,
                 $"Transcribing segment {i + 1}/{totalSegments} ({speakerLabel})...");
 
-            // Extract the audio segment based on which source it came from
-            float[] segmentSamples = seg.Source switch
-            {
-                SpeakerSource.Microphone => ExtractSegment(micSamples, seg.StartTime, seg.EndTime),
-                SpeakerSource.Loopback => ExtractSegment(systemSamples, seg.StartTime, seg.EndTime),
-                _ => ExtractSegment(combinedSamples, seg.StartTime, seg.EndTime),
-            };
+            // Read only the segment's time range from the WAV file
+            var wavPath = seg.Source == SpeakerSource.Microphone
+                ? session.MicWavFilePath
+                : session.SystemWavFilePath;
+
+            float[] segmentSamples = await Task.Run(
+                () => LoadWavSegment(wavPath, seg.StartTime, seg.EndTime), cancellationToken);
 
             Trace.TraceInformation(
                 "[CallTranscriptionPipeline] Segment {0}: {1} samples ({2:F2}s) from {3}",
@@ -289,6 +317,9 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
 
         using var reader = new AudioFileReader(wavFilePath);
 
+        // Estimate output sample count to pre-allocate (avoids List doubling OOM on long recordings)
+        long estimatedSamples = (long)(reader.TotalTime.TotalSeconds * ExpectedSampleRate) + ExpectedSampleRate;
+
         // If the file is already 16kHz mono float, read directly
         // Otherwise NAudio's AudioFileReader handles conversion to float
         var sampleProvider = reader.ToSampleProvider();
@@ -305,69 +336,336 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
             var resampler = new NAudio.Wave.SampleProviders.WdlResamplingSampleProvider(
                 (ISampleProvider)mono, ExpectedSampleRate);
 
-            return ReadAllSamples(resampler);
+            return ReadAllSamples(resampler, estimatedSamples);
         }
 
-        return ReadAllSamples(sampleProvider);
+        return ReadAllSamples(sampleProvider, estimatedSamples);
     }
 
     /// <summary>
     /// Reads all samples from a sample provider into a float array.
+    /// Pre-allocates based on expected duration to avoid repeated List doubling.
     /// </summary>
-    private static float[] ReadAllSamples(ISampleProvider provider)
+    private static float[] ReadAllSamples(ISampleProvider provider, long estimatedSampleCount = 0)
     {
-        var buffer = new float[ExpectedSampleRate]; // 1 second buffer
-        var allSamples = new List<float>();
+        var buffer = new float[ExpectedSampleRate]; // 1 second read buffer
+
+        // Pre-allocate to avoid repeated array doubling for long recordings
+        int capacity = estimatedSampleCount > 0
+            ? (int)Math.Min(estimatedSampleCount, int.MaxValue)
+            : ExpectedSampleRate * 60; // default 1 minute
+        var allSamples = new List<float>(capacity);
 
         int samplesRead;
         while ((samplesRead = provider.Read(buffer, 0, buffer.Length)) > 0)
         {
-            for (int i = 0; i < samplesRead; i++)
-                allSamples.Add(buffer[i]);
+            allSamples.AddRange(buffer.AsSpan(0, samplesRead).ToArray());
         }
 
         return allSamples.ToArray();
     }
 
     /// <summary>
-    /// Extracts a time-range of samples from an audio array.
+    /// Runs diarization for a chunk in a separate child process.
+    /// If the child crashes (native access violation), returns null instead of killing the app.
     /// </summary>
-    private static float[] ExtractSegment(float[] samples, TimeSpan startTime, TimeSpan endTime)
+    private static async Task<DiarizationResult?> DiarizeChunkOutOfProcessAsync(
+        float[] samples,
+        int numSpeakers,
+        CancellationToken cancellationToken)
     {
-        int startSample = (int)(startTime.TotalSeconds * ExpectedSampleRate);
-        int endSample = (int)(endTime.TotalSeconds * ExpectedSampleRate);
+        var tempFile = Path.Combine(Path.GetTempPath(), $"wh_diarize_{Guid.NewGuid():N}.raw");
 
-        startSample = Math.Max(0, Math.Min(startSample, samples.Length));
-        endSample = Math.Max(startSample, Math.Min(endSample, samples.Length));
+        try
+        {
+            // Write raw float bytes to temp file
+            var bytes = new byte[samples.Length * 4];
+            Buffer.BlockCopy(samples, 0, bytes, 0, bytes.Length);
+            await File.WriteAllBytesAsync(tempFile, bytes, cancellationToken);
 
-        int length = endSample - startSample;
-        if (length <= 0)
-            return [];
+            var exePath = Environment.ProcessPath
+                ?? throw new InvalidOperationException("Cannot determine process path.");
 
-        var segment = new float[length];
-        Array.Copy(samples, startSample, segment, 0, length);
-        return segment;
+            var segModel = Models.ModelManagerService.PyannoteSegmentationModelPath;
+            var embModel = Models.ModelManagerService.SpeakerEmbeddingModelPath;
+
+            using var proc = new System.Diagnostics.Process();
+            proc.StartInfo = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = exePath,
+                Arguments = $"--diarize-worker --samples \"{tempFile}\" " +
+                            $"--segmentation \"{segModel}\" " +
+                            $"--embedding \"{embModel}\" " +
+                            $"--num-speakers {numSpeakers}",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true,
+            };
+
+            proc.Start();
+
+            var stdoutTask = proc.StandardOutput.ReadToEndAsync(cancellationToken);
+            var stderrTask = proc.StandardError.ReadToEndAsync(cancellationToken);
+
+            // Timeout: 2 minutes per chunk should be more than enough
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromMinutes(2));
+
+            try
+            {
+                await proc.WaitForExitAsync(timeoutCts.Token);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                // Timeout — kill the child
+                try { proc.Kill(entireProcessTree: true); } catch { }
+                Trace.TraceWarning("[CallTranscriptionPipeline] Diarization child process timed out.");
+                return null;
+            }
+
+            var stdout = await stdoutTask;
+            var stderr = await stderrTask;
+
+            if (proc.ExitCode != 0)
+            {
+                Trace.TraceWarning(
+                    "[CallTranscriptionPipeline] Diarization child process exited with code {0}. stderr: {1}",
+                    proc.ExitCode, stderr.Length > 500 ? stderr[..500] : stderr);
+                return null;
+            }
+
+            // Parse JSON output
+            var dtos = System.Text.Json.JsonSerializer.Deserialize<
+                Diarization.DiarizationWorker.DiarizationSegmentDto[]>(stdout);
+
+            if (dtos is null)
+                return new DiarizationResult([], 0, TimeSpan.Zero, TimeSpan.Zero);
+
+            var segments = new List<Diarization.DiarizationSegment>();
+            var speakerIds = new HashSet<int>();
+
+            foreach (var dto in dtos)
+            {
+                var start = TimeSpan.FromSeconds(dto.Start);
+                var end = TimeSpan.FromSeconds(dto.End);
+                if (end <= start) continue;
+                segments.Add(new Diarization.DiarizationSegment(dto.Speaker, start, end));
+                speakerIds.Add(dto.Speaker);
+            }
+
+            return new DiarizationResult(
+                segments, speakerIds.Count,
+                TimeSpan.FromSeconds((double)samples.Length / ExpectedSampleRate),
+                TimeSpan.Zero);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            Trace.TraceError(
+                "[CallTranscriptionPipeline] Out-of-process diarization error: {0}", ex.Message);
+            return null;
+        }
+        finally
+        {
+            try { File.Delete(tempFile); } catch { }
+        }
     }
 
     /// <summary>
-    /// Mixes two audio streams by averaging overlapping samples.
-    /// Used as fallback when source attribution is unknown.
+    /// Gets the total duration of a WAV file without loading it into memory.
     /// </summary>
-    private static float[] MixAudioStreams(float[] stream1, float[] stream2)
+    private static double GetWavDuration(string wavFilePath)
     {
-        int maxLength = Math.Max(stream1.Length, stream2.Length);
-        if (maxLength == 0)
-            return [];
+        using var reader = new AudioFileReader(wavFilePath);
+        return reader.TotalTime.TotalSeconds;
+    }
 
-        var mixed = new float[maxLength];
-        for (int i = 0; i < maxLength; i++)
+    /// <summary>
+    /// Diarizes a WAV file by reading it in chunks from disk.
+    /// Never holds more than one chunk (~120s) in memory at a time.
+    /// Each chunk gets a fresh native diarizer to prevent memory accumulation.
+    /// </summary>
+    private async Task<DiarizationResult> DiarizeFromFileAsync(
+        string wavFilePath,
+        int numSpeakers,
+        Action<DiarizationProgress> onProgress,
+        CancellationToken cancellationToken)
+    {
+        const int chunkSeconds = 30;
+        const int overlapSeconds = 3;
+
+        double totalSeconds = GetWavDuration(wavFilePath);
+
+        // For short files (under 2 minutes), load and diarize in one chunk
+        if (totalSeconds <= 120)
         {
-            float s1 = i < stream1.Length ? stream1[i] : 0f;
-            float s2 = i < stream2.Length ? stream2[i] : 0f;
-            mixed[i] = (s1 + s2) * 0.5f;
+            var samples = await Task.Run(() => LoadWavSamples(wavFilePath), cancellationToken);
+            var result = await DiarizeChunkOutOfProcessAsync(samples, numSpeakers, cancellationToken);
+            return result ?? new DiarizationResult([], 0, TimeSpan.FromSeconds(totalSeconds), TimeSpan.Zero);
         }
 
-        return mixed;
+        Trace.TraceInformation(
+            "[CallTranscriptionPipeline] Diarizing {0:F0}s from file in {1}s chunks",
+            totalSeconds, chunkSeconds);
+
+        var sw = Stopwatch.StartNew();
+        var allSegments = new List<DiarizationSegment>();
+        var speakerIds = new HashSet<int>();
+
+        int stepSeconds = chunkSeconds - overlapSeconds;
+        int totalChunks = (int)Math.Ceiling((totalSeconds - overlapSeconds) / stepSeconds);
+        int chunkIndex = 0;
+
+        for (double offsetSec = 0; offsetSec < totalSeconds; offsetSec += stepSeconds)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            double lengthSec = Math.Min(chunkSeconds, totalSeconds - offsetSec);
+            if (lengthSec < 1.0)
+                break;
+
+            var proc = System.Diagnostics.Process.GetCurrentProcess();
+            Trace.TraceInformation(
+                "[CallTranscriptionPipeline] Diarizing chunk {0}/{1} (offset={2:F1}s, length={3:F1}s) " +
+                "[memory: managed={4:F0}MB, working={5:F0}MB, private={6:F0}MB]",
+                chunkIndex + 1, totalChunks, offsetSec, lengthSec,
+                GC.GetTotalMemory(false) / 1048576.0,
+                proc.WorkingSet64 / 1048576.0,
+                proc.PrivateMemorySize64 / 1048576.0);
+
+            // Read just this chunk from the WAV file
+            var chunkSamples = await Task.Run(
+                () => LoadWavSegment(wavFilePath, TimeSpan.FromSeconds(offsetSec),
+                    TimeSpan.FromSeconds(offsetSec + lengthSec)),
+                cancellationToken);
+
+            if (chunkSamples.Length < ExpectedSampleRate)
+            {
+                chunkIndex++;
+                continue;
+            }
+
+            // Run diarization in a child process so native crashes (access violations
+            // in sherpa-onnx) don't kill the main application. If the child crashes,
+            // we skip the chunk and continue with the rest of the recording.
+            var chunkResult = await DiarizeChunkOutOfProcessAsync(
+                chunkSamples, numSpeakers, cancellationToken);
+
+            if (chunkResult is null)
+            {
+                Trace.TraceWarning(
+                    "[CallTranscriptionPipeline] Diarization failed for chunk {0}/{1} " +
+                    "(offset={2:F1}s) — skipping.",
+                    chunkIndex + 1, totalChunks, offsetSec);
+                chunkIndex++;
+                continue;
+            }
+
+            // Release chunk and nudge GC to reclaim managed memory between chunks
+            chunkSamples = null;
+            GC.Collect(0, GCCollectionMode.Default, blocking: false);
+
+            proc.Refresh();
+            Trace.TraceInformation(
+                "[CallTranscriptionPipeline] Chunk {0}/{1} done — {2} segments " +
+                "[memory: managed={3:F0}MB, working={4:F0}MB, private={5:F0}MB]",
+                chunkIndex + 1, totalChunks, chunkResult.Segments.Count,
+                GC.GetTotalMemory(false) / 1048576.0,
+                proc.WorkingSet64 / 1048576.0,
+                proc.PrivateMemorySize64 / 1048576.0);
+
+            // Report progress
+            onProgress(new DiarizationProgress
+            {
+                ProcessedChunks = chunkIndex + 1,
+                TotalChunks = totalChunks,
+            });
+
+            // Offset segments to absolute timeline, deduplicate overlap zone
+            double keepFrom = offsetSec == 0 ? 0 : offsetSec + overlapSeconds / 2.0;
+            double keepTo = (offsetSec + stepSeconds >= totalSeconds)
+                ? double.MaxValue
+                : offsetSec + stepSeconds + overlapSeconds / 2.0;
+
+            foreach (var seg in chunkResult.Segments)
+            {
+                var absoluteStart = seg.StartTime + TimeSpan.FromSeconds(offsetSec);
+                var absoluteEnd = seg.EndTime + TimeSpan.FromSeconds(offsetSec);
+                double midpoint = (absoluteStart.TotalSeconds + absoluteEnd.TotalSeconds) / 2.0;
+
+                if (midpoint >= keepFrom && midpoint < keepTo)
+                {
+                    allSegments.Add(new DiarizationSegment(
+                        seg.SpeakerId, absoluteStart, absoluteEnd));
+                    speakerIds.Add(seg.SpeakerId);
+                }
+            }
+
+            chunkIndex++;
+        }
+
+        sw.Stop();
+        allSegments.Sort((a, b) => a.StartTime.CompareTo(b.StartTime));
+
+        Trace.TraceInformation(
+            "[CallTranscriptionPipeline] File diarization complete: {0:F1}s in {1:F0}ms — {2} speakers, {3} segments ({4} chunks)",
+            totalSeconds, sw.Elapsed.TotalMilliseconds, speakerIds.Count, allSegments.Count, chunkIndex);
+
+        return new DiarizationResult(
+            allSegments, speakerIds.Count,
+            TimeSpan.FromSeconds(totalSeconds), sw.Elapsed);
+    }
+
+    /// <summary>
+    /// Loads a time range from a WAV file, resampling to 16kHz mono.
+    /// Only reads the necessary portion from disk — does not load the full file.
+    /// </summary>
+    private static float[] LoadWavSegment(string wavFilePath, TimeSpan startTime, TimeSpan endTime)
+    {
+        if (!File.Exists(wavFilePath))
+            return [];
+
+        using var reader = new AudioFileReader(wavFilePath);
+
+        // Seek to start position (AudioFileReader works in bytes for the underlying stream)
+        if (startTime > TimeSpan.Zero && startTime < reader.TotalTime)
+        {
+            reader.CurrentTime = startTime;
+        }
+
+        var sampleProvider = reader.ToSampleProvider();
+
+        // Resample/downmix if needed
+        ISampleProvider provider;
+        if (reader.WaveFormat.SampleRate != ExpectedSampleRate || reader.WaveFormat.Channels != 1)
+        {
+            var mono = reader.WaveFormat.Channels > 1
+                ? new NAudio.Wave.SampleProviders.StereoToMonoSampleProvider(sampleProvider)
+                : sampleProvider;
+            provider = new NAudio.Wave.SampleProviders.WdlResamplingSampleProvider(
+                (ISampleProvider)mono, ExpectedSampleRate);
+        }
+        else
+        {
+            provider = sampleProvider;
+        }
+
+        var duration = endTime - startTime;
+        int expectedSamples = (int)(duration.TotalSeconds * ExpectedSampleRate) + ExpectedSampleRate;
+        var result = new List<float>(expectedSamples);
+        var buffer = new float[ExpectedSampleRate]; // 1 second read buffer
+        int maxSamples = (int)(duration.TotalSeconds * ExpectedSampleRate) + 1;
+
+        int totalRead = 0;
+        int samplesRead;
+        while (totalRead < maxSamples &&
+               (samplesRead = provider.Read(buffer, 0, Math.Min(buffer.Length, maxSamples - totalRead))) > 0)
+        {
+            result.AddRange(buffer.AsSpan(0, samplesRead).ToArray());
+            totalRead += samplesRead;
+        }
+
+        return result.ToArray();
     }
 
     /// <summary>

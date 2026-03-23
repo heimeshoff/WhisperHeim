@@ -28,6 +28,24 @@ public sealed class SpeakerDiarizationService : ISpeakerDiarizationService
     /// </summary>
     private const int ExpectedSampleRate = 16000;
 
+    /// <summary>
+    /// Maximum audio chunk duration for diarization (in seconds).
+    /// Audio longer than this is split into overlapping chunks to avoid native OOM.
+    /// 5 minutes keeps peak native memory under ~400 MB.
+    /// </summary>
+    /// <summary>
+    /// Callers that need chunking (e.g. CallTranscriptionPipeline) should handle it
+    /// themselves and pass pre-chunked audio. This threshold is a safety net for
+    /// direct callers passing unexpectedly long audio.
+    /// </summary>
+    private const int MaxChunkSeconds = 300;
+
+    /// <summary>
+    /// Overlap between adjacent chunks (in seconds).
+    /// Ensures speaker segments at chunk boundaries are not truncated.
+    /// </summary>
+    private const int ChunkOverlapSeconds = 10;
+
     private OfflineSpeakerDiarization? _diarizer;
     private readonly object _lock = new();
     private bool _disposed;
@@ -43,6 +61,17 @@ public sealed class SpeakerDiarizationService : ISpeakerDiarizationService
         if (_diarizer is not null)
             return;
 
+        _diarizer = CreateDiarizer();
+
+        Trace.TraceInformation(
+            "[SpeakerDiarizationService] Models loaded (segmentation={0}, embedding={1}, threads={2})",
+            Path.GetFileName(ModelManagerService.PyannoteSegmentationModelPath),
+            Path.GetFileName(ModelManagerService.SpeakerEmbeddingModelPath),
+            Math.Min(Environment.ProcessorCount, 4));
+    }
+
+    private static OfflineSpeakerDiarizationConfig CreateConfig(int numSpeakers = -1)
+    {
         var segmentationPath = ModelManagerService.PyannoteSegmentationModelPath;
         var embeddingPath = ModelManagerService.SpeakerEmbeddingModelPath;
 
@@ -62,17 +91,24 @@ public sealed class SpeakerDiarizationService : ISpeakerDiarizationService
         config.Embedding.Debug = 0;
         config.Embedding.Provider = "cpu";
 
-        config.Clustering.NumClusters = -1; // Auto-detect by default
+        config.Clustering.NumClusters = numSpeakers;
         config.Clustering.Threshold = DefaultClusteringThreshold;
 
-        config.MinDurationOn = 0.3f;  // Minimum speech duration (seconds)
-        config.MinDurationOff = 0.5f; // Minimum silence duration (seconds)
+        config.MinDurationOn = 0.3f;
+        config.MinDurationOff = 0.5f;
+
+        return config;
+    }
+
+    private static OfflineSpeakerDiarization CreateDiarizer(int numSpeakers = -1)
+    {
+        var config = CreateConfig(numSpeakers);
 
         try
         {
-            _diarizer = new OfflineSpeakerDiarization(config);
+            var diarizer = new OfflineSpeakerDiarization(config);
 
-            int sampleRate = _diarizer.SampleRate;
+            int sampleRate = diarizer.SampleRate;
             if (sampleRate != ExpectedSampleRate)
             {
                 Trace.TraceWarning(
@@ -80,11 +116,7 @@ public sealed class SpeakerDiarizationService : ISpeakerDiarizationService
                     sampleRate, ExpectedSampleRate);
             }
 
-            Trace.TraceInformation(
-                "[SpeakerDiarizationService] Models loaded (segmentation={0}, embedding={1}, threads={2})",
-                Path.GetFileName(segmentationPath),
-                Path.GetFileName(embeddingPath),
-                numThreads);
+            return diarizer;
         }
         catch (Exception ex)
         {
@@ -118,21 +150,128 @@ public sealed class SpeakerDiarizationService : ISpeakerDiarizationService
         }
 
         var audioDuration = TimeSpan.FromSeconds((double)samples.Length / ExpectedSampleRate);
+        var totalSeconds = audioDuration.TotalSeconds;
 
-        var result = await Task.Run(() =>
+        // For short audio, process directly
+        if (totalSeconds <= MaxChunkSeconds)
+        {
+            var result = await Task.Run(() =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return ProcessDiarization(samples, numSpeakers, progress, cancellationToken);
+            }, cancellationToken);
+
+            Trace.TraceInformation(
+                "[SpeakerDiarizationService] Diarized {0:F1}s audio in {1:F0}ms — {2} speakers, {3} segments",
+                audioDuration.TotalSeconds,
+                result.ProcessingDuration.TotalMilliseconds,
+                result.SpeakerCount,
+                result.Segments.Count);
+
+            return result;
+        }
+
+        // For long audio, process in overlapping chunks to avoid native OOM.
+        // Each chunk gets a fresh native diarizer instance that is disposed after use,
+        // ensuring native memory is fully released between chunks.
+        Trace.TraceInformation(
+            "[SpeakerDiarizationService] Audio is {0:F0}s — splitting into {1}s chunks with {2}s overlap",
+            totalSeconds, MaxChunkSeconds, ChunkOverlapSeconds);
+
+        var sw = Stopwatch.StartNew();
+        var allSegments = new List<DiarizationSegment>();
+        var speakerIds = new HashSet<int>();
+
+        int chunkSamples = MaxChunkSeconds * ExpectedSampleRate;
+        int overlapSamples = ChunkOverlapSeconds * ExpectedSampleRate;
+        int stepSamples = chunkSamples - overlapSamples;
+
+        int totalChunks = (int)Math.Ceiling((double)(samples.Length - overlapSamples) / stepSamples);
+        int chunkIndex = 0;
+
+        for (int offset = 0; offset < samples.Length; offset += stepSamples)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            return ProcessDiarization(samples, numSpeakers, progress, cancellationToken);
-        }, cancellationToken);
+
+            int length = Math.Min(chunkSamples, samples.Length - offset);
+            if (length < ExpectedSampleRate) // Skip chunks shorter than 1 second
+                break;
+
+            var chunk = new float[length];
+            Array.Copy(samples, offset, chunk, 0, length);
+
+            double chunkOffsetSeconds = (double)offset / ExpectedSampleRate;
+
+            Trace.TraceInformation(
+                "[SpeakerDiarizationService] Processing chunk {0}/{1} (offset={2:F1}s, length={3:F1}s)",
+                chunkIndex + 1, totalChunks, chunkOffsetSeconds, (double)length / ExpectedSampleRate);
+
+            // Report overall progress across chunks
+            int ci = chunkIndex; // capture for closure
+            IProgress<DiarizationProgress>? chunkProgress = progress is not null
+                ? new Progress<DiarizationProgress>(dp =>
+                {
+                    var overallPercent = ((double)ci / totalChunks +
+                        dp.Percent / 100.0 / totalChunks) * 100.0;
+                    progress.Report(new DiarizationProgress
+                    {
+                        ProcessedChunks = (int)overallPercent,
+                        TotalChunks = 100,
+                    });
+                })
+                : null;
+
+            var chunkResult = await Task.Run(() =>
+                ProcessDiarization(chunk, numSpeakers, chunkProgress, cancellationToken),
+                cancellationToken);
+
+            // Offset segment times back to the original audio timeline.
+            // For overlapping regions, only keep segments whose midpoint falls
+            // within this chunk's non-overlapping zone.
+            double keepFrom = offset == 0 ? 0 : chunkOffsetSeconds + ChunkOverlapSeconds / 2.0;
+            double keepTo = (offset + stepSamples >= samples.Length)
+                ? double.MaxValue
+                : chunkOffsetSeconds + (double)stepSamples + ChunkOverlapSeconds / 2.0;
+
+            foreach (var seg in chunkResult.Segments)
+            {
+                var absoluteStart = seg.StartTime + TimeSpan.FromSeconds(chunkOffsetSeconds);
+                var absoluteEnd = seg.EndTime + TimeSpan.FromSeconds(chunkOffsetSeconds);
+                double midpoint = (absoluteStart.TotalSeconds + absoluteEnd.TotalSeconds) / 2.0;
+
+                if (midpoint >= keepFrom && midpoint < keepTo)
+                {
+                    allSegments.Add(new DiarizationSegment(
+                        SpeakerId: seg.SpeakerId,
+                        StartTime: absoluteStart,
+                        EndTime: absoluteEnd));
+                    speakerIds.Add(seg.SpeakerId);
+                }
+            }
+
+            chunkIndex++;
+        }
+
+        sw.Stop();
+
+        // Sort by start time
+        allSegments.Sort((a, b) => a.StartTime.CompareTo(b.StartTime));
+
+        var finalResult = new DiarizationResult(
+            Segments: allSegments,
+            SpeakerCount: speakerIds.Count,
+            AudioDuration: audioDuration,
+            ProcessingDuration: sw.Elapsed);
 
         Trace.TraceInformation(
-            "[SpeakerDiarizationService] Diarized {0:F1}s audio in {1:F0}ms — {2} speakers, {3} segments",
+            "[SpeakerDiarizationService] Chunked diarization of {0:F1}s audio in {1:F0}ms — {2} speakers, {3} segments ({4} chunks)",
             audioDuration.TotalSeconds,
-            result.ProcessingDuration.TotalMilliseconds,
-            result.SpeakerCount,
-            result.Segments.Count);
+            sw.Elapsed.TotalMilliseconds,
+            speakerIds.Count,
+            allSegments.Count,
+            chunkIndex);
 
-        return result;
+        return finalResult;
     }
 
     /// <inheritdoc />
@@ -206,28 +345,25 @@ public sealed class SpeakerDiarizationService : ISpeakerDiarizationService
 
         OfflineSpeakerDiarizationSegment[] rawSegments;
 
+        // Pin the samples array so the GC cannot move it while native code
+        // is processing (the sherpa-onnx P/Invoke runs for seconds at a time,
+        // and GC compaction on other threads can invalidate the pointer).
+        var pinHandle = System.Runtime.InteropServices.GCHandle.Alloc(
+            samples, System.Runtime.InteropServices.GCHandleType.Pinned);
+        try
+        {
         lock (_lock)
         {
             // Update clustering config if numSpeakers is specified
             if (numSpeakers > 0)
             {
-                var config = new OfflineSpeakerDiarizationConfig();
-                config.Segmentation.Pyannote.Model = ModelManagerService.PyannoteSegmentationModelPath;
-                config.Segmentation.NumThreads = Math.Min(Environment.ProcessorCount, 4);
-                config.Segmentation.Provider = "cpu";
-                config.Embedding.Model = ModelManagerService.SpeakerEmbeddingModelPath;
-                config.Embedding.NumThreads = Math.Min(Environment.ProcessorCount, 4);
-                config.Embedding.Provider = "cpu";
-                config.Clustering.NumClusters = numSpeakers;
-                config.Clustering.Threshold = DefaultClusteringThreshold;
-                config.MinDurationOn = 0.3f;
-                config.MinDurationOff = 0.5f;
-                _diarizer!.SetConfig(config);
+                _diarizer!.SetConfig(CreateConfig(numSpeakers));
             }
 
             if (progress != null)
             {
-                // Use the callback variant for progress reporting
+                // Use the callback variant for progress reporting.
+                // Pin the delegate so the GC cannot collect it during native execution.
                 OfflineSpeakerDiarizationProgressCallback callback =
                     (numProcessedChunks, numTotalChunks, _) =>
                     {
@@ -237,10 +373,11 @@ public sealed class SpeakerDiarizationService : ISpeakerDiarizationService
                             TotalChunks = numTotalChunks,
                         });
 
-                        // Return 0 to continue, non-zero to abort
                         return cancellationToken.IsCancellationRequested ? 1 : 0;
                     };
 
+                // Prevent GC from collecting the delegate during native call
+                GC.KeepAlive(callback);
                 rawSegments = _diarizer!.ProcessWithCallback(samples, callback, IntPtr.Zero);
             }
             else
@@ -251,19 +388,13 @@ public sealed class SpeakerDiarizationService : ISpeakerDiarizationService
             // Reset to auto-detect for next call if we changed it
             if (numSpeakers > 0)
             {
-                var resetConfig = new OfflineSpeakerDiarizationConfig();
-                resetConfig.Segmentation.Pyannote.Model = ModelManagerService.PyannoteSegmentationModelPath;
-                resetConfig.Segmentation.NumThreads = Math.Min(Environment.ProcessorCount, 4);
-                resetConfig.Segmentation.Provider = "cpu";
-                resetConfig.Embedding.Model = ModelManagerService.SpeakerEmbeddingModelPath;
-                resetConfig.Embedding.NumThreads = Math.Min(Environment.ProcessorCount, 4);
-                resetConfig.Embedding.Provider = "cpu";
-                resetConfig.Clustering.NumClusters = -1;
-                resetConfig.Clustering.Threshold = DefaultClusteringThreshold;
-                resetConfig.MinDurationOn = 0.3f;
-                resetConfig.MinDurationOff = 0.5f;
-                _diarizer.SetConfig(resetConfig);
+                _diarizer.SetConfig(CreateConfig(-1));
             }
+        }
+        }
+        finally
+        {
+            pinHandle.Free();
         }
 
         sw.Stop();

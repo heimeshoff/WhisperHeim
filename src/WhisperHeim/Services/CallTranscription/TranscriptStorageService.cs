@@ -162,6 +162,31 @@ public sealed class TranscriptStorageService : ITranscriptStorageService
     }
 
     /// <summary>
+    /// Returns session directories that contain WAV files but no transcript.json.
+    /// Each entry is the full path to the session directory.
+    /// </summary>
+    public IReadOnlyList<string> ListPendingSessions()
+    {
+        var recordingsDir = _dataPathService.RecordingsPath;
+        if (!Directory.Exists(recordingsDir))
+            return Array.Empty<string>();
+
+        var pending = new List<string>();
+        foreach (var sessionDir in Directory.GetDirectories(recordingsDir))
+        {
+            var hasTranscript = File.Exists(Path.Combine(sessionDir, "transcript.json"));
+            if (hasTranscript)
+                continue;
+
+            var hasWav = Directory.GetFiles(sessionDir, "*.wav").Length > 0;
+            if (hasWav)
+                pending.Add(sessionDir);
+        }
+
+        return pending.OrderByDescending(d => d).ToArray();
+    }
+
+    /// <summary>
     /// Deletes an entire recording session directory (transcript + WAV files).
     /// </summary>
     public void DeleteSession(string transcriptFilePath)

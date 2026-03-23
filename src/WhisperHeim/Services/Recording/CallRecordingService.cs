@@ -116,8 +116,9 @@ public sealed class CallRecordingService : ICallRecordingService
             _micCapture.AudioDataAvailable += OnMicDataAvailable;
             _micCapture.CaptureStopped += OnMicCaptureStopped;
 
-            // Start loopback capture (it writes its own WAV via TempWavFilePath)
+            // Start loopback capture — write directly to session directory
             _loopbackCapture = new LoopbackCaptureService();
+            _loopbackCapture.OutputFilePath = systemWavFilePath;
             _loopbackCapture.CaptureStopped += OnLoopbackCaptureStopped;
 
             // Start both streams -- if one fails, continue with the other
@@ -141,19 +142,6 @@ public sealed class CallRecordingService : ICallRecordingService
             {
                 _loopbackCapture.StartCapture();
                 _systemStreamActive = true;
-
-                // The LoopbackCaptureService writes to its own temp file;
-                // update the session's system path to match the actual path used
-                if (_loopbackCapture.TempWavFilePath is not null &&
-                    _loopbackCapture.TempWavFilePath != systemWavFilePath)
-                {
-                    // LoopbackCaptureService generates its own file path,
-                    // so we update our session to reference it.
-                    _currentSession = new CallRecordingSession(
-                        _micWavFilePath,
-                        _loopbackCapture.TempWavFilePath,
-                        startTimestamp);
-                }
             }
             catch (Exception ex)
             {

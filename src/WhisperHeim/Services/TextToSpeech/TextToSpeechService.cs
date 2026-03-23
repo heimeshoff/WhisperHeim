@@ -60,6 +60,21 @@ public sealed class TextToSpeechService : ITextToSpeechService
     public bool IsLoaded => _tts is not null;
 
     /// <inheritdoc />
+    public void UnloadModel()
+    {
+        lock (_lock)
+        {
+            if (_tts is not null)
+            {
+                _tts.Dispose();
+                _tts = null;
+                _wavSampleCache.Clear();
+                Trace.TraceInformation("[TTS] Model unloaded to free native memory.");
+            }
+        }
+    }
+
+    /// <inheritdoc />
     public void LoadModel()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);

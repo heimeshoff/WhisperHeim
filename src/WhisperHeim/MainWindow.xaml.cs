@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -79,6 +80,10 @@ public partial class MainWindow : FluentWindow
     // Cache pages so they are not recreated on every navigation
     private readonly Dictionary<string, object> _pageCache = new();
 
+    // Sequential transcription queue — ensures only one pipeline runs at a time
+    private readonly Queue<CallRecordingSession> _transcriptionQueue = new();
+    private bool _isTranscriptionRunning;
+
     // Sidebar collapsed state
     private bool _isSidebarCollapsed;
     private const double SidebarExpandedWidth = 200;
@@ -154,16 +159,33 @@ public partial class MainWindow : FluentWindow
     /// </summary>
     public void InitializeTrayAndHide()
     {
-        ShowActivated = false;
-        ShowInTaskbar = false;
+        // Remember the real position/size set by RestoreWindowPosition() in the constructor.
         var savedLeft = Left;
         var savedTop = Top;
-        Left = -32000;
-        Top = -32000;
+        var savedWidth = Width;
+        var savedHeight = Height;
+
+        // Create the Win32 HWND without showing the window at all.
+        var helper = new System.Windows.Interop.WindowInteropHelper(this);
+        helper.EnsureHandle();
+
+        // Move the window off-screen and make it zero-size at the Win32 level
+        // BEFORE any WPF render pass can display it.
+        SetWindowPos(helper.Handle, IntPtr.Zero, -32000, -32000, 0, 0,
+            SWP_NOZORDER | SWP_NOACTIVATE);
+
+        // Show (triggers visual tree load / tray icon registration) then hide.
+        // The window is zero-size and off-screen so nothing is visible.
+        ShowActivated = false;
+        ShowInTaskbar = false;
         Show();
         Hide();
+
+        // Restore the real position/size so the next ShowWindow() opens correctly.
         Left = savedLeft;
         Top = savedTop;
+        Width = savedWidth;
+        Height = savedHeight;
     }
 
     private void SetupHotkeysAndOrchestration()
@@ -378,50 +400,116 @@ public partial class MainWindow : FluentWindow
                 return;
             }
 
-            // Auto-trigger transcription pipeline with progress dialog
-            StartPostRecordingTranscription(e.Session);
+            // Auto-trigger transcription pipeline via the queue
+            EnqueueTranscription(e.Session);
         });
     }
 
-    private async void StartPostRecordingTranscription(CallRecordingSession session)
+    private void EnqueueTranscription(CallRecordingSession session)
     {
-        Trace.TraceInformation("[MainWindow] Starting post-recording transcription pipeline (background).");
-        Trace.TraceInformation("[MainWindow] Session: mic={0}, system={1}",
-            session.MicWavFilePath, session.SystemWavFilePath);
+        _transcriptionQueue.Enqueue(session);
+        Trace.TraceInformation(
+            "[MainWindow] Enqueued transcription. Queue depth: {0}", _transcriptionQueue.Count);
 
-        // Show "transcribing..." indicator on the Transcripts page
+        UpdateTranscriptionQueueUI();
+        ProcessTranscriptionQueue();
+    }
+
+    private async void ProcessTranscriptionQueue()
+    {
+        if (_isTranscriptionRunning)
+            return;
+
+        if (_transcriptionQueue.Count == 0)
+            return;
+
+        _isTranscriptionRunning = true;
         var transcriptsPage = GetOrCreateTranscriptsPage();
-        transcriptsPage.ShowTranscribingIndicator();
 
-        try
+        // Temporarily unload TTS model to free ~500MB native memory for the
+        // diarization pipeline. The ONNX runtime has an internal ~2GB native
+        // memory ceiling that we cannot configure through sherpa-onnx's API.
+        // With all models loaded the baseline is ~1.8GB, leaving insufficient
+        // headroom for diarization. Unloading TTS drops it to ~1.3GB.
+        bool ttsWasLoaded = _textToSpeechService.IsLoaded;
+        if (ttsWasLoaded)
+            _textToSpeechService.UnloadModel();
+
+        while (_transcriptionQueue.Count > 0)
         {
-            var transcript = await Task.Run(async () =>
+            var session = _transcriptionQueue.Dequeue();
+            UpdateTranscriptionQueueUI();
+
+            var sessionDir = Path.GetDirectoryName(session.MicWavFilePath);
+
+            Trace.TraceInformation(
+                "[MainWindow] Processing transcription. Remaining in queue: {0}",
+                _transcriptionQueue.Count);
+            Trace.TraceInformation("[MainWindow] Session: mic={0}, system={1}",
+                session.MicWavFilePath, session.SystemWavFilePath);
+
+            transcriptsPage.ShowTranscribingIndicator();
+            transcriptsPage.SetTranscribingSession(sessionDir);
+
+            try
             {
-                try
+                var pipelineProgress = new Progress<TranscriptionPipelineProgress>(p =>
                 {
-                    return await _callTranscriptionPipeline.ProcessAsync(session);
-                }
+                    transcriptsPage.UpdatePipelineProgress(p.Description);
+                });
+
+                var transcript = await Task.Run(async () =>
+                {
+                    try
+                    {
+                        return await _callTranscriptionPipeline.ProcessAsync(
+                            session, pipelineProgress);
+                    }
+                    catch (Exception ex)
+                    {
+                        Trace.TraceError("[MainWindow] Pipeline background thread exception: {0}\n{1}",
+                            ex.Message, ex.StackTrace);
+                        throw;
+                    }
+                });
+
+                Trace.TraceInformation("[MainWindow] Transcription pipeline completed: {0} segments.",
+                    transcript.Segments.Count);
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceError("[MainWindow] Transcription pipeline failed: {0}\n{1}",
+                    ex.Message, ex.StackTrace);
+            }
+
+            transcriptsPage.SetTranscribingSession(null);
+            transcriptsPage.UpdatePipelineProgress("");
+            transcriptsPage.RefreshList();
+            UpdateTranscriptionQueueUI();
+        }
+
+        _isTranscriptionRunning = false;
+        transcriptsPage.HideTranscribingIndicator();
+
+        // Reload TTS model in background
+        if (ttsWasLoaded)
+        {
+            _ = Task.Run(() =>
+            {
+                try { _textToSpeechService.LoadModel(); }
                 catch (Exception ex)
                 {
-                    Trace.TraceError("[MainWindow] Pipeline background thread exception: {0}\n{1}",
-                        ex.Message, ex.StackTrace);
-                    throw;
+                    Trace.TraceWarning("[MainWindow] Failed to reload TTS: {0}", ex.Message);
                 }
             });
-
-            Trace.TraceInformation("[MainWindow] Transcription pipeline completed: {0} segments.",
-                transcript.Segments.Count);
-
-            // Refresh the transcripts page — new transcript will appear in the list
-            transcriptsPage.HideTranscribingIndicator();
-            transcriptsPage.RefreshList();
         }
-        catch (Exception ex)
-        {
-            Trace.TraceError("[MainWindow] Transcription pipeline failed: {0}\n{1}",
-                ex.Message, ex.StackTrace);
-            transcriptsPage.HideTranscribingIndicator();
-        }
+    }
+
+    private void UpdateTranscriptionQueueUI()
+    {
+        var transcriptsPage = GetOrCreateTranscriptsPage();
+        int queued = _transcriptionQueue.Count;
+        transcriptsPage.UpdateQueueCount(queued);
     }
 
     private TranscriptsPage GetOrCreateTranscriptsPage()
@@ -430,8 +518,14 @@ public partial class MainWindow : FluentWindow
             return page;
 
         page = new TranscriptsPage(_transcriptStorageService);
+        page.TranscriptionRequested += OnPendingTranscriptionRequested;
         _pageCache["Recordings"] = page;
         return page;
+    }
+
+    private void OnPendingTranscriptionRequested(object? sender, CallRecordingSession session)
+    {
+        EnqueueTranscription(session);
     }
 
     private void OnCallRecordingDurationUpdated(object? sender, TimeSpan duration)
@@ -695,7 +789,7 @@ public partial class MainWindow : FluentWindow
             {
                 "Dictation" => new DictationPage(_settingsService, _audioCaptureService),
                 "Templates" => new TemplatesPage(_templateService),
-                "Recordings" => new TranscriptsPage(_transcriptStorageService),
+                "Recordings" => GetOrCreateTranscriptsPage(),
                 "Transcriptions" => new TranscribeFilesPage(_fileTranscriptionService),
                 "TextToSpeech" => new TextToSpeechPage(
                     _textToSpeechService,
@@ -878,6 +972,15 @@ public partial class MainWindow : FluentWindow
 
         return isOnScreen;
     }
+
+    // ── Win32 interop for off-screen window positioning ─────────────────
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter,
+        int X, int Y, int cx, int cy, uint uFlags);
+
+    private const uint SWP_NOZORDER = 0x0004;
+    private const uint SWP_NOACTIVATE = 0x0010;
 
     // ── Win32 interop for multi-monitor detection ───────────────────────
 

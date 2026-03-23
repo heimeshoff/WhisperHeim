@@ -50,9 +50,9 @@ public partial class DictationOverlayWindow : Window
     private static readonly Duration ColorTransitionDuration = new(TimeSpan.FromMilliseconds(300));
 
     // ── Bar configuration ────────────────────────────────────────────────
-    private const int BarCount = 18;
+    private const int BarCount = 12;
     private const double BarGap = 2.0;
-    private const double MinBarHeightFraction = 0.15; // minimum bar height as fraction of canvas height
+    private const double MinBarHeightFraction = 0.05; // minimum bar height as fraction of canvas height
 
     private readonly Rectangle[] _bars = new Rectangle[BarCount];
     private readonly Random _random = new();
@@ -164,7 +164,7 @@ public partial class DictationOverlayWindow : Window
             bar.Width = barWidth;
             bar.Height = barHeight;
             Canvas.SetLeft(bar, x);
-            Canvas.SetTop(bar, canvasHeight - barHeight);
+            Canvas.SetTop(bar, (canvasHeight - barHeight) / 2);
         }
     }
 
@@ -181,14 +181,16 @@ public partial class DictationOverlayWindow : Window
 
             if (_currentState == OverlayMicState.Speaking || _currentState == OverlayMicState.Idle)
             {
-                double amplitude = Math.Max(_smoothedRms, 0.001);
+                double amplitude = Math.Max(_smoothedRms, 0.0001);
 
-                // Logarithmic scaling: normal speech (~0.01-0.05 RMS) maps to visible bar movement
-                // log10(0.001)=-3, log10(0.05)≈-1.3, log10(1.0)=0 → map [-3, 0] to [0, 1]
-                double normalized = Math.Clamp((Math.Log10(amplitude) + 3.0) / 3.0, 0.0, 1.0);
+                // Aggressive normalization: even soft speech (~0.003 RMS) drives strong bars.
+                // log10(0.0001)=-4, log10(0.003)≈-2.5 → map [-4, -1] to [0, 1],
+                // then apply pow(0.4) curve to boost low values further.
+                double normalized = Math.Clamp((Math.Log10(amplitude) + 4.0) / 3.0, 0.0, 1.0);
+                normalized = Math.Pow(normalized, 0.4);
 
                 // Per-bar random variation for spectrum analyzer effect
-                double randomFactor = 0.4 + _random.NextDouble() * 0.6;
+                double randomFactor = 0.3 + _random.NextDouble() * 0.7;
                 double heightFraction = MinBarHeightFraction + (1.0 - MinBarHeightFraction) * normalized * randomFactor;
 
                 targetHeight = canvasHeight * heightFraction;
@@ -204,7 +206,7 @@ public partial class DictationOverlayWindow : Window
             double current = bar.Height;
             double lerped = current + 0.35 * (targetHeight - current);
             bar.Height = lerped;
-            Canvas.SetTop(bar, canvasHeight - lerped);
+            Canvas.SetTop(bar, (canvasHeight - lerped) / 2);
         }
     }
 

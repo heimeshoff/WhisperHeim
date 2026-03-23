@@ -33,6 +33,12 @@ public interface ITextToSpeechService : IDisposable
     void LoadModel();
 
     /// <summary>
+    /// Unloads the TTS model to free native memory. The model can be reloaded
+    /// later via <see cref="LoadModel"/> or <see cref="WarmUpAsync"/>.
+    /// </summary>
+    void UnloadModel();
+
+    /// <summary>
     /// Warms up the TTS engine by loading the model, caching the default voice's
     /// WAV samples in memory, and running a short dummy generation to populate
     /// the sherpa-onnx voice embedding cache. Should be called on a background

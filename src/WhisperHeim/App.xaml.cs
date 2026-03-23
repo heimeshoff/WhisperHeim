@@ -32,6 +32,15 @@ public partial class App : Application
 
     private void OnStartup(object sender, StartupEventArgs e)
     {
+        // Run as headless diarization worker if launched with --diarize-worker.
+        // This must happen before any WPF initialization.
+        if (e.Args.Length > 0 && e.Args[0] == "--diarize-worker")
+        {
+            Services.Diarization.DiarizationWorker.Run(e.Args);
+            Shutdown(0);
+            return;
+        }
+
         // Global exception handler for diagnostics -- guarded against re-entrance
         // to prevent cascading MessageBox dialogs when multiple exceptions fire
         // (e.g. COM/MediaFoundation errors during audio decode).
@@ -108,6 +117,7 @@ public partial class App : Application
 
     private void StartupCore(StartupEventArgs e)
     {
+
         // Load bootstrap config (data path pointer + machine-local settings)
         _dataPathService.Load();
 

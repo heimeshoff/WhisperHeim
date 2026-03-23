@@ -146,6 +146,11 @@
                                 BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}" BorderThickness="0,1,0,0">
                             <DockPanel>
                                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                                    <ComboBox x:Name="VoiceCombo"
+                                              MinWidth="180"
+                                              VerticalAlignment="Center"
+                                              Margin="0,0,12,0"
+                                              SelectionChanged="VoiceCombo_SelectionChanged" />
                                     <Button x:Name="PlayButton"
                                             Click="PlayButton_Click"
                                             IsEnabled="False"
@@ -211,18 +216,6 @@
                             </DockPanel>
                         </Border>
 
-                        <!-- Voice Selector -->
-                        <StackPanel Orientation="Horizontal"
-                                    HorizontalAlignment="Left"
-                                    Margin="0,16,0,0">
-                            <ui:SymbolIcon Symbol="Person24"
-                                           Margin="0,0,8,0"
-                                           FontSize="14"
-                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                            <ComboBox x:Name="VoiceCombo"
-                                      MinWidth="180"
-                                      SelectionChanged="VoiceCombo_SelectionChanged" />
-                        </StackPanel>
                     </StackPanel>
                 </Border>
 

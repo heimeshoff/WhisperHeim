@@ -56,6 +56,12 @@ public sealed class LoopbackCaptureService : IAudioCaptureService
     /// </summary>
     public string? TempWavFilePath => _tempWavFilePath;
 
+    /// <summary>
+    /// Gets or sets the output WAV file path. If set before <see cref="StartCapture"/>,
+    /// the recording will be written directly to this path instead of a temp file.
+    /// </summary>
+    public string? OutputFilePath { get; set; }
+
     /// <inheritdoc />
     /// <remarks>
     /// For loopback capture, there is typically only one render device (the default output).
@@ -114,12 +120,20 @@ public sealed class LoopbackCaptureService : IAudioCaptureService
 
         _ringBuffer.Clear();
 
-        // Create temp WAV file for recording (in WhisperHeim subfolder, same as mic files)
-        var tempDir = Path.Combine(Path.GetTempPath(), "WhisperHeim");
-        Directory.CreateDirectory(tempDir);
-        _tempWavFilePath = Path.Combine(
-            tempDir,
-            $"call_loopback_{DateTime.UtcNow:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}.wav");
+        // Use caller-supplied output path, or fall back to a temp file
+        if (!string.IsNullOrEmpty(OutputFilePath))
+        {
+            _tempWavFilePath = OutputFilePath;
+            Directory.CreateDirectory(Path.GetDirectoryName(_tempWavFilePath)!);
+        }
+        else
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "WhisperHeim");
+            Directory.CreateDirectory(tempDir);
+            _tempWavFilePath = Path.Combine(
+                tempDir,
+                $"call_loopback_{DateTime.UtcNow:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}.wav");
+        }
 
         _capture = new WasapiLoopbackCapture();
         _capture.DataAvailable += OnDataAvailable;

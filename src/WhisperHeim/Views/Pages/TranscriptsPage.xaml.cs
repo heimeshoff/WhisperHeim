@@ -12,6 +12,7 @@ using System.Windows.Threading;
 using Microsoft.Win32;
 using WhisperHeim.Services.Audio;
 using WhisperHeim.Services.CallTranscription;
+using WhisperHeim.Services.Recording;
 
 namespace WhisperHeim.Views.Pages;
 
@@ -27,6 +28,7 @@ public partial class TranscriptsPage : UserControl
     private readonly DispatcherTimer _copiedIndicatorTimer;
     private CallTranscript? _selectedTranscript;
     private List<SegmentViewModel>? _currentSegmentViewModels;
+    private string? _currentlyTranscribingSessionDir;
 
     public TranscriptsPage(ITranscriptStorageService storageService)
     {
@@ -67,6 +69,42 @@ public partial class TranscriptsPage : UserControl
     public void HideTranscribingIndicator() =>
         Dispatcher.Invoke(() => TranscribingBanner.Visibility = Visibility.Collapsed);
 
+    /// <summary>
+    /// Raised when the user clicks a pending recording card to request transcription.
+    /// </summary>
+    public event EventHandler<CallRecordingSession>? TranscriptionRequested;
+
+    /// <summary>
+    /// Sets the session directory currently being transcribed so it's shown
+    /// as active rather than clickable pending.
+    /// </summary>
+    public void SetTranscribingSession(string? sessionDir)
+    {
+        _currentlyTranscribingSessionDir = sessionDir;
+        Dispatcher.Invoke(LoadPendingSessions);
+    }
+
+    /// <summary>
+    /// Updates the pipeline progress text shown in the banner (e.g. "Diarizing mic 3/84...").
+    /// </summary>
+    public void UpdatePipelineProgress(string text)
+    {
+        Dispatcher.BeginInvoke(() => PipelineProgressText.Text = text);
+    }
+
+    /// <summary>
+    /// Updates the banner to show how many transcriptions are queued behind the current one.
+    /// </summary>
+    public void UpdateQueueCount(int queuedCount)
+    {
+        Dispatcher.Invoke(() =>
+        {
+            QueueCountText.Text = queuedCount > 0
+                ? $" (+{queuedCount} queued)"
+                : "";
+        });
+    }
+
     private void LoadTranscriptList()
     {
         _allItems.Clear();
@@ -81,6 +119,108 @@ public partial class TranscriptsPage : UserControl
         }
 
         ApplyFilter();
+        LoadPendingSessions();
+    }
+
+    private void LoadPendingSessions()
+    {
+        if (_storageService is not TranscriptStorageService concreteStorage)
+        {
+            PendingList.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        var pendingDirs = concreteStorage.ListPendingSessions();
+        if (pendingDirs.Count == 0)
+        {
+            PendingList.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        var items = new List<PendingRecordingItem>();
+        foreach (var dir in pendingDirs)
+        {
+            var dirName = Path.GetFileName(dir);
+            var isCurrentlyTranscribing = _currentlyTranscribingSessionDir is not null &&
+                string.Equals(Path.GetFullPath(dir),
+                    Path.GetFullPath(_currentlyTranscribingSessionDir),
+                    StringComparison.OrdinalIgnoreCase);
+
+            // Parse date from folder name: YYYYMMDD_HHmmss
+            string name;
+            if (dirName.Length >= 15 &&
+                DateTime.TryParseExact(
+                    dirName[..15],
+                    "yyyyMMdd_HHmmss",
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.None,
+                    out var date))
+            {
+                name = $"Call {date:yyyy-MM-dd HH:mm}";
+            }
+            else
+            {
+                name = dirName;
+            }
+
+            var wavFiles = Directory.GetFiles(dir, "*.wav");
+            var detail = isCurrentlyTranscribing
+                ? "Transcribing..."
+                : $"{wavFiles.Length} audio file{(wavFiles.Length != 1 ? "s" : "")} — click to transcribe";
+
+            items.Add(new PendingRecordingItem(dir, name, detail, isCurrentlyTranscribing));
+        }
+
+        PendingList.ItemsSource = items;
+        PendingList.Visibility = Visibility.Visible;
+    }
+
+    private void PendingItem_Click(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not FrameworkElement { DataContext: PendingRecordingItem item })
+            return;
+
+        if (item.IsTranscribing)
+            return;
+
+        var micPath = Path.Combine(item.SessionDir, "mic.wav");
+        var systemPath = Path.Combine(item.SessionDir, "system.wav");
+
+        if (!File.Exists(micPath))
+        {
+            Trace.TraceWarning("[TranscriptsPage] Pending session has no mic.wav: {0}", item.SessionDir);
+            return;
+        }
+
+        // Parse start timestamp from folder name
+        var dirName = Path.GetFileName(item.SessionDir);
+        DateTimeOffset startTimestamp;
+        if (dirName.Length >= 15 &&
+            DateTime.TryParseExact(
+                dirName[..15],
+                "yyyyMMdd_HHmmss",
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None,
+                out var date))
+        {
+            startTimestamp = new DateTimeOffset(date, TimeZoneInfo.Local.GetUtcOffset(date));
+        }
+        else
+        {
+            startTimestamp = DateTimeOffset.UtcNow;
+        }
+
+        var session = new CallRecordingSession(
+            micPath,
+            File.Exists(systemPath) ? systemPath : micPath,
+            startTimestamp);
+
+        // Set end timestamp from the WAV file's last write time
+        var lastWrite = File.GetLastWriteTimeUtc(micPath);
+        session.EndTimestamp = new DateTimeOffset(lastWrite, TimeSpan.Zero);
+
+        TranscriptionRequested?.Invoke(this, session);
+        e.Handled = true;
     }
 
     private void ApplyFilter()
@@ -841,4 +981,23 @@ internal sealed class SegmentViewModel : INotifyPropertyChanged
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
+}
+
+/// <summary>
+/// View model for a pending recording session (WAV files without transcript).
+/// </summary>
+internal sealed class PendingRecordingItem
+{
+    public PendingRecordingItem(string sessionDir, string name, string detail, bool isTranscribing)
+    {
+        SessionDir = sessionDir;
+        Name = name;
+        Detail = detail;
+        IsTranscribing = isTranscribing;
+    }
+
+    public string SessionDir { get; }
+    public string Name { get; }
+    public string Detail { get; }
+    public bool IsTranscribing { get; }
 }
