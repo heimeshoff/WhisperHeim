@@ -223,6 +223,38 @@ public partial class TranscriptsPage : UserControl
         e.Handled = true;
     }
 
+    private void DeletePendingItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { DataContext: PendingRecordingItem item })
+            return;
+
+        e.Handled = true; // Prevent click from triggering transcription
+
+        var dialog = new WhisperHeim.Views.DeleteConfirmationDialog(item.Name)
+        {
+            Owner = Window.GetWindow(this)
+        };
+        dialog.ShowDialog();
+
+        if (!dialog.Confirmed)
+            return;
+
+        try
+        {
+            if (Directory.Exists(item.SessionDir))
+            {
+                Directory.Delete(item.SessionDir, recursive: true);
+                Trace.TraceInformation("[TranscriptsPage] Deleted pending session: {0}", item.SessionDir);
+            }
+
+            LoadTranscriptList();
+        }
+        catch (Exception ex)
+        {
+            Trace.TraceError("[TranscriptsPage] Failed to delete pending session: {0}", ex.Message);
+        }
+    }
+
     private void ApplyFilter()
     {
         var searchText = SearchBox?.Text?.Trim() ?? string.Empty;

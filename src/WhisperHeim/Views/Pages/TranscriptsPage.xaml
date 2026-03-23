@@ -142,27 +142,80 @@
                                         Cursor="Hand"
                                         MouseLeftButtonDown="PendingItem_Click"
                                         Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}">
-                                    <StackPanel>
-                                        <DockPanel Margin="0,0,0,4">
-                                            <Border DockPanel.Dock="Right"
-                                                    CornerRadius="4" Padding="6,2"
-                                                    Background="#33FF8C00"
-                                                    VerticalAlignment="Top">
-                                                <TextBlock Text="PENDING"
-                                                           FontSize="8" FontWeight="Bold"
-                                                           Foreground="#FFFF8C00" />
-                                            </Border>
-                                            <TextBlock Text="{Binding Name}"
-                                                       FontWeight="SemiBold"
-                                                       FontSize="13"
-                                                       TextWrapping="NoWrap"
-                                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                                       TextTrimming="CharacterEllipsis" />
-                                        </DockPanel>
-                                        <TextBlock Text="{Binding Detail}"
-                                                   FontSize="10"
-                                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
-                                    </StackPanel>
+                                    <Grid x:Name="PendingItemRoot">
+                                        <StackPanel>
+                                            <DockPanel Margin="0,0,0,4">
+                                                <Border DockPanel.Dock="Right"
+                                                        CornerRadius="4" Padding="6,2"
+                                                        Background="#33FF8C00"
+                                                        VerticalAlignment="Top">
+                                                    <TextBlock Text="PENDING"
+                                                               FontSize="8" FontWeight="Bold"
+                                                               Foreground="#FFFF8C00" />
+                                                </Border>
+                                                <TextBlock Text="{Binding Name}"
+                                                           FontWeight="SemiBold"
+                                                           FontSize="13"
+                                                           TextWrapping="NoWrap"
+                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                           TextTrimming="CharacterEllipsis" />
+                                            </DockPanel>
+                                            <TextBlock Text="{Binding Detail}"
+                                                       FontSize="10"
+                                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                        </StackPanel>
+                                        <!-- Hover delete button -->
+                                        <Button x:Name="DeletePendingButton"
+                                                Click="DeletePendingItem_Click"
+                                                VerticalAlignment="Bottom"
+                                                HorizontalAlignment="Right"
+                                                Margin="0,0,-4,-2"
+                                                Padding="4"
+                                                Cursor="Hand"
+                                                Visibility="Hidden"
+                                                Background="Transparent"
+                                                BorderThickness="0"
+                                                ToolTip="Delete recording">
+                                            <Button.Template>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border x:Name="IconBd" CornerRadius="6" Padding="{TemplateBinding Padding}"
+                                                            Background="Transparent">
+                                                        <ui:SymbolIcon Symbol="Delete24" FontSize="14"
+                                                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="IconBd" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Button.Template>
+                                        </Button>
+                                        <Grid.Triggers>
+                                            <EventTrigger RoutedEvent="MouseEnter">
+                                                <BeginStoryboard>
+                                                    <Storyboard>
+                                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="DeletePendingButton"
+                                                                                       Storyboard.TargetProperty="Visibility">
+                                                            <DiscreteObjectKeyFrame KeyTime="0:0:0"
+                                                                                    Value="{x:Static Visibility.Visible}" />
+                                                        </ObjectAnimationUsingKeyFrames>
+                                                    </Storyboard>
+                                                </BeginStoryboard>
+                                            </EventTrigger>
+                                            <EventTrigger RoutedEvent="MouseLeave">
+                                                <BeginStoryboard>
+                                                    <Storyboard>
+                                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="DeletePendingButton"
+                                                                                       Storyboard.TargetProperty="Visibility">
+                                                            <DiscreteObjectKeyFrame KeyTime="0:0:0"
+                                                                                    Value="{x:Static Visibility.Hidden}" />
+                                                        </ObjectAnimationUsingKeyFrames>
+                                                    </Storyboard>
+                                                </BeginStoryboard>
+                                            </EventTrigger>
+                                        </Grid.Triggers>
+                                    </Grid>
                                 </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>

@@ -491,8 +491,8 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
         Action<DiarizationProgress> onProgress,
         CancellationToken cancellationToken)
     {
-        const int chunkSeconds = 30;
-        const int overlapSeconds = 3;
+        const int chunkSeconds = 120;
+        const int overlapSeconds = 10;
 
         double totalSeconds = GetWavDuration(wavFilePath);
 

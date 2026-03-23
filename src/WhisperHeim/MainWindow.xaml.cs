@@ -426,15 +426,6 @@ public partial class MainWindow : FluentWindow
         _isTranscriptionRunning = true;
         var transcriptsPage = GetOrCreateTranscriptsPage();
 
-        // Temporarily unload TTS model to free ~500MB native memory for the
-        // diarization pipeline. The ONNX runtime has an internal ~2GB native
-        // memory ceiling that we cannot configure through sherpa-onnx's API.
-        // With all models loaded the baseline is ~1.8GB, leaving insufficient
-        // headroom for diarization. Unloading TTS drops it to ~1.3GB.
-        bool ttsWasLoaded = _textToSpeechService.IsLoaded;
-        if (ttsWasLoaded)
-            _textToSpeechService.UnloadModel();
-
         while (_transcriptionQueue.Count > 0)
         {
             var session = _transcriptionQueue.Dequeue();
@@ -490,19 +481,6 @@ public partial class MainWindow : FluentWindow
 
         _isTranscriptionRunning = false;
         transcriptsPage.HideTranscribingIndicator();
-
-        // Reload TTS model in background
-        if (ttsWasLoaded)
-        {
-            _ = Task.Run(() =>
-            {
-                try { _textToSpeechService.LoadModel(); }
-                catch (Exception ex)
-                {
-                    Trace.TraceWarning("[MainWindow] Failed to reload TTS: {0}", ex.Message);
-                }
-            });
-        }
     }
 
     private void UpdateTranscriptionQueueUI()
