@@ -18,7 +18,7 @@ namespace WhisperHeim.Views;
 /// focus or blocking mouse clicks.
 ///
 /// Supports four visual states (see <see cref="OverlayMicState"/>):
-///   Idle     -> blue border, orange bars with gentle movement
+///   Idle     -> grey border, grey bars with gentle movement
 ///   Speaking -> blue border, orange bars driven by RMS amplitude
 ///   NoMic    -> grey border, grey static bars
 ///   Error    -> solid red fill
@@ -159,7 +159,7 @@ public partial class DictationOverlayWindow : Window
         {
             var bar = new Rectangle
             {
-                Fill = new SolidColorBrush(OrangeBarColor),
+                Fill = new SolidColorBrush(GreyColor),
                 RadiusX = 1.5,
                 RadiusY = 1.5
             };
@@ -167,19 +167,23 @@ public partial class DictationOverlayWindow : Window
             BarsCanvas.Children.Add(bar);
         }
 
-        // Layout bars when canvas size is known
-        BarsCanvas.SizeChanged += OnCanvasSizeChanged;
+        // Layout bars when the wrapping Grid gets sized (Canvas alone reports 0x0)
+        BarsGrid.SizeChanged += OnCanvasSizeChanged;
     }
 
     private void OnCanvasSizeChanged(object sender, SizeChangedEventArgs e)
     {
+        // Propagate the Grid's actual size to the Canvas so it has real dimensions
+        BarsCanvas.Width = BarsGrid.ActualWidth;
+        BarsCanvas.Height = BarsGrid.ActualHeight;
         LayoutBars();
     }
 
     private void LayoutBars()
     {
-        double canvasWidth = BarsCanvas.ActualWidth;
-        double canvasHeight = BarsCanvas.ActualHeight;
+        double canvasWidth = BarsCanvas.Width;
+        double canvasHeight = BarsCanvas.Height;
+        if (double.IsNaN(canvasWidth) || double.IsNaN(canvasHeight)) return;
         if (canvasWidth <= 0 || canvasHeight <= 0) return;
 
         double totalGaps = (BarCount - 1) * BarGap;
@@ -203,8 +207,8 @@ public partial class DictationOverlayWindow : Window
 
     private void OnBarAnimationTick(object? sender, EventArgs e)
     {
-        double canvasHeight = BarsCanvas.ActualHeight;
-        if (canvasHeight <= 0) return;
+        double canvasHeight = BarsCanvas.Height;
+        if (double.IsNaN(canvasHeight) || canvasHeight <= 0) return;
 
         for (int i = 0; i < BarCount; i++)
         {
@@ -272,6 +276,8 @@ public partial class DictationOverlayWindow : Window
         _fadeIn?.Begin(this);
         _barAnimationTimer?.Start();
 
+        // Force re-apply idle visuals (reset state so SetMicState doesn't early-return)
+        _currentState = OverlayMicState.NoMic; // sentinel so transition to Idle is applied
         SetMicState(OverlayMicState.Idle);
 
         Trace.TraceInformation("[DictationOverlay] Shown at ({0}, {1}).", Left, Top);
@@ -318,6 +324,12 @@ public partial class DictationOverlayWindow : Window
         switch (newState)
         {
             case OverlayMicState.Idle:
+                AnimateBorderColor(GreyColor);
+                SetBarColor(GreyColor);
+                PillBorder.Background = new SolidColorBrush(Color.FromArgb(0xCC, 0x2D, 0x2D, 0x2D));
+                _smoothedRms = 0;
+                break;
+
             case OverlayMicState.Speaking:
                 AnimateBorderColor(BlueBorderColor);
                 SetBarColor(OrangeBarColor);

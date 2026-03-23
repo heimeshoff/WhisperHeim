@@ -46,12 +46,14 @@
                 Background="#CC2D2D2D"
                 Padding="8,4">
             <Border.BorderBrush>
-                <SolidColorBrush x:Name="PillBorderBrush" Color="#FF25abfe" />
+                <SolidColorBrush x:Name="PillBorderBrush" Color="#FF999999" />
             </Border.BorderBrush>
 
-            <!-- Canvas for frequency bars -->
-            <Canvas x:Name="BarsCanvas"
-                    ClipToBounds="True" />
+            <!-- Grid wrapper forces Canvas to stretch and report actual dimensions -->
+            <Grid x:Name="BarsGrid">
+                <Canvas x:Name="BarsCanvas"
+                        ClipToBounds="True" />
+            </Grid>
         </Border>
     </Grid>
 </Window>

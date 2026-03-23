@@ -2,6 +2,32 @@
 
 ---
 
+## 2026-03-23 -- Task Completed: 070 - Fix Pill Overlay Visualization
+
+**Type:** Task Completion
+**Task:** 070 - Fix Pill Overlay Visualization
+**Summary:** Fixed two bugs: bars invisible because WPF Canvas reported 0x0 inside Border (wrapped in Grid to propagate size), and border always blue because Idle/Speaking both used BlueBorderColor (Idle now uses grey border/bars, Speaking uses blue/orange).
+**Files changed:** 2 files
+
+---
+
+## 2026-03-23 -- Task Started: 070 - Fix Pill Overlay Visualization
+
+**Type:** Task Start
+**Task:** 070 - Fix Pill Overlay Visualization
+**Milestone:** Bug Fix
+
+---
+
+## 2026-03-23 -- Idea Captured: Fix Pill Overlay Visualization
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/070-fix-pill-overlay-visualization.md
+**Summary:** Pill overlay shows no bars and border is always blue. Two bugs: Canvas likely has 0 size so bars never render, and Idle/Speaking states both use blue instead of grey for idle.
+
+---
+
 ## 2026-03-23 -- Task Completed: 069 - Fix Start Minimized Setting
 
 **Type:** Task Completion
