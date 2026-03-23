@@ -220,8 +220,7 @@ public partial class MainWindow : FluentWindow
         _overlayWindow = new DictationOverlayWindow();
         _overlayWindow.ApplySettings(overlaySettings);
 
-        Trace.TraceInformation("[MainWindow] Overlay initialized. Position: {0}, Size: {1}",
-            overlaySettings.Position, overlaySettings.Size);
+        Trace.TraceInformation("[MainWindow] Overlay initialized (pill mode, follows last click).");
     }
 
     /// <summary>

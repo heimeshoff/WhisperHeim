@@ -79,6 +79,7 @@ public sealed class TemplateItem
 
 /// <summary>
 /// Settings for the dictation overlay indicator window.
+/// The pill-shaped overlay appears at the last globally-clicked mouse position.
 /// </summary>
 public sealed class OverlaySettings
 {
@@ -89,17 +90,6 @@ public sealed class OverlaySettings
     /// <summary>Overlay opacity (0.0 to 1.0).</summary>
     [JsonPropertyName("opacity")]
     public double Opacity { get; set; } = 0.85;
-
-    /// <summary>Overlay size in pixels.</summary>
-    [JsonPropertyName("size")]
-    public int Size { get; set; } = 48;
-
-    /// <summary>
-    /// Overlay position: "BottomCenter", "BottomLeft", "BottomRight",
-    /// "TopCenter", "TopLeft", "TopRight".
-    /// </summary>
-    [JsonPropertyName("position")]
-    public string Position { get; set; } = "BottomCenter";
 }
 
 /// <summary>
