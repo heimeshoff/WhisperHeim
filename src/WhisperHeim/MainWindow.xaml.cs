@@ -148,6 +148,24 @@ public partial class MainWindow : FluentWindow
         SetupHotkeysAndOrchestration();
     }
 
+    /// <summary>
+    /// Shows the window off-screen so the visual tree renders (registering the tray
+    /// icon), then immediately hides it. Called from App.xaml.cs when starting minimized.
+    /// </summary>
+    public void InitializeTrayAndHide()
+    {
+        ShowActivated = false;
+        ShowInTaskbar = false;
+        var savedLeft = Left;
+        var savedTop = Top;
+        Left = -32000;
+        Top = -32000;
+        Show();
+        Hide();
+        Left = savedLeft;
+        Top = savedTop;
+    }
+
     private void SetupHotkeysAndOrchestration()
     {
         // Register the global dictation hotkey (low-level keyboard hook, no HWND needed)
@@ -285,8 +303,6 @@ public partial class MainWindow : FluentWindow
         if (isActive)
         {
             _overlayWindow?.ShowOverlay();
-            // Start in Idle (listening) state; will transition to Speaking when audio amplitude rises
-            _overlayWindow?.SetMicState(Views.OverlayMicState.Idle);
         }
         else
         {
@@ -302,22 +318,14 @@ public partial class MainWindow : FluentWindow
     /// </summary>
     private void OnAudioAmplitudeChanged(double rmsAmplitude)
     {
-        // Use a simple threshold to detect speech vs idle
-        const double speechThreshold = 0.015;
-
         Application.Current?.Dispatcher?.BeginInvoke(() =>
         {
             if (_overlayWindow is null) return;
 
-            if (rmsAmplitude > speechThreshold)
-            {
-                _overlayWindow.SetMicState(Views.OverlayMicState.Speaking);
-                _overlayWindow.UpdateAmplitude(rmsAmplitude);
-            }
-            else
-            {
-                _overlayWindow.SetMicState(Views.OverlayMicState.Idle);
-            }
+            // Stay in Speaking state the entire time dictation is active;
+            // bars animate based on amplitude (small when quiet, large when loud)
+            _overlayWindow.SetMicState(Views.OverlayMicState.Speaking);
+            _overlayWindow.UpdateAmplitude(rmsAmplitude);
         });
     }
 
@@ -659,10 +667,13 @@ public partial class MainWindow : FluentWindow
 
     private void ShowWindow()
     {
+        Visibility = Visibility.Visible;
         Show();
         ShowInTaskbar = true;
         WindowState = WindowState.Normal;
         Activate();
+        Topmost = true;
+        Topmost = false;
     }
 
     private void NavList_SelectionChanged(object sender, SelectionChangedEventArgs e)

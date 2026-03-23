@@ -31,9 +31,8 @@ public partial class DictationOverlayWindow : Window
     private const int WS_EX_NOACTIVATE = 0x08000000;
     private const int WS_EX_TOOLWINDOW = 0x00000080;
 
-    // Global mouse hook constants
-    private const int WH_MOUSE_LL = 14;
-    private const int WM_LBUTTONDOWN = 0x0201;
+    // Muted mic detection
+    private const int MutedFrameThreshold = 10; // consecutive zero-RMS frames to consider mic muted
 
     // ── P/Invoke declarations ────────────────────────────────────────────
     [DllImport("user32.dll")]
@@ -41,38 +40,6 @@ public partial class DictationOverlayWindow : Window
 
     [DllImport("user32.dll")]
     private static extern int SetWindowLong(IntPtr hwnd, int index, int newStyle);
-
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelMouseProc lpfn, IntPtr hMod, uint dwThreadId);
-
-    [DllImport("user32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool UnhookWindowsHookEx(IntPtr hhk);
-
-    [DllImport("user32.dll")]
-    private static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
-
-    [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-    private static extern IntPtr GetModuleHandle(string lpModuleName);
-
-    private delegate IntPtr LowLevelMouseProc(int nCode, IntPtr wParam, IntPtr lParam);
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct MSLLHOOKSTRUCT
-    {
-        public POINT pt;
-        public uint mouseData;
-        public uint flags;
-        public uint time;
-        public IntPtr dwExtraInfo;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct POINT
-    {
-        public int x;
-        public int y;
-    }
 
     // ── Brand colors ─────────────────────────────────────────────────────
     private static readonly Color BlueBorderColor = (Color)ColorConverter.ConvertFromString("#FF25abfe");
@@ -102,11 +69,8 @@ public partial class DictationOverlayWindow : Window
     private double _smoothedRms;
     private const double RmsSmoothingFactor = 0.3;
 
-    // ── Global mouse hook state ──────────────────────────────────────────
-    private IntPtr _mouseHookHandle = IntPtr.Zero;
-    private LowLevelMouseProc? _mouseHookProc; // prevent GC of delegate
-    private double _lastClickX;
-    private double _lastClickY;
+    // ── Muted mic detection ─────────────────────────────────────────────
+    private int _consecutiveZeroFrames;
 
     /// <summary>
     /// The maximum opacity the overlay will reach (set from settings).
@@ -118,11 +82,6 @@ public partial class DictationOverlayWindow : Window
         InitializeComponent();
         Loaded += OnLoaded;
         Closed += OnClosed;
-
-        // Set initial click position to center-bottom of primary screen
-        var workArea = SystemParameters.WorkArea;
-        _lastClickX = workArea.Left + workArea.Width / 2;
-        _lastClickY = workArea.Bottom - 60;
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
@@ -131,7 +90,6 @@ public partial class DictationOverlayWindow : Window
 
         SetClickThrough();
         InitializeBars();
-        InstallGlobalMouseHook();
 
         _fadeIn = (Storyboard)FindResource("FadeIn");
         _fadeOut = (Storyboard)FindResource("FadeOut");
@@ -147,7 +105,6 @@ public partial class DictationOverlayWindow : Window
     private void OnClosed(object? sender, EventArgs e)
     {
         _barAnimationTimer?.Stop();
-        UninstallGlobalMouseHook();
     }
 
     // ── Bar initialization ───────────────────────────────────────────────
@@ -169,6 +126,14 @@ public partial class DictationOverlayWindow : Window
 
         // Layout bars when the wrapping Grid gets sized (Canvas alone reports 0x0)
         BarsGrid.SizeChanged += OnCanvasSizeChanged;
+
+        // Grid may already be sized by the time Loaded fires — layout immediately
+        if (BarsGrid.ActualWidth > 0 && BarsGrid.ActualHeight > 0)
+        {
+            BarsCanvas.Width = BarsGrid.ActualWidth;
+            BarsCanvas.Height = BarsGrid.ActualHeight;
+            LayoutBars();
+        }
     }
 
     private void OnCanvasSizeChanged(object sender, SizeChangedEventArgs e)
@@ -216,13 +181,11 @@ public partial class DictationOverlayWindow : Window
 
             if (_currentState == OverlayMicState.Speaking || _currentState == OverlayMicState.Idle)
             {
-                // Use smoothed RMS; for Idle, _smoothedRms will be ~0 giving minimal movement
-                double amplitude = _currentState == OverlayMicState.Idle
-                    ? 0.05 // gentle idle movement
-                    : Math.Max(_smoothedRms, 0.05);
+                double amplitude = Math.Max(_smoothedRms, 0.001);
 
-                // Amplify so even quiet speech shows visible bars
-                double normalized = Math.Min(amplitude * 3.0, 1.0);
+                // Logarithmic scaling: normal speech (~0.01-0.05 RMS) maps to visible bar movement
+                // log10(0.001)=-3, log10(0.05)≈-1.3, log10(1.0)=0 → map [-3, 0] to [0, 1]
+                double normalized = Math.Clamp((Math.Log10(amplitude) + 3.0) / 3.0, 0.0, 1.0);
 
                 // Per-bar random variation for spectrum analyzer effect
                 double randomFactor = 0.4 + _random.NextDouble() * 0.6;
@@ -264,7 +227,7 @@ public partial class DictationOverlayWindow : Window
         if (_isVisible) return;
         _isVisible = true;
 
-        PositionAtLastClick();
+        PositionAtBottomCenter();
         Show();
 
         if (_fadeIn != null)
@@ -276,9 +239,9 @@ public partial class DictationOverlayWindow : Window
         _fadeIn?.Begin(this);
         _barAnimationTimer?.Start();
 
-        // Force re-apply idle visuals (reset state so SetMicState doesn't early-return)
-        _currentState = OverlayMicState.NoMic; // sentinel so transition to Idle is applied
-        SetMicState(OverlayMicState.Idle);
+        // Start in Speaking state (blue/orange) — mic is active during dictation
+        _currentState = OverlayMicState.NoMic; // sentinel so transition is applied
+        SetMicState(OverlayMicState.Speaking);
 
         Trace.TraceInformation("[DictationOverlay] Shown at ({0}, {1}).", Left, Top);
     }
@@ -292,6 +255,7 @@ public partial class DictationOverlayWindow : Window
         _isVisible = false;
         _currentState = OverlayMicState.Idle;
         _smoothedRms = 0;
+        _consecutiveZeroFrames = 0;
 
         _barAnimationTimer?.Stop();
 
@@ -360,9 +324,31 @@ public partial class DictationOverlayWindow : Window
     /// </summary>
     public void UpdateAmplitude(double rmsAmplitude)
     {
-        if (!_isVisible || _currentState != OverlayMicState.Speaking) return;
+        if (!_isVisible) return;
 
         rmsAmplitude = Math.Clamp(rmsAmplitude, 0.0, 1.0);
+
+        // Detect muted mic: sustained zero RMS means OS-level mute
+        if (rmsAmplitude < 0.0001)
+        {
+            _consecutiveZeroFrames++;
+            if (_consecutiveZeroFrames >= MutedFrameThreshold)
+            {
+                SetMicState(OverlayMicState.NoMic);
+                _smoothedRms = 0;
+                return;
+            }
+        }
+        else
+        {
+            if (_consecutiveZeroFrames >= MutedFrameThreshold)
+            {
+                // Mic was muted, now it's back — restore Speaking state
+                SetMicState(OverlayMicState.Speaking);
+            }
+            _consecutiveZeroFrames = 0;
+        }
+
         _smoothedRms = _smoothedRms + RmsSmoothingFactor * (rmsAmplitude - _smoothedRms);
     }
 
@@ -385,33 +371,13 @@ public partial class DictationOverlayWindow : Window
     // ── Positioning ──────────────────────────────────────────────────────
 
     /// <summary>
-    /// Positions the pill overlay at the last globally-clicked mouse position.
-    /// The click position becomes the left edge of the pill; it extends to the right.
+    /// Positions the pill overlay at the bottom-center of the primary screen.
     /// </summary>
-    private void PositionAtLastClick()
+    private void PositionAtBottomCenter()
     {
-        // Convert screen coordinates to WPF device-independent units
-        var source = PresentationSource.FromVisual(this);
-        double dpiScaleX = source?.CompositionTarget?.TransformFromDevice.M11 ?? 1.0;
-        double dpiScaleY = source?.CompositionTarget?.TransformFromDevice.M22 ?? 1.0;
-
-        double screenX = _lastClickX * dpiScaleX;
-        double screenY = _lastClickY * dpiScaleY;
-
-        // Left-anchor the pill at the click position, offset slightly up so it doesn't cover the click
-        Left = screenX;
-        Top = screenY - Height - 5;
-
-        // Ensure the pill stays within screen bounds
         var workArea = SystemParameters.WorkArea;
-        if (Left + Width > workArea.Right)
-            Left = workArea.Right - Width;
-        if (Left < workArea.Left)
-            Left = workArea.Left;
-        if (Top < workArea.Top)
-            Top = workArea.Top;
-        if (Top + Height > workArea.Bottom)
-            Top = workArea.Bottom - Height;
+        Left = workArea.Left + (workArea.Width - Width) / 2;
+        Top = workArea.Bottom - Height - 20;
     }
 
     // ── Color helpers ────────────────────────────────────────────────────
@@ -455,49 +421,4 @@ public partial class DictationOverlayWindow : Window
         SetWindowLong(hwnd, GWL_EXSTYLE, exStyle);
     }
 
-    // ── Global mouse hook ────────────────────────────────────────────────
-
-    private void InstallGlobalMouseHook()
-    {
-        _mouseHookProc = MouseHookCallback;
-        using var curProcess = Process.GetCurrentProcess();
-        using var curModule = curProcess.MainModule!;
-        _mouseHookHandle = SetWindowsHookEx(
-            WH_MOUSE_LL,
-            _mouseHookProc,
-            GetModuleHandle(curModule.ModuleName),
-            0);
-
-        if (_mouseHookHandle == IntPtr.Zero)
-        {
-            Trace.TraceWarning("[DictationOverlay] Failed to install global mouse hook. Error: {0}",
-                Marshal.GetLastWin32Error());
-        }
-        else
-        {
-            Trace.TraceInformation("[DictationOverlay] Global mouse hook installed.");
-        }
-    }
-
-    private void UninstallGlobalMouseHook()
-    {
-        if (_mouseHookHandle != IntPtr.Zero)
-        {
-            UnhookWindowsHookEx(_mouseHookHandle);
-            _mouseHookHandle = IntPtr.Zero;
-            Trace.TraceInformation("[DictationOverlay] Global mouse hook uninstalled.");
-        }
-    }
-
-    private IntPtr MouseHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
-    {
-        if (nCode >= 0 && (int)wParam == WM_LBUTTONDOWN)
-        {
-            var hookStruct = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
-            _lastClickX = hookStruct.pt.x;
-            _lastClickY = hookStruct.pt.y;
-        }
-
-        return CallNextHookEx(_mouseHookHandle, nCode, wParam, lParam);
-    }
 }

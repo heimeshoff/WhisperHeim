@@ -212,7 +212,12 @@ public partial class App : Application
             _readAloudHotkeyService);
         MainWindow = mainWindow;
 
-        if (!startMinimized)
+        if (startMinimized)
+        {
+            // Show the window off-screen so the tray icon renders, then hide it
+            mainWindow.InitializeTrayAndHide();
+        }
+        else
         {
             mainWindow.ShowSettingsWindow();
         }
