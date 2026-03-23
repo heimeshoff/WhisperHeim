@@ -5,11 +5,18 @@ namespace WhisperHeim.Services.Startup;
 /// <summary>
 /// Manages the Windows auto-start registry entry for WhisperHeim.
 /// Uses HKCU\Software\Microsoft\Windows\CurrentVersion\Run (per-user, no admin required).
+/// Also manages the StartupApproved\Run entry required by Windows 11 to honour the Run key.
 /// </summary>
 public sealed class StartupService
 {
     private const string RegistryKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
+    private const string StartupApprovedKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run";
     private const string AppName = "WhisperHeim";
+
+    // 12-byte REG_BINARY: first byte 02 = enabled, 03 = disabled.
+    // Remaining bytes are typically a FILETIME timestamp (zeros is valid).
+    private static readonly byte[] EnabledBytes = [0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+    private static readonly byte[] DisabledBytes = [0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
 
     /// <summary>
     /// Returns the command line that should be written to the registry.
@@ -31,6 +38,8 @@ public sealed class StartupService
     {
         using var key = Registry.CurrentUser.OpenSubKey(RegistryKeyPath, writable: true);
         key?.SetValue(AppName, GetStartupCommand());
+
+        SetStartupApproved(enabled: true);
     }
 
     /// <summary>
@@ -40,6 +49,8 @@ public sealed class StartupService
     {
         using var key = Registry.CurrentUser.OpenSubKey(RegistryKeyPath, writable: true);
         key?.DeleteValue(AppName, throwOnMissingValue: false);
+
+        SetStartupApproved(enabled: false);
     }
 
     /// <summary>
@@ -72,5 +83,18 @@ public sealed class StartupService
             Enable();
         else
             Disable();
+    }
+
+    /// <summary>
+    /// Writes the StartupApproved\Run entry that Windows 11 checks to decide
+    /// whether a Run-key entry is allowed to launch at logon.
+    /// </summary>
+    private static void SetStartupApproved(bool enabled)
+    {
+        using var key = Registry.CurrentUser.CreateSubKey(StartupApprovedKeyPath);
+        if (enabled)
+            key.SetValue(AppName, EnabledBytes, RegistryValueKind.Binary);
+        else
+            key.DeleteValue(AppName, throwOnMissingValue: false);
     }
 }
