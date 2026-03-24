@@ -96,6 +96,12 @@ public partial class TranscriptsPage : UserControl
     public event EventHandler<CallRecordingSession>? TranscriptionRequested;
 
     /// <summary>
+    /// Raised when the user clicks the re-transcribe button on an existing transcript.
+    /// The event carries a session reconstructed from the transcript's audio files.
+    /// </summary>
+    public event EventHandler<CallRecordingSession>? ReTranscriptionRequested;
+
+    /// <summary>
     /// Sets the session directory currently being transcribed so it's shown
     /// as active rather than clickable pending.
     /// </summary>
@@ -361,12 +367,16 @@ public partial class TranscriptsPage : UserControl
                               $"Duration: {transcript.Duration:hh\\:mm\\:ss} | " +
                               $"Segments: {transcript.Segments.Count}";
 
+        var availableNames = BuildAvailableSpeakerNames();
         var viewModels = transcript.Segments
-            .Select(s => new SegmentViewModel(s, transcript))
+            .Select(s => new SegmentViewModel(s, transcript, availableNames))
             .ToList();
 
         _currentSegmentViewModels = viewModels;
         SegmentList.ItemsSource = viewModels;
+
+        // Show speaker names panel
+        ShowSpeakerNamesPanel();
 
         // Show playback panel if audio is available
         var audioPath = transcript.ResolvedAudioFilePath;
@@ -650,11 +660,151 @@ public partial class TranscriptsPage : UserControl
         }
     }
 
+    // --- Speaker name list management ---
+
+    private List<SpeakerNameItem> _speakerNameItems = new();
+
+    private void ShowSpeakerNamesPanel()
+    {
+        if (_selectedTranscript is null)
+        {
+            SpeakerNamesPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        _speakerNameItems = _selectedTranscript.RemoteSpeakerNames
+            .Select(n => new SpeakerNameItem { Name = n })
+            .ToList();
+
+        SpeakerNamesList.ItemsSource = _speakerNameItems;
+        SpeakerNamesPanel.Visibility = Visibility.Visible;
+    }
+
+    private void AddSpeaker_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedTranscript is null) return;
+
+        _speakerNameItems.Add(new SpeakerNameItem { Name = "" });
+        SpeakerNamesList.ItemsSource = null;
+        SpeakerNamesList.ItemsSource = _speakerNameItems;
+    }
+
+    private void RemoveSpeaker_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { DataContext: SpeakerNameItem item })
+            return;
+
+        _speakerNameItems.Remove(item);
+        SpeakerNamesList.ItemsSource = null;
+        SpeakerNamesList.ItemsSource = _speakerNameItems;
+        SaveSpeakerNames();
+    }
+
+    private void SpeakerName_LostFocus(object sender, RoutedEventArgs e)
+    {
+        SaveSpeakerNames();
+    }
+
+    private async void SaveSpeakerNames()
+    {
+        if (_selectedTranscript is null) return;
+
+        _selectedTranscript.RemoteSpeakerNames = _speakerNameItems
+            .Select(i => i.Name ?? "")
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .ToList();
+
+        try
+        {
+            await _storageService.UpdateAsync(_selectedTranscript);
+
+            // Refresh segment view models to update available speaker names dropdown
+            if (_currentSegmentViewModels is not null)
+            {
+                var names = BuildAvailableSpeakerNames();
+                foreach (var vm in _currentSegmentViewModels)
+                    vm.AvailableSpeakerNames = names;
+            }
+        }
+        catch (Exception ex)
+        {
+            Trace.TraceError("[TranscriptsPage] Failed to save speaker names: {0}", ex.Message);
+        }
+    }
+
+    private List<string> BuildAvailableSpeakerNames()
+    {
+        if (_selectedTranscript is null) return new();
+
+        var names = new List<string>();
+        names.AddRange(_selectedTranscript.RemoteSpeakerNames.Where(n => !string.IsNullOrWhiteSpace(n)));
+
+        // Also include any names from the speaker name map
+        foreach (var mapped in _selectedTranscript.SpeakerNameMap.Values)
+        {
+            if (!string.IsNullOrWhiteSpace(mapped) && !names.Contains(mapped))
+                names.Add(mapped);
+        }
+
+        return names;
+    }
+
+    private void ReTranscribe_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedTranscript is null) return;
+
+        // Find the session directory from the transcript file path
+        var transcriptDir = _selectedTranscript.FilePath is not null
+            ? Path.GetDirectoryName(_selectedTranscript.FilePath)
+            : null;
+
+        if (transcriptDir is null) return;
+
+        var micPath = Path.Combine(transcriptDir, "mic.wav");
+        var systemPath = Path.Combine(transcriptDir, "system.wav");
+
+        // Also check for the mixed recording.wav as fallback
+        if (!File.Exists(micPath))
+        {
+            Trace.TraceWarning("[TranscriptsPage] Cannot re-transcribe: no mic.wav found in {0}", transcriptDir);
+            return;
+        }
+
+        var session = new CallRecordingSession(
+            micPath,
+            File.Exists(systemPath) ? systemPath : micPath,
+            _selectedTranscript.RecordingStartedUtc);
+        session.EndTimestamp = _selectedTranscript.RecordingEndedUtc;
+        session.RemoteSpeakerNames = _selectedTranscript.RemoteSpeakerNames.ToList();
+
+        // Delete the existing transcript so re-transcription creates a fresh one
+        // (the pending session detection will pick it up after deletion)
+        try
+        {
+            if (_selectedTranscript.FilePath is not null && File.Exists(_selectedTranscript.FilePath))
+            {
+                File.Delete(_selectedTranscript.FilePath);
+                Trace.TraceInformation("[TranscriptsPage] Deleted existing transcript for re-transcription: {0}",
+                    _selectedTranscript.FilePath);
+            }
+        }
+        catch (Exception ex)
+        {
+            Trace.TraceError("[TranscriptsPage] Failed to delete transcript for re-transcription: {0}", ex.Message);
+        }
+
+        ClearViewer();
+
+        ReTranscriptionRequested?.Invoke(this, session);
+        RefreshList();
+    }
+
     private void ClearViewer()
     {
         StopPlayback();
         _audioPlayer.Close();
         PlaybackPanel.Visibility = Visibility.Collapsed;
+        SpeakerNamesPanel.Visibility = Visibility.Collapsed;
 
         _selectedTranscript = null;
         _currentSegmentViewModels = null;
@@ -948,11 +1098,12 @@ internal sealed class SegmentViewModel : INotifyPropertyChanged
         PlayingHighlight.Freeze();
     }
 
-    public SegmentViewModel(TranscriptSegment segment, CallTranscript transcript)
+    public SegmentViewModel(TranscriptSegment segment, CallTranscript transcript, List<string>? availableSpeakerNames = null)
     {
         Segment = segment;
         _transcript = transcript;
         _displaySpeaker = transcript.GetDisplaySpeaker(segment);
+        _availableSpeakerNames = availableSpeakerNames ?? new();
         Text = segment.Text;
         TimestampDisplay = $"{segment.StartTime:hh\\:mm\\:ss}";
         // Colors are based on IsLocalSpeaker, which stays consistent after renames
@@ -1010,6 +1161,18 @@ internal sealed class SegmentViewModel : INotifyPropertyChanged
 
     /// <summary>Whether this edit is a per-segment override (true) or global rename (false).</summary>
     public bool IsPerSegmentEdit { get; set; }
+
+    private List<string> _availableSpeakerNames;
+
+    /// <summary>
+    /// List of predefined speaker names available for selection in the dropdown.
+    /// Sourced from the session's RemoteSpeakerNames and the global speaker name map.
+    /// </summary>
+    public List<string> AvailableSpeakerNames
+    {
+        get => _availableSpeakerNames;
+        set { _availableSpeakerNames = value; OnPropertyChanged(); }
+    }
 
     /// <summary>Enter edit mode for the speaker name.</summary>
     public void BeginEditSpeaker()

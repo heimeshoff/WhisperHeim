@@ -14,6 +14,7 @@ using WhisperHeim.Services.Dictation;
 using WhisperHeim.Services.FileTranscription;
 using WhisperHeim.Services.Recording;
 using WhisperHeim.Services.Transcription;
+using TranscriptionBusyService = WhisperHeim.Services.Transcription.TranscriptionBusyService;
 using WhisperHeim.Services.Hotkey;
 using WhisperHeim.Services.Input;
 using WhisperHeim.Services.Models;
@@ -65,6 +66,9 @@ public partial class MainWindow : FluentWindow
     // Read-aloud hotkey service (captures selected text and signals navigation)
     private readonly ReadAloudHotkeyService _readAloudHotkeyService;
 
+    // Transcription engine busy guard — prevents concurrent engine access
+    private readonly TranscriptionBusyService _transcriptionBusyService;
+
     // Hotkey and orchestration
     private readonly GlobalHotkeyService _hotkeyService = new();
     private DictationOrchestrator? _orchestrator;
@@ -104,7 +108,8 @@ public partial class MainWindow : FluentWindow
         IHighQualityLoopbackService highQualityLoopbackService,
         IHighQualityRecorderService highQualityRecorderService,
         ITextToSpeechService textToSpeechService,
-        ReadAloudHotkeyService readAloudHotkeyService)
+        ReadAloudHotkeyService readAloudHotkeyService,
+        TranscriptionBusyService transcriptionBusyService)
     {
         _settingsService = settingsService;
         _audioCaptureService = audioCaptureService;
@@ -121,6 +126,7 @@ public partial class MainWindow : FluentWindow
         _highQualityRecorderService = highQualityRecorderService;
         _textToSpeechService = textToSpeechService;
         _readAloudHotkeyService = readAloudHotkeyService;
+        _transcriptionBusyService = transcriptionBusyService;
 
         InitializeComponent();
 
@@ -391,17 +397,17 @@ public partial class MainWindow : FluentWindow
             CallRecordingMenuItem.Header = "Start Call Recording";
             Trace.TraceInformation("[MainWindow] Call recording stopped.");
 
-            // If recording stopped with an error, don't start transcription
             if (e.Exception is not null)
             {
                 Trace.TraceWarning(
-                    "[MainWindow] Call recording stopped with error, skipping transcription: {0}",
+                    "[MainWindow] Call recording stopped with error: {0}",
                     e.Exception.Message);
-                return;
             }
 
-            // Auto-trigger transcription pipeline via the queue
-            EnqueueTranscription(e.Session);
+            // No auto-transcription — the recording appears as a pending session
+            // with a "Transcribe" button. The user can define speaker names first.
+            var transcriptsPage = GetOrCreateTranscriptsPage();
+            transcriptsPage.RefreshList();
         });
     }
 
@@ -439,6 +445,15 @@ public partial class MainWindow : FluentWindow
             Trace.TraceInformation("[MainWindow] Session: mic={0}, system={1}",
                 session.MicWavFilePath, session.SystemWavFilePath);
 
+            // Acquire the transcription engine busy guard
+            if (!_transcriptionBusyService.TryAcquire("Call transcription"))
+            {
+                Trace.TraceWarning(
+                    "[MainWindow] Engine busy, re-queuing session for later.");
+                _transcriptionQueue.Enqueue(session);
+                break;
+            }
+
             transcriptsPage.ShowTranscribingIndicator();
             transcriptsPage.SetTranscribingSession(sessionDir);
 
@@ -449,12 +464,15 @@ public partial class MainWindow : FluentWindow
                     transcriptsPage.UpdatePipelineProgress(p.Description);
                 });
 
+                var remoteSpeakerNames = session.RemoteSpeakerNames;
+                var localSpeakerName = _settingsService.Current.General.DefaultSpeakerName;
+
                 var transcript = await Task.Run(async () =>
                 {
                     try
                     {
                         return await _callTranscriptionPipeline.ProcessAsync(
-                            session, pipelineProgress);
+                            session, remoteSpeakerNames, localSpeakerName, pipelineProgress);
                     }
                     catch (Exception ex)
                     {
@@ -471,6 +489,10 @@ public partial class MainWindow : FluentWindow
             {
                 Trace.TraceError("[MainWindow] Transcription pipeline failed: {0}\n{1}",
                     ex.Message, ex.StackTrace);
+            }
+            finally
+            {
+                _transcriptionBusyService.Release();
             }
 
             transcriptsPage.SetTranscribingSession(null);
@@ -495,7 +517,7 @@ public partial class MainWindow : FluentWindow
         if (_pageCache.TryGetValue("Recordings", out var cached) && cached is TranscriptsPage page)
             return page;
 
-        page = new TranscriptsPage(_transcriptStorageService);
+        page = new TranscriptsPage(_transcriptStorageService, _transcriptionBusyService);
         page.TranscriptionRequested += OnPendingTranscriptionRequested;
         _pageCache["Recordings"] = page;
         return page;
@@ -768,7 +790,7 @@ public partial class MainWindow : FluentWindow
                 "Dictation" => new DictationPage(_settingsService, _audioCaptureService),
                 "Templates" => new TemplatesPage(_templateService),
                 "Recordings" => GetOrCreateTranscriptsPage(),
-                "Transcriptions" => new TranscribeFilesPage(_fileTranscriptionService),
+                "Transcriptions" => new TranscribeFilesPage(_fileTranscriptionService, _transcriptionBusyService),
                 "TextToSpeech" => new TextToSpeechPage(
                     _textToSpeechService,
                     _highQualityRecorderService,

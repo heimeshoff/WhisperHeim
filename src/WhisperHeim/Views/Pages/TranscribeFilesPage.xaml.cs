@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Win32;
 using WhisperHeim.Services.FileTranscription;
+using WhisperHeim.Services.Transcription;
 
 namespace WhisperHeim.Views.Pages;
 
@@ -17,15 +18,47 @@ namespace WhisperHeim.Views.Pages;
 public partial class TranscribeFilesPage : UserControl
 {
     private readonly IFileTranscriptionService _fileTranscriptionService;
+    private readonly TranscriptionBusyService _busyService;
     private readonly TranscribeFilesViewModel _viewModel = new();
     private CancellationTokenSource? _cts;
     private bool _isDragOver;
 
-    public TranscribeFilesPage(IFileTranscriptionService fileTranscriptionService)
+    public TranscribeFilesPage(
+        IFileTranscriptionService fileTranscriptionService,
+        TranscriptionBusyService busyService)
     {
         _fileTranscriptionService = fileTranscriptionService;
+        _busyService = busyService;
         DataContext = _viewModel;
         InitializeComponent();
+
+        // Bind to busy service changes to update UI
+        _busyService.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(TranscriptionBusyService.IsBusy))
+            {
+                Dispatcher.BeginInvoke(UpdateBusyState);
+            }
+        };
+    }
+
+    /// <summary>
+    /// Updates the drop zone and pick button to reflect the engine busy state.
+    /// </summary>
+    private void UpdateBusyState()
+    {
+        bool isBusy = _busyService.IsBusy;
+        PickFilesButton.IsEnabled = !isBusy;
+        AllowDrop = !isBusy;
+
+        if (isBusy)
+        {
+            BusyOverlay.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            BusyOverlay.Visibility = Visibility.Collapsed;
+        }
     }
 
     /// <summary>
@@ -175,6 +208,15 @@ public partial class TranscribeFilesPage : UserControl
             return;
         }
 
+        // Check engine availability before starting
+        if (_busyService.IsBusy)
+        {
+            Trace.TraceWarning(
+                "[TranscribeFilesPage] Engine busy ('{0}'), cannot start file transcription.",
+                _busyService.BusySource);
+            return;
+        }
+
         // Create view models for each file
         var newItems = new List<TranscriptionItemViewModel>();
         foreach (var filePath in supportedFiles)
@@ -189,49 +231,68 @@ public partial class TranscribeFilesPage : UserControl
         _cts = new CancellationTokenSource();
         var token = _cts.Token;
 
-        // Transcribe sequentially
-        foreach (var item in newItems)
+        // Acquire the engine for the entire batch
+        if (!_busyService.TryAcquire("File transcription"))
         {
-            if (token.IsCancellationRequested) break;
-
-            item.StatusText = "Transcribing...";
-            item.IsTranscribing = true;
-
-            var progress = new Progress<double>(p =>
+            foreach (var item in newItems)
             {
-                item.Progress = p * 100;
-            });
-
-            try
-            {
-                var result = await _fileTranscriptionService.TranscribeFileAsync(
-                    item.FilePath, progress, token);
-
-                item.TranscriptText = string.IsNullOrWhiteSpace(result.Text)
-                    ? "(No speech detected)"
-                    : result.Text;
-                item.DurationText = $"Audio: {result.AudioDuration:mm\\:ss} | Transcribed in {result.TranscriptionDuration:mm\\:ss}";
-                item.StatusText = "Done";
-                item.HasResult = true;
-            }
-            catch (OperationCanceledException)
-            {
-                item.StatusText = "Cancelled";
-                break;
-            }
-            catch (Exception ex)
-            {
-                item.ErrorText = ex.Message;
+                item.StatusText = "Engine busy";
+                item.ErrorText = "The transcription engine is currently in use. Please try again when the active transcription completes.";
                 item.HasError = true;
-                item.StatusText = "Error";
-                Trace.TraceError("[TranscribeFilesPage] Transcription failed for '{0}': {1}",
-                    item.FileName, ex);
             }
-            finally
+            return;
+        }
+
+        try
+        {
+            // Transcribe sequentially
+            foreach (var item in newItems)
             {
-                item.IsTranscribing = false;
-                item.Progress = 0;
+                if (token.IsCancellationRequested) break;
+
+                item.StatusText = "Transcribing...";
+                item.IsTranscribing = true;
+
+                var progress = new Progress<double>(p =>
+                {
+                    item.Progress = p * 100;
+                });
+
+                try
+                {
+                    var result = await _fileTranscriptionService.TranscribeFileAsync(
+                        item.FilePath, progress, token);
+
+                    item.TranscriptText = string.IsNullOrWhiteSpace(result.Text)
+                        ? "(No speech detected)"
+                        : result.Text;
+                    item.DurationText = $"Audio: {result.AudioDuration:mm\\:ss} | Transcribed in {result.TranscriptionDuration:mm\\:ss}";
+                    item.StatusText = "Done";
+                    item.HasResult = true;
+                }
+                catch (OperationCanceledException)
+                {
+                    item.StatusText = "Cancelled";
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    item.ErrorText = ex.Message;
+                    item.HasError = true;
+                    item.StatusText = "Error";
+                    Trace.TraceError("[TranscribeFilesPage] Transcription failed for '{0}': {1}",
+                        item.FileName, ex);
+                }
+                finally
+                {
+                    item.IsTranscribing = false;
+                    item.Progress = 0;
+                }
             }
+        }
+        finally
+        {
+            _busyService.Release();
         }
     }
 }

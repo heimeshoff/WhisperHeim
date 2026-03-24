@@ -96,6 +96,27 @@
                             </ControlTemplate>
                         </Button.Template>
                     </Button>
+
+                    <!-- Engine busy overlay (shown when transcription engine is in use elsewhere) -->
+                    <Border x:Name="BusyOverlay"
+                            Visibility="Collapsed"
+                            HorizontalAlignment="Center"
+                            CornerRadius="8"
+                            Background="{DynamicResource SystemFillColorCautionBackgroundBrush}"
+                            Padding="16,8"
+                            Margin="0,12,0,0">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <ui:SymbolIcon Symbol="Warning24"
+                                           FontSize="16"
+                                           Foreground="#FFFF8C00"
+                                           Margin="0,0,8,0"
+                                           VerticalAlignment="Center" />
+                            <TextBlock Text="Engine busy — a transcription is already in progress"
+                                       FontSize="12" FontWeight="SemiBold"
+                                       Foreground="#FFFF8C00"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </Border>
 

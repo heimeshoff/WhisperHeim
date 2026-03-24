@@ -173,6 +173,7 @@ public partial class App : Application
         // Create services
         var transcriptionService = new TranscriptionService();
         transcriptionService.LoadModel();
+        var transcriptionBusyService = new TranscriptionBusyService();
         var inputSimulator = new InputSimulator();
         var fileTranscriptionService = new FileTranscriptionService(transcriptionService);
         var templateService = new TemplateService(_settingsService);
@@ -219,7 +220,8 @@ public partial class App : Application
             highQualityLoopbackService,
             highQualityRecorderService,
             textToSpeechService,
-            _readAloudHotkeyService);
+            _readAloudHotkeyService,
+            transcriptionBusyService);
         MainWindow = mainWindow;
 
         if (startMinimized)
