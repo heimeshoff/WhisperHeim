@@ -519,6 +519,7 @@ public partial class MainWindow : FluentWindow
 
         page = new TranscriptsPage(_transcriptStorageService, _transcriptionBusyService);
         page.TranscriptionRequested += OnPendingTranscriptionRequested;
+        page.ReTranscriptionRequested += OnPendingTranscriptionRequested;
         _pageCache["Recordings"] = page;
         return page;
     }

@@ -14,6 +14,13 @@ public interface ICallTranscriptionPipeline
     /// load audio -> diarize -> transcribe segments -> assemble transcript -> save.
     /// </summary>
     /// <param name="session">The completed call recording session with audio file paths.</param>
+    /// <param name="remoteSpeakerNames">
+    /// Optional list of remote speaker names. When non-empty, the list length is used
+    /// as numSpeakers for loopback diarization instead of auto-detect.
+    /// </param>
+    /// <param name="localSpeakerName">
+    /// Display name for the local (mic) speaker. Falls back to "You" if null or empty.
+    /// </param>
     /// <param name="progress">Optional progress reporter for UI updates.</param>
     /// <param name="cancellationToken">Cancellation token to abort processing.</param>
     /// <returns>The completed, persisted call transcript.</returns>
@@ -21,6 +28,8 @@ public interface ICallTranscriptionPipeline
     /// <exception cref="OperationCanceledException">If processing was cancelled.</exception>
     Task<CallTranscript> ProcessAsync(
         CallRecordingSession session,
+        IReadOnlyList<string>? remoteSpeakerNames = null,
+        string? localSpeakerName = null,
         IProgress<TranscriptionPipelineProgress>? progress = null,
         CancellationToken cancellationToken = default);
 }

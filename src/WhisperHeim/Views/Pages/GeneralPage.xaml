@@ -100,6 +100,33 @@
                 </DockPanel>
             </Border>
 
+            <!-- ═══════ Call Recording Section ═══════ -->
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                <ui:SymbolIcon Symbol="Call24" Foreground="#FF005FAA" Margin="0,0,10,0" />
+                <TextBlock Text="CALL RECORDING"
+                           FontSize="10" FontWeight="Bold"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                           VerticalAlignment="Center" />
+            </StackPanel>
+
+            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" CornerRadius="12" Padding="24" Margin="0,0,0,40">
+                <StackPanel>
+                    <TextBlock Text="Default speaker name"
+                               FontSize="15" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                    <TextBlock Text="Your name as it appears in call transcripts. Leave empty to use &quot;You&quot;."
+                               FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               Margin="0,4,0,16"
+                               TextWrapping="Wrap" />
+                    <ui:TextBox x:Name="DefaultSpeakerNameBox"
+                                PlaceholderText="You"
+                                Text="{Binding DefaultSpeakerName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                LostFocus="OnSettingChanged"
+                                MaxWidth="300"
+                                HorizontalAlignment="Left" />
+                </StackPanel>
+            </Border>
+
             <!-- ═══════ Data Storage Section ═══════ -->
             <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
                 <ui:SymbolIcon Symbol="Folder24" Foreground="#FF005FAA" Margin="0,0,10,0" />

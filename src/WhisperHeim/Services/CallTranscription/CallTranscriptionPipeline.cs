@@ -51,6 +51,8 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
     /// <inheritdoc />
     public async Task<CallTranscript> ProcessAsync(
         CallRecordingSession session,
+        IReadOnlyList<string>? remoteSpeakerNames = null,
+        string? localSpeakerName = null,
         IProgress<TranscriptionPipelineProgress>? progress = null,
         CancellationToken cancellationToken = default)
     {
@@ -93,25 +95,34 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
             "[CallTranscriptionPipeline] Audio durations: mic={0:F1}s, system={1:F1}s",
             micDurationSeconds, systemDurationSeconds);
 
-        // -- Diarize mic stream --
+        // Resolve local speaker label
+        var localSpeakerLabel = string.IsNullOrWhiteSpace(localSpeakerName) ? "You" : localSpeakerName;
+
+        // Determine numSpeakers for loopback from remote speaker name list
+        int loopbackNumSpeakers = remoteSpeakerNames is { Count: > 0 }
+            ? remoteSpeakerNames.Count
+            : -1; // auto-detect
+
+        // -- Mic stream: skip diarization, single segment for local user --
         DiarizationResult? micDiarization = null;
         if (micExists && micDurationSeconds > 0.5)
         {
-            ReportProgress(progress, PipelineStage.Diarizing, 0, "Diarizing microphone...");
+            ReportProgress(progress, PipelineStage.Diarizing, 0, "Processing microphone (single speaker)...");
 
-            micDiarization = await DiarizeFromFileAsync(
-                session.MicWavFilePath, numSpeakers: 1,
-                dp =>
-                {
-                    var pct = systemExists ? dp.Percent * 0.5 : dp.Percent;
-                    ReportProgress(progress, PipelineStage.Diarizing, pct,
-                        $"Diarizing mic — chunk {dp.ProcessedChunks}/{dp.TotalChunks}");
-                },
-                cancellationToken);
+            // The mic always has exactly one speaker (the local user).
+            // Skip expensive diarization and create a single segment spanning the full audio.
+            var micSegment = new DiarizationSegment(
+                SpeakerId: 0,
+                StartTime: TimeSpan.Zero,
+                EndTime: TimeSpan.FromSeconds(micDurationSeconds));
+            micDiarization = new DiarizationResult(
+                [micSegment], SpeakerCount: 1,
+                AudioDuration: TimeSpan.FromSeconds(micDurationSeconds),
+                ProcessingDuration: TimeSpan.Zero);
 
             Trace.TraceInformation(
-                "[CallTranscriptionPipeline] Mic diarization: {0} segments",
-                micDiarization.Segments.Count);
+                "[CallTranscriptionPipeline] Mic: skipped diarization, single segment ({0:F1}s)",
+                micDurationSeconds);
         }
 
         // -- Diarize system stream --
@@ -121,7 +132,7 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
             ReportProgress(progress, PipelineStage.Diarizing, 50, "Diarizing system audio...");
 
             systemDiarization = await DiarizeFromFileAsync(
-                session.SystemWavFilePath, numSpeakers: -1,
+                session.SystemWavFilePath, numSpeakers: loopbackNumSpeakers,
                 dp =>
                 {
                     ReportProgress(progress, PipelineStage.Diarizing, 50 + dp.Percent * 0.5,
@@ -194,7 +205,7 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
                 ? (double)i / totalSegments * 100.0
                 : 0;
 
-            var speakerLabel = GetSpeakerLabel(seg);
+            var speakerLabel = GetSpeakerLabel(seg, localSpeakerLabel, remoteSpeakerNames);
             ReportProgress(progress, PipelineStage.Transcribing, segPercent,
                 $"Transcribing segment {i + 1}/{totalSegments} ({speakerLabel})...");
 
@@ -251,6 +262,7 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
             RecordingStartedUtc = session.StartTimestamp,
             RecordingEndedUtc = session.EndTimestamp.Value,
             Segments = mergedSegments,
+            RemoteSpeakerNames = remoteSpeakerNames?.ToList() ?? new List<string>(),
         };
 
         ReportProgress(progress, PipelineStage.Assembling, 100, "Transcript assembled.");
@@ -670,18 +682,30 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
 
     /// <summary>
     /// Generates a human-readable speaker label from an attributed diarization segment.
-    /// Mic source = "You", loopback source = "Speaker N".
+    /// Mic source uses the configured local speaker name (default "You").
+    /// Loopback source uses remote speaker names if available, otherwise "Speaker N".
     /// </summary>
-    private static string GetSpeakerLabel(AttributedDiarizationSegment segment)
+    private static string GetSpeakerLabel(
+        AttributedDiarizationSegment segment,
+        string localSpeakerLabel,
+        IReadOnlyList<string>? remoteSpeakerNames)
     {
-        return segment.Source switch
+        if (segment.Source == SpeakerSource.Microphone)
+            return localSpeakerLabel;
+
+        // Loopback speakers: SpeakerId is 1-based (0 is reserved for mic).
+        // Map to remote speaker names list (0-indexed).
+        int remoteIndex = segment.SpeakerId - 1;
+        if (remoteSpeakerNames is { Count: > 0 } && remoteIndex >= 0 && remoteIndex < remoteSpeakerNames.Count)
         {
-            SpeakerSource.Microphone => "You",
-            SpeakerSource.Loopback => segment.SpeakerId == 1
-                ? "Other"
-                : $"Speaker {segment.SpeakerId}",
-            _ => $"Speaker {segment.SpeakerId}",
-        };
+            var name = remoteSpeakerNames[remoteIndex];
+            if (!string.IsNullOrWhiteSpace(name))
+                return name;
+        }
+
+        return segment.SpeakerId == 1
+            ? "Other"
+            : $"Speaker {segment.SpeakerId}";
     }
 
     /// <summary>

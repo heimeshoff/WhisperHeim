@@ -41,4 +41,10 @@ public sealed class CallRecordingSession
     /// Duration of the recording. Returns the elapsed time since start if still recording.
     /// </summary>
     public TimeSpan Duration => (EndTimestamp ?? DateTimeOffset.UtcNow) - StartTimestamp;
+
+    /// <summary>
+    /// User-defined list of remote speaker names for this recording session.
+    /// Used as a hint for diarization (numSpeakers) and for speaker labeling in transcripts.
+    /// </summary>
+    public List<string> RemoteSpeakerNames { get; set; } = new();
 }

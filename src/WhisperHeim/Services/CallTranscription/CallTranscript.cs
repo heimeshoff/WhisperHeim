@@ -41,6 +41,13 @@ public sealed class CallTranscript
     public Dictionary<string, string> SpeakerNameMap { get; set; } = new();
 
     /// <summary>
+    /// List of remote speaker names associated with this recording session.
+    /// Used for re-transcription and as dropdown options in the transcript viewer.
+    /// </summary>
+    [JsonPropertyName("remoteSpeakerNames")]
+    public List<string> RemoteSpeakerNames { get; set; } = new();
+
+    /// <summary>
     /// Relative or absolute path to the preserved audio file (WAV) for playback.
     /// Stored relative to the transcript JSON file for portability.
     /// </summary>

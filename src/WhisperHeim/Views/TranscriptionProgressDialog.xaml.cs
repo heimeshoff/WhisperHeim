@@ -14,6 +14,8 @@ public partial class TranscriptionProgressDialog : Window
 {
     private readonly ICallTranscriptionPipeline _pipeline;
     private readonly CallRecordingSession _session;
+    private readonly IReadOnlyList<string>? _remoteSpeakerNames;
+    private readonly string? _localSpeakerName;
     private CancellationTokenSource? _cts;
 
     /// <summary>The completed transcript, or null if cancelled/failed.</summary>
@@ -27,10 +29,14 @@ public partial class TranscriptionProgressDialog : Window
 
     public TranscriptionProgressDialog(
         ICallTranscriptionPipeline pipeline,
-        CallRecordingSession session)
+        CallRecordingSession session,
+        IReadOnlyList<string>? remoteSpeakerNames = null,
+        string? localSpeakerName = null)
     {
         _pipeline = pipeline;
         _session = session;
+        _remoteSpeakerNames = remoteSpeakerNames;
+        _localSpeakerName = localSpeakerName;
 
         InitializeComponent();
         Loaded += OnLoaded;
@@ -41,9 +47,11 @@ public partial class TranscriptionProgressDialog : Window
     /// </summary>
     public static CallTranscript? ShowAndProcess(
         ICallTranscriptionPipeline pipeline,
-        CallRecordingSession session)
+        CallRecordingSession session,
+        IReadOnlyList<string>? remoteSpeakerNames = null,
+        string? localSpeakerName = null)
     {
-        var dialog = new TranscriptionProgressDialog(pipeline, session);
+        var dialog = new TranscriptionProgressDialog(pipeline, session, remoteSpeakerNames, localSpeakerName);
         dialog.ShowDialog();
         return dialog.Result;
     }
@@ -56,7 +64,7 @@ public partial class TranscriptionProgressDialog : Window
         try
         {
             Result = await Task.Run(
-                () => _pipeline.ProcessAsync(_session, progress, _cts.Token),
+                () => _pipeline.ProcessAsync(_session, _remoteSpeakerNames, _localSpeakerName, progress, _cts.Token),
                 _cts.Token);
 
             Succeeded = true;

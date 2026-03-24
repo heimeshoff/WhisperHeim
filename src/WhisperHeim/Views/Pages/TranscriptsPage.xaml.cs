@@ -571,7 +571,12 @@ public partial class TranscriptsPage : UserControl
     private void SpeakerEditBox_Loaded(object sender, RoutedEventArgs e)
     {
         // Auto-focus and select all text when the edit box appears
-        if (sender is TextBox textBox && textBox.DataContext is SegmentViewModel { IsEditingSpeaker: true })
+        if (sender is ComboBox comboBox && comboBox.DataContext is SegmentViewModel { IsEditingSpeaker: true })
+        {
+            comboBox.Focus();
+            comboBox.IsDropDownOpen = true;
+        }
+        else if (sender is TextBox textBox && textBox.DataContext is SegmentViewModel { IsEditingSpeaker: true })
         {
             textBox.Focus();
             textBox.SelectAll();
@@ -1223,4 +1228,24 @@ internal sealed class PendingRecordingItem
     public string Name { get; }
     public string Detail { get; }
     public bool IsTranscribing { get; }
+}
+
+/// <summary>
+/// Editable speaker name item for the speaker names list.
+/// </summary>
+internal sealed class SpeakerNameItem : INotifyPropertyChanged
+{
+    private string _name = "";
+
+    public string Name
+    {
+        get => _name;
+        set
+        {
+            _name = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Name)));
+        }
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
 }

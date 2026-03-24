@@ -45,6 +45,14 @@ public sealed class GeneralSettings
     /// <summary>Application theme: "Dark", "Light", or "System".</summary>
     [JsonPropertyName("theme")]
     public string Theme { get; set; } = "Light";
+
+    /// <summary>
+    /// Default speaker name for the local user in call transcripts.
+    /// When set, replaces "You" as the label for mic audio segments.
+    /// Falls back to "You" if empty or null.
+    /// </summary>
+    [JsonPropertyName("defaultSpeakerName")]
+    public string? DefaultSpeakerName { get; set; }
 }
 
 public sealed class DictationSettings

@@ -351,6 +351,7 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
@@ -410,8 +411,79 @@
                             </Grid>
                         </Border>
 
+                        <!-- Speaker names panel (shown for transcripts with remote speaker names) -->
+                        <Border Grid.Row="2"
+                                x:Name="SpeakerNamesPanel"
+                                Visibility="Collapsed"
+                                Padding="14,10"
+                                Margin="0,0,0,12"
+                                CornerRadius="10"
+                                Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}"
+                                VerticalAlignment="Top">
+                            <StackPanel>
+                                <DockPanel Margin="0,0,0,8">
+                                    <TextBlock Text="SPEAKER NAMES"
+                                               FontSize="10" FontWeight="Bold"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                               VerticalAlignment="Center" />
+                                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
+                                        <Button x:Name="AddSpeakerButton"
+                                                Content="+ Add"
+                                                Click="AddSpeaker_Click"
+                                                Padding="8,3" FontSize="11"
+                                                Background="Transparent" BorderThickness="0"
+                                                Foreground="#FF005FAA" Cursor="Hand" />
+                                        <Button x:Name="ReTranscribeButton"
+                                                Click="ReTranscribe_Click"
+                                                Padding="10,4" Cursor="Hand"
+                                                Margin="8,0,0,0"
+                                                BorderThickness="0">
+                                            <Button.Template>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border x:Name="Bd" CornerRadius="6" Padding="{TemplateBinding Padding}"
+                                                            Background="#19005FAA">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <ui:SymbolIcon Symbol="ArrowSync24" Foreground="#FF005FAA" Margin="0,0,4,0" FontSize="12" />
+                                                            <TextBlock Text="RE-TRANSCRIBE" FontSize="9" FontWeight="Bold"
+                                                                       Foreground="#FF005FAA" VerticalAlignment="Center" />
+                                                        </StackPanel>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="Bd" Property="Background" Value="#33005FAA" />
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Button.Template>
+                                        </Button>
+                                    </StackPanel>
+                                </DockPanel>
+                                <ItemsControl x:Name="SpeakerNamesList">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <DockPanel Margin="0,2">
+                                                <Button Content="x"
+                                                        Click="RemoveSpeaker_Click"
+                                                        DockPanel.Dock="Right"
+                                                        Padding="4,1" FontSize="10"
+                                                        Background="Transparent" BorderThickness="0"
+                                                        Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                                        Cursor="Hand"
+                                                        VerticalAlignment="Center" />
+                                                <TextBox Text="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                                         FontSize="12"
+                                                         Padding="6,3"
+                                                         BorderThickness="1"
+                                                         LostFocus="SpeakerName_LostFocus" />
+                                            </DockPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+
                         <!-- Transcript content -->
-                        <ScrollViewer Grid.Row="2"
+                        <ScrollViewer Grid.Row="3"
                                       VerticalScrollBarVisibility="Auto"
                                       x:Name="TranscriptScrollViewer">
                             <ItemsControl x:Name="SegmentList">
@@ -433,16 +505,18 @@
                                                                ToolTip="Click to rename speaker; Shift+Click to rename just this segment"
                                                                MouseLeftButtonDown="SpeakerLabel_MouseLeftButtonDown"
                                                                Visibility="{Binding IsEditingSpeaker, Converter={StaticResource InverseBoolToVisibility}}" />
-                                                    <TextBox Text="{Binding EditingSpeakerName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                             FontWeight="Bold"
-                                                             FontSize="11"
-                                                             MinWidth="80"
-                                                             Padding="2,0"
-                                                             BorderThickness="1"
-                                                             Visibility="{Binding IsEditingSpeaker, Converter={StaticResource BoolToVisibility}}"
-                                                             LostFocus="SpeakerEditBox_LostFocus"
-                                                             KeyDown="SpeakerEditBox_KeyDown"
-                                                             Loaded="SpeakerEditBox_Loaded" />
+                                                    <!-- Speaker name edit: ComboBox with editable text for dropdown + manual entry -->
+                                                    <ComboBox IsEditable="True"
+                                                              Text="{Binding EditingSpeakerName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                              ItemsSource="{Binding AvailableSpeakerNames}"
+                                                              FontWeight="Bold"
+                                                              FontSize="11"
+                                                              MinWidth="120"
+                                                              Padding="2,0"
+                                                              Visibility="{Binding IsEditingSpeaker, Converter={StaticResource BoolToVisibility}}"
+                                                              LostFocus="SpeakerEditBox_LostFocus"
+                                                              KeyDown="SpeakerEditBox_KeyDown"
+                                                              Loaded="SpeakerEditBox_Loaded" />
                                                     <TextBlock Text="{Binding TimestampDisplay}"
                                                                FontSize="10"
                                                                Foreground="{DynamicResource TextFillColorTertiaryBrush}"
@@ -469,7 +543,7 @@
 
                         <!-- Placeholder -->
                         <TextBlock x:Name="PlaceholderText"
-                                   Grid.Row="2"
+                                   Grid.Row="3"
                                    Text="Select a transcript to view"
                                    HorizontalAlignment="Center"
                                    VerticalAlignment="Center"
@@ -477,7 +551,7 @@
                                    FontSize="14" />
 
                         <!-- Action buttons -->
-                        <StackPanel Grid.Row="3"
+                        <StackPanel Grid.Row="4"
                                     Orientation="Horizontal"
                                     Margin="0,16,0,0"
                                     x:Name="ActionPanel"
