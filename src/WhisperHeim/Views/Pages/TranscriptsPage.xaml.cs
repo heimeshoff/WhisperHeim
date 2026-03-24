@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -29,8 +30,10 @@ public partial class TranscriptsPage : UserControl
     private readonly TranscriptAudioPlayer _audioPlayer = new();
     private readonly DispatcherTimer _copiedIndicatorTimer;
     private CallTranscript? _selectedTranscript;
+    private TranscriptListItem? _selectedListItem;
     private List<SegmentViewModel>? _currentSegmentViewModels;
     private string? _currentlyTranscribingSessionDir;
+    private readonly List<TranscriptGroupViewModel> _groups = new();
 
     public TranscriptsPage(
         ITranscriptStorageService storageService,
@@ -132,6 +135,8 @@ public partial class TranscriptsPage : UserControl
         });
     }
 
+    // --- List loading ---
+
     private void LoadTranscriptList()
     {
         _allItems.Clear();
@@ -139,7 +144,6 @@ public partial class TranscriptsPage : UserControl
 
         foreach (var filePath in files)
         {
-            // Parse date from filename: transcript_YYYYMMDD_HHmmss.json
             var fileName = Path.GetFileNameWithoutExtension(filePath);
             var item = new TranscriptListItem(filePath, fileName);
             _allItems.Add(item);
@@ -153,14 +157,14 @@ public partial class TranscriptsPage : UserControl
     {
         if (_storageService is not TranscriptStorageService concreteStorage)
         {
-            PendingList.Visibility = Visibility.Collapsed;
+            PendingSection.Visibility = Visibility.Collapsed;
             return;
         }
 
         var pendingDirs = concreteStorage.ListPendingSessions();
         if (pendingDirs.Count == 0)
         {
-            PendingList.Visibility = Visibility.Collapsed;
+            PendingSection.Visibility = Visibility.Collapsed;
             return;
         }
 
@@ -173,7 +177,6 @@ public partial class TranscriptsPage : UserControl
                     Path.GetFullPath(_currentlyTranscribingSessionDir),
                     StringComparison.OrdinalIgnoreCase);
 
-            // Parse date from folder name: YYYYMMDD_HHmmss
             string name;
             if (dirName.Length >= 15 &&
                 DateTime.TryParseExact(
@@ -195,17 +198,89 @@ public partial class TranscriptsPage : UserControl
             var detail = isCurrentlyTranscribing
                 ? "Transcribing..."
                 : isEngineBusy
-                    ? "Engine busy — waiting for current transcription to finish"
-                    : $"{wavFiles.Length} audio file{(wavFiles.Length != 1 ? "s" : "")} — click to transcribe";
+                    ? "Engine busy"
+                    : $"{wavFiles.Length} audio file{(wavFiles.Length != 1 ? "s" : "")}";
 
             items.Add(new PendingRecordingItem(dir, name, detail, isCurrentlyTranscribing || isEngineBusy));
         }
 
         PendingList.ItemsSource = items;
-        PendingList.Visibility = Visibility.Visible;
+        PendingCountText.Text = $"({items.Count})";
+        PendingSection.Visibility = Visibility.Visible;
     }
 
-    private void PendingItem_Click(object sender, MouseButtonEventArgs e)
+    private void ApplyFilter()
+    {
+        var searchText = SearchBox?.Text?.Trim() ?? string.Empty;
+
+        IEnumerable<TranscriptListItem> filtered;
+        if (string.IsNullOrEmpty(searchText))
+        {
+            filtered = _allItems;
+        }
+        else
+        {
+            filtered = _allItems.Where(i =>
+                i.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                i.DateDisplay.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                i.PreviewText.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                i.FileName.Contains(searchText, StringComparison.OrdinalIgnoreCase));
+        }
+
+        // Group by date (day)
+        var grouped = filtered
+            .GroupBy(i => i.GroupKey)
+            .OrderByDescending(g => g.Key)
+            .ToList();
+
+        // Preserve expanded state from existing groups
+        var expandedState = _groups.ToDictionary(g => g.GroupName, g => g.IsExpanded);
+
+        _groups.Clear();
+        foreach (var group in grouped)
+        {
+            var displayName = group.First().GroupDisplayName;
+            var isExpanded = expandedState.TryGetValue(displayName, out var was) ? was : true;
+            _groups.Add(new TranscriptGroupViewModel(displayName, group.ToList(), isExpanded));
+        }
+
+        TranscriptGroupList.ItemsSource = null;
+        TranscriptGroupList.ItemsSource = _groups;
+
+        var totalCount = filtered.Count();
+        EmptyState.Visibility = totalCount == 0 && PendingSection.Visibility == Visibility.Collapsed
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+    }
+
+    // --- Search ---
+
+    private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        ApplyFilter();
+
+        if (_selectedTranscript is not null && !string.IsNullOrWhiteSpace(SearchBox.Text))
+        {
+            HighlightMatchingSegments(SearchBox.Text.Trim());
+        }
+    }
+
+    private void ClearSearch_Click(object sender, RoutedEventArgs e)
+    {
+        SearchBox.Text = string.Empty;
+    }
+
+    // --- Row clicks ---
+
+    private void TranscriptRow_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { DataContext: TranscriptListItem item })
+            return;
+
+        OpenTranscriptDrawer(item);
+    }
+
+    private void PendingRow_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not FrameworkElement { DataContext: PendingRecordingItem item })
             return;
@@ -222,7 +297,6 @@ public partial class TranscriptsPage : UserControl
             return;
         }
 
-        // Parse start timestamp from folder name
         var dirName = Path.GetFileName(item.SessionDir);
         DateTimeOffset startTimestamp;
         if (dirName.Length >= 15 &&
@@ -245,7 +319,6 @@ public partial class TranscriptsPage : UserControl
             File.Exists(systemPath) ? systemPath : micPath,
             startTimestamp);
 
-        // Set end timestamp from the WAV file's last write time
         var lastWrite = File.GetLastWriteTimeUtc(micPath);
         session.EndTimestamp = new DateTimeOffset(lastWrite, TimeSpan.Zero);
 
@@ -253,113 +326,85 @@ public partial class TranscriptsPage : UserControl
         e.Handled = true;
     }
 
-    private void DeletePendingItem_Click(object sender, RoutedEventArgs e)
+    // --- Group toggle ---
+
+    private void GroupToggle_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is not FrameworkElement { DataContext: PendingRecordingItem item })
-            return;
-
-        e.Handled = true; // Prevent click from triggering transcription
-
-        var dialog = new WhisperHeim.Views.DeleteConfirmationDialog(item.Name)
+        // Pending group toggle
+        if (sender is ToggleButton toggle)
         {
-            Owner = Window.GetWindow(this)
-        };
-        dialog.ShowDialog();
-
-        if (!dialog.Confirmed)
-            return;
-
-        try
-        {
-            if (Directory.Exists(item.SessionDir))
-            {
-                Directory.Delete(item.SessionDir, recursive: true);
-                Trace.TraceInformation("[TranscriptsPage] Deleted pending session: {0}", item.SessionDir);
-            }
-        }
-        catch (Exception ex)
-        {
-            Trace.TraceError("[TranscriptsPage] Failed to delete pending session: {0}", ex.Message);
-        }
-
-        // Always refresh the list so the deleted item disappears from the UI
-        LoadTranscriptList();
-    }
-
-    private void ApplyFilter()
-    {
-        var searchText = SearchBox?.Text?.Trim() ?? string.Empty;
-
-        // Always reset ItemsSource so WPF picks up changes to the list
-        TranscriptList.ItemsSource = null;
-
-        if (string.IsNullOrEmpty(searchText))
-        {
-            TranscriptList.ItemsSource = _allItems;
-        }
-        else
-        {
-            // Filter by name, date display, or preview text
-            var filtered = _allItems.Where(i =>
-                i.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
-                i.DateDisplay.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
-                i.PreviewText.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
-                i.FileName.Contains(searchText, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-            TranscriptList.ItemsSource = filtered;
+            PendingList.Visibility = toggle.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+            PendingGroupChevron.Text = toggle.IsChecked == true ? "\uE70D" : "\uE70E";
         }
     }
 
-    private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
+    private void TranscriptGroupToggle_Click(object sender, RoutedEventArgs e)
     {
-        ApplyFilter();
-
-        // If a transcript is selected and has segments, also filter segments by search
-        if (_selectedTranscript is not null && !string.IsNullOrWhiteSpace(SearchBox.Text))
+        // The binding on IsExpanded handles visibility; just refresh chevron
+        if (sender is FrameworkElement { DataContext: TranscriptGroupViewModel group })
         {
-            HighlightMatchingSegments(SearchBox.Text.Trim());
+            group.OnPropertyChanged(nameof(TranscriptGroupViewModel.ChevronText));
         }
     }
 
-    private void ClearSearch_Click(object sender, RoutedEventArgs e)
-    {
-        SearchBox.Text = string.Empty;
-    }
+    // --- Drawer ---
 
-    private async void TranscriptList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private async void OpenTranscriptDrawer(TranscriptListItem item)
     {
-        if (TranscriptList.SelectedItem is not TranscriptListItem item)
-        {
-            ClearViewer();
-            return;
-        }
-
         try
         {
             var transcript = await _storageService.LoadAsync(item.FilePath);
             if (transcript is null)
             {
-                ClearViewer();
                 return;
             }
 
             _selectedTranscript = transcript;
+            _selectedListItem = item;
             DisplayTranscript(transcript);
+            DrawerOverlay.Visibility = Visibility.Visible;
+            DrawerPanel.Visibility = Visibility.Visible;
         }
         catch (Exception ex)
         {
             Trace.TraceError("[TranscriptsPage] Failed to load transcript: {0}", ex.Message);
-            ClearViewer();
         }
     }
 
+    private void CloseDrawer()
+    {
+        StopPlayback();
+        _audioPlayer.Close();
+        PlaybackPanel.Visibility = Visibility.Collapsed;
+        SpeakerNamesPanel.Visibility = Visibility.Collapsed;
+
+        DrawerOverlay.Visibility = Visibility.Collapsed;
+        DrawerPanel.Visibility = Visibility.Collapsed;
+
+        _selectedTranscript = null;
+        _selectedListItem = null;
+        _currentSegmentViewModels = null;
+        ActionPanel.Visibility = Visibility.Collapsed;
+        SegmentList.ItemsSource = null;
+    }
+
+    private void DrawerClose_Click(object sender, RoutedEventArgs e)
+    {
+        CloseDrawer();
+    }
+
+    private void DrawerOverlay_Click(object sender, MouseButtonEventArgs e)
+    {
+        CloseDrawer();
+    }
+
+    // --- Transcript display ---
+
     private void DisplayTranscript(CallTranscript transcript)
     {
-        // Stop any existing playback when switching transcripts
         StopPlayback();
 
         PlaceholderText.Visibility = Visibility.Collapsed;
-        ViewerHeader.Visibility = Visibility.Visible;
         ActionPanel.Visibility = Visibility.Visible;
 
         TranscriptNameBox.Text = transcript.Name;
@@ -375,10 +420,8 @@ public partial class TranscriptsPage : UserControl
         _currentSegmentViewModels = viewModels;
         SegmentList.ItemsSource = viewModels;
 
-        // Show speaker names panel
         ShowSpeakerNamesPanel();
 
-        // Show playback panel if audio is available
         var audioPath = transcript.ResolvedAudioFilePath;
         if (audioPath is not null)
         {
@@ -401,6 +444,8 @@ public partial class TranscriptsPage : UserControl
         }
     }
 
+    // --- Transcript name editing ---
+
     private async void TranscriptNameBox_LostFocus(object sender, RoutedEventArgs e)
     {
         await SaveTranscriptNameAsync();
@@ -410,7 +455,6 @@ public partial class TranscriptsPage : UserControl
     {
         if (e.Key == System.Windows.Input.Key.Enter)
         {
-            // Move focus away to trigger save
             await SaveTranscriptNameAsync();
             e.Handled = true;
         }
@@ -430,15 +474,10 @@ public partial class TranscriptsPage : UserControl
         {
             await _storageService.UpdateAsync(_selectedTranscript);
 
-            // Refresh the list item to show the updated name
-            if (TranscriptList.SelectedItem is TranscriptListItem item)
+            if (_selectedListItem is not null)
             {
-                item.Name = newName;
-                // Force list refresh
-                var selectedIndex = TranscriptList.SelectedIndex;
-                TranscriptList.ItemsSource = null;
+                _selectedListItem.Name = newName;
                 ApplyFilter();
-                TranscriptList.SelectedIndex = selectedIndex;
             }
 
             Trace.TraceInformation("[TranscriptsPage] Renamed transcript to: {0}", newName);
@@ -451,8 +490,65 @@ public partial class TranscriptsPage : UserControl
 
     private void HighlightMatchingSegments(string searchText)
     {
-        // Re-display with matching info - for simplicity, just re-filter the list view
-        // The segment content search happens via the list filter
+        // Placeholder for segment highlighting
+    }
+
+    // --- Delete ---
+
+    private void DrawerDeleteTranscript_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedListItem is null)
+            return;
+
+        DeleteTranscriptItem(_selectedListItem);
+    }
+
+    private void DeleteTranscriptItem(TranscriptListItem item)
+    {
+        var displayName = !string.IsNullOrEmpty(item.Name) ? item.Name : item.DateDisplay;
+        var dialog = new WhisperHeim.Views.DeleteConfirmationDialog(displayName)
+        {
+            Owner = Window.GetWindow(this)
+        };
+        dialog.ShowDialog();
+
+        if (!dialog.Confirmed)
+            return;
+
+        StopPlayback();
+        _audioPlayer.Close();
+
+        try
+        {
+            if (File.Exists(item.FilePath))
+            {
+                if (_storageService is TranscriptStorageService concreteStorage)
+                {
+                    concreteStorage.DeleteSession(item.FilePath);
+                    Trace.TraceInformation("[TranscriptsPage] Deleted session for: {0}", item.FilePath);
+                }
+                else
+                {
+                    var audioPath = _selectedTranscript?.ResolvedAudioFilePath;
+                    if (audioPath is not null && File.Exists(audioPath))
+                    {
+                        File.Delete(audioPath);
+                        Trace.TraceInformation("[TranscriptsPage] Deleted audio: {0}", audioPath);
+                    }
+
+                    File.Delete(item.FilePath);
+                    Trace.TraceInformation("[TranscriptsPage] Deleted transcript: {0}", item.FilePath);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Trace.TraceError("[TranscriptsPage] Failed to delete transcript: {0}", ex.Message);
+        }
+
+        _allItems.Remove(item);
+        CloseDrawer();
+        ApplyFilter();
     }
 
     // --- Audio playback ---
@@ -473,11 +569,9 @@ public partial class TranscriptsPage : UserControl
 
     private void Segment_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        // Only handle segment clicks if audio is available
         if (!_audioPlayer.IsLoaded)
             return;
 
-        // Don't intercept if already handled (e.g., speaker label click)
         if (e.Handled)
             return;
 
@@ -562,15 +656,13 @@ public partial class TranscriptsPage : UserControl
         if (sender is not FrameworkElement { DataContext: SegmentViewModel vm })
             return;
 
-        // Shift+Click = per-segment override; plain click = global rename
         vm.IsPerSegmentEdit = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
         vm.BeginEditSpeaker();
-        e.Handled = true; // Prevent bubbling to segment click (playback)
+        e.Handled = true;
     }
 
     private void SpeakerEditBox_Loaded(object sender, RoutedEventArgs e)
     {
-        // Auto-focus and select all text when the edit box appears
         if (sender is ComboBox comboBox && comboBox.DataContext is SegmentViewModel { IsEditingSpeaker: true })
         {
             comboBox.Focus();
@@ -616,7 +708,6 @@ public partial class TranscriptsPage : UserControl
         var newName = vm.EditingSpeakerName?.Trim();
         var currentDisplay = vm.DisplaySpeaker;
 
-        // Cancel if empty or unchanged
         if (string.IsNullOrEmpty(newName) || newName == currentDisplay)
         {
             vm.CancelEditSpeaker();
@@ -625,7 +716,6 @@ public partial class TranscriptsPage : UserControl
 
         if (vm.IsPerSegmentEdit)
         {
-            // Per-segment override
             vm.Segment.SpeakerOverride = newName;
             vm.CommitEditSpeaker();
 
@@ -635,10 +725,8 @@ public partial class TranscriptsPage : UserControl
         }
         else
         {
-            // Global rename: update all segments with the same original speaker
             _selectedTranscript.RenameSpeakerGlobally(vm.Segment.Speaker, newName);
 
-            // Refresh all segment view models to reflect the rename
             if (SegmentList.ItemsSource is List<SegmentViewModel> allVms)
             {
                 foreach (var svm in allVms.Where(s => s.Segment.Speaker == vm.Segment.Speaker))
@@ -654,7 +742,6 @@ public partial class TranscriptsPage : UserControl
                 vm.Segment.Speaker, newName);
         }
 
-        // Persist changes
         try
         {
             await _storageService.UpdateAsync(_selectedTranscript);
@@ -723,7 +810,6 @@ public partial class TranscriptsPage : UserControl
         {
             await _storageService.UpdateAsync(_selectedTranscript);
 
-            // Refresh segment view models to update available speaker names dropdown
             if (_currentSegmentViewModels is not null)
             {
                 var names = BuildAvailableSpeakerNames();
@@ -744,7 +830,6 @@ public partial class TranscriptsPage : UserControl
         var names = new List<string>();
         names.AddRange(_selectedTranscript.RemoteSpeakerNames.Where(n => !string.IsNullOrWhiteSpace(n)));
 
-        // Also include any names from the speaker name map
         foreach (var mapped in _selectedTranscript.SpeakerNameMap.Values)
         {
             if (!string.IsNullOrWhiteSpace(mapped) && !names.Contains(mapped))
@@ -758,7 +843,6 @@ public partial class TranscriptsPage : UserControl
     {
         if (_selectedTranscript is null) return;
 
-        // Find the session directory from the transcript file path
         var transcriptDir = _selectedTranscript.FilePath is not null
             ? Path.GetDirectoryName(_selectedTranscript.FilePath)
             : null;
@@ -768,7 +852,6 @@ public partial class TranscriptsPage : UserControl
         var micPath = Path.Combine(transcriptDir, "mic.wav");
         var systemPath = Path.Combine(transcriptDir, "system.wav");
 
-        // Also check for the mixed recording.wav as fallback
         if (!File.Exists(micPath))
         {
             Trace.TraceWarning("[TranscriptsPage] Cannot re-transcribe: no mic.wav found in {0}", transcriptDir);
@@ -782,8 +865,6 @@ public partial class TranscriptsPage : UserControl
         session.EndTimestamp = _selectedTranscript.RecordingEndedUtc;
         session.RemoteSpeakerNames = _selectedTranscript.RemoteSpeakerNames.ToList();
 
-        // Delete the existing transcript so re-transcription creates a fresh one
-        // (the pending session detection will pick it up after deletion)
         try
         {
             if (_selectedTranscript.FilePath is not null && File.Exists(_selectedTranscript.FilePath))
@@ -798,88 +879,13 @@ public partial class TranscriptsPage : UserControl
             Trace.TraceError("[TranscriptsPage] Failed to delete transcript for re-transcription: {0}", ex.Message);
         }
 
-        ClearViewer();
+        CloseDrawer();
 
         ReTranscriptionRequested?.Invoke(this, session);
-        RefreshList();
+        LoadTranscriptList();
     }
 
-    private void ClearViewer()
-    {
-        StopPlayback();
-        _audioPlayer.Close();
-        PlaybackPanel.Visibility = Visibility.Collapsed;
-        SpeakerNamesPanel.Visibility = Visibility.Collapsed;
-
-        _selectedTranscript = null;
-        _currentSegmentViewModels = null;
-        PlaceholderText.Visibility = Visibility.Visible;
-        ViewerHeader.Visibility = Visibility.Collapsed;
-        ActionPanel.Visibility = Visibility.Collapsed;
-        SegmentList.ItemsSource = null;
-    }
-
-    private void DeleteTranscriptItem_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is not FrameworkElement element || element.DataContext is not TranscriptListItem item)
-            return;
-
-        DeleteTranscriptItem(item);
-        e.Handled = true; // Prevent the click from selecting the item
-    }
-
-    private void DeleteTranscriptItem(TranscriptListItem item)
-    {
-        var displayName = !string.IsNullOrEmpty(item.Name) ? item.Name : item.DateDisplay;
-        var dialog = new WhisperHeim.Views.DeleteConfirmationDialog(displayName)
-        {
-            Owner = Window.GetWindow(this)
-        };
-        dialog.ShowDialog();
-
-        if (!dialog.Confirmed)
-            return;
-
-        // Release the audio file first — the player holds it open
-        StopPlayback();
-        _audioPlayer.Close();
-
-        try
-        {
-            if (File.Exists(item.FilePath))
-            {
-                // Delete the entire session folder (transcript + WAV files)
-                if (_storageService is TranscriptStorageService concreteStorage)
-                {
-                    concreteStorage.DeleteSession(item.FilePath);
-                    Trace.TraceInformation("[TranscriptsPage] Deleted session for: {0}", item.FilePath);
-                }
-                else
-                {
-                    // Fallback: delete individual files
-                    var audioPath = _selectedTranscript?.ResolvedAudioFilePath;
-                    if (audioPath is not null && File.Exists(audioPath))
-                    {
-                        File.Delete(audioPath);
-                        Trace.TraceInformation("[TranscriptsPage] Deleted audio: {0}", audioPath);
-                    }
-
-                    File.Delete(item.FilePath);
-                    Trace.TraceInformation("[TranscriptsPage] Deleted transcript: {0}", item.FilePath);
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Trace.TraceError("[TranscriptsPage] Failed to delete transcript: {0}", ex.Message);
-        }
-
-        // Always remove the item from the list and refresh the UI,
-        // even if the disk delete failed — prevents stale ghost entries.
-        _allItems.Remove(item);
-        ClearViewer();
-        ApplyFilter();
-    }
+    // --- Export ---
 
     private void CopyToClipboard_Click(object sender, RoutedEventArgs e)
     {
@@ -888,7 +894,6 @@ public partial class TranscriptsPage : UserControl
         var markdown = FormatAsMarkdown(_selectedTranscript);
         System.Windows.Clipboard.SetText(markdown);
 
-        // Show transient "Copied!" indicator
         CopiedIndicator.Visibility = Visibility.Visible;
         _copiedIndicatorTimer.Stop();
         _copiedIndicatorTimer.Start();
@@ -1012,6 +1017,49 @@ public partial class TranscriptsPage : UserControl
 }
 
 /// <summary>
+/// View model for a group of transcripts in the list.
+/// </summary>
+internal sealed class TranscriptGroupViewModel : INotifyPropertyChanged
+{
+    private bool _isExpanded;
+
+    public TranscriptGroupViewModel(string groupName, List<TranscriptListItem> items, bool isExpanded = true)
+    {
+        GroupName = groupName;
+        Items = items;
+        _isExpanded = isExpanded;
+    }
+
+    public string GroupName { get; }
+    public List<TranscriptListItem> Items { get; }
+    public string CountDisplay => $"({Items.Count})";
+
+    public bool IsExpanded
+    {
+        get => _isExpanded;
+        set
+        {
+            if (_isExpanded != value)
+            {
+                _isExpanded = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(ChevronText));
+            }
+        }
+    }
+
+    /// <summary>Down chevron when expanded, right chevron when collapsed.</summary>
+    public string ChevronText => IsExpanded ? "\uE70D" : "\uE70E";
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    public void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+}
+
+/// <summary>
 /// View model for a transcript list item.
 /// </summary>
 internal sealed class TranscriptListItem
@@ -1030,11 +1078,16 @@ internal sealed class TranscriptListItem
                 System.Globalization.DateTimeStyles.None,
                 out var date))
         {
+            ParsedDate = date;
             DateDisplay = date.ToString("MMM dd, yyyy HH:mm");
+            GroupKey = date.ToString("yyyy-MM-dd");
+            GroupDisplayName = date.ToString("MMMM dd, yyyy").ToUpperInvariant();
         }
         else
         {
             DateDisplay = fileName;
+            GroupKey = "unknown";
+            GroupDisplayName = "OTHER";
         }
 
         // Read a brief preview from the file if possible
@@ -1048,12 +1101,11 @@ internal sealed class TranscriptListItem
 
             if (transcript is not null)
             {
-                // Use the persisted name, or generate a default for old transcripts
                 Name = !string.IsNullOrEmpty(transcript.Name)
                     ? transcript.Name
                     : $"Call {transcript.RecordingStartedUtc.LocalDateTime:yyyy-MM-dd HH:mm}";
 
-                DurationDisplay = $"Duration: {transcript.Duration:hh\\:mm\\:ss}";
+                DurationDisplay = $"{transcript.Duration:hh\\:mm\\:ss}";
                 var firstSegment = transcript.Segments.FirstOrDefault();
                 PreviewText = firstSegment?.Text ?? "(empty)";
                 if (PreviewText.Length > 50)
@@ -1073,6 +1125,9 @@ internal sealed class TranscriptListItem
     public string DateDisplay { get; }
     public string DurationDisplay { get; } = "";
     public string PreviewText { get; } = "";
+    public DateTime? ParsedDate { get; }
+    public string GroupKey { get; }
+    public string GroupDisplayName { get; }
 }
 
 /// <summary>
@@ -1111,17 +1166,14 @@ internal sealed class SegmentViewModel : INotifyPropertyChanged
         _availableSpeakerNames = availableSpeakerNames ?? new();
         Text = segment.Text;
         TimestampDisplay = $"{segment.StartTime:hh\\:mm\\:ss}";
-        // Colors are based on IsLocalSpeaker, which stays consistent after renames
         SpeakerColor = segment.IsLocalSpeaker ? LocalSpeakerColor : RemoteSpeakerColor;
         _defaultBackground = segment.IsLocalSpeaker ? LocalBackground : RemoteBackground;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    /// <summary>The underlying segment model.</summary>
     public TranscriptSegment Segment { get; }
 
-    /// <summary>The resolved display name (considering global map and per-segment override).</summary>
     public string DisplaySpeaker
     {
         get => _displaySpeaker;
@@ -1132,10 +1184,8 @@ internal sealed class SegmentViewModel : INotifyPropertyChanged
     public string TimestampDisplay { get; }
     public Brush SpeakerColor { get; }
 
-    /// <summary>Background brush, changes when segment is currently playing.</summary>
     public Brush CurrentBackground => _isCurrentlyPlaying ? PlayingHighlight : _defaultBackground;
 
-    /// <summary>Whether this segment is currently being played back.</summary>
     public bool IsCurrentlyPlaying
     {
         get => _isCurrentlyPlaying;
@@ -1150,56 +1200,45 @@ internal sealed class SegmentViewModel : INotifyPropertyChanged
         }
     }
 
-    /// <summary>Whether the speaker name edit box is shown.</summary>
     public bool IsEditingSpeaker
     {
         get => _isEditingSpeaker;
         private set { _isEditingSpeaker = value; OnPropertyChanged(); }
     }
 
-    /// <summary>The text currently in the speaker edit box.</summary>
     public string EditingSpeakerName
     {
         get => _editingSpeakerName;
         set { _editingSpeakerName = value; OnPropertyChanged(); }
     }
 
-    /// <summary>Whether this edit is a per-segment override (true) or global rename (false).</summary>
     public bool IsPerSegmentEdit { get; set; }
 
     private List<string> _availableSpeakerNames;
 
-    /// <summary>
-    /// List of predefined speaker names available for selection in the dropdown.
-    /// Sourced from the session's RemoteSpeakerNames and the global speaker name map.
-    /// </summary>
     public List<string> AvailableSpeakerNames
     {
         get => _availableSpeakerNames;
         set { _availableSpeakerNames = value; OnPropertyChanged(); }
     }
 
-    /// <summary>Enter edit mode for the speaker name.</summary>
     public void BeginEditSpeaker()
     {
         EditingSpeakerName = DisplaySpeaker;
         IsEditingSpeaker = true;
     }
 
-    /// <summary>Commit the edit and refresh the display name.</summary>
     public void CommitEditSpeaker()
     {
         IsEditingSpeaker = false;
         RefreshDisplaySpeaker();
     }
 
-    /// <summary>Cancel the edit without saving.</summary>
     public void CancelEditSpeaker()
     {
         IsEditingSpeaker = false;
     }
 
-    /// <summary>Re-resolve the display speaker name from the transcript model.</summary>
     public void RefreshDisplaySpeaker()
     {
         DisplaySpeaker = _transcript.GetDisplaySpeaker(Segment);

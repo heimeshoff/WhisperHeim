@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using WhisperHeim.Models;
 using WhisperHeim.Services.Templates;
 
@@ -8,6 +9,9 @@ namespace WhisperHeim.Views.Pages;
 public partial class TemplatesPage : UserControl
 {
     private readonly ITemplateService _templateService;
+    private TemplateItem? _selectedItem;
+    private int _selectedIndex = -1;
+    private bool _isNewMode;
 
     public TemplatesPage(ITemplateService templateService)
     {
@@ -18,93 +22,121 @@ public partial class TemplatesPage : UserControl
 
     private void RefreshList()
     {
+        var templates = GetFilteredTemplates();
         TemplateList.ItemsSource = null;
-        TemplateList.ItemsSource = _templateService.GetTemplates();
+        TemplateList.ItemsSource = templates;
+        EmptyState.Visibility = templates.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
-    private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
+    private IReadOnlyList<TemplateItem> GetFilteredTemplates()
     {
         var searchText = SearchBox?.Text?.Trim() ?? string.Empty;
         var templates = _templateService.GetTemplates();
 
         if (string.IsNullOrEmpty(searchText))
-        {
-            TemplateList.ItemsSource = templates;
-        }
-        else
-        {
-            TemplateList.ItemsSource = templates
-                .Where(t => t.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase)
-                    || t.Text.Contains(searchText, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-        }
+            return templates;
+
+        return templates
+            .Where(t => t.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase)
+                || t.Text.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            .ToList();
     }
 
-    private void TemplateList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
     {
-        if (TemplateList.SelectedItem is TemplateItem item)
-        {
-            NameTextBox.Text = item.Name;
-            TextTextBox.Text = item.Text;
-            UpdateButton.IsEnabled = true;
-        }
-        else
-        {
-            UpdateButton.IsEnabled = false;
-        }
-    }
-
-    private void AddButton_Click(object sender, RoutedEventArgs e)
-    {
-        var name = NameTextBox.Text?.Trim();
-        var text = TextTextBox.Text?.Trim();
-
-        if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(text))
-            return;
-
-        _templateService.AddTemplate(name, text);
-        NameTextBox.Text = string.Empty;
-        TextTextBox.Text = string.Empty;
         RefreshList();
     }
 
-    private void UpdateButton_Click(object sender, RoutedEventArgs e)
-    {
-        var index = TemplateList.SelectedIndex;
-        if (index < 0)
-            return;
-
-        var name = NameTextBox.Text?.Trim();
-        var text = TextTextBox.Text?.Trim();
-
-        if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(text))
-            return;
-
-        _templateService.UpdateTemplate(index, name, text);
-        RefreshList();
-    }
-
-    private void DeleteTemplateItem_Click(object sender, RoutedEventArgs e)
+    private void TemplateRow_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not FrameworkElement element || element.DataContext is not TemplateItem item)
             return;
 
-        e.Handled = true; // Prevent the click from selecting the item
-
+        // Find the index in the full (unfiltered) list
         var templates = _templateService.GetTemplates();
-        var index = -1;
+        _selectedIndex = -1;
         for (var i = 0; i < templates.Count; i++)
         {
             if (ReferenceEquals(templates[i], item))
             {
-                index = i;
+                _selectedIndex = i;
                 break;
             }
         }
-        if (index < 0)
+
+        _selectedItem = item;
+        _isNewMode = false;
+        OpenDrawer(item.Name, item.Text, isNew: false);
+    }
+
+    private void AddNewButton_Click(object sender, RoutedEventArgs e)
+    {
+        _selectedItem = null;
+        _selectedIndex = -1;
+        _isNewMode = true;
+        OpenDrawer("", "", isNew: true);
+    }
+
+    private void OpenDrawer(string name, string text, bool isNew)
+    {
+        NameTextBox.Text = name;
+        TextTextBox.Text = text;
+        DrawerTitle.Text = isNew ? "New Template" : "Edit Template";
+        SaveButtonText.Text = isNew ? "Add Template" : "Update Template";
+        DrawerDeleteButton.Visibility = isNew ? Visibility.Collapsed : Visibility.Visible;
+        DrawerOverlay.Visibility = Visibility.Visible;
+        DrawerPanel.Visibility = Visibility.Visible;
+
+        // Focus the name field
+        NameTextBox.Focus();
+    }
+
+    private void CloseDrawer()
+    {
+        DrawerOverlay.Visibility = Visibility.Collapsed;
+        DrawerPanel.Visibility = Visibility.Collapsed;
+        _selectedItem = null;
+        _selectedIndex = -1;
+        _isNewMode = false;
+    }
+
+    private void DrawerClose_Click(object sender, RoutedEventArgs e)
+    {
+        CloseDrawer();
+    }
+
+    private void DrawerOverlay_Click(object sender, MouseButtonEventArgs e)
+    {
+        CloseDrawer();
+    }
+
+    private void SaveButton_Click(object sender, RoutedEventArgs e)
+    {
+        var name = NameTextBox.Text?.Trim();
+        var text = TextTextBox.Text?.Trim();
+
+        if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(text))
             return;
 
-        var dialog = new DeleteConfirmationDialog(item.Name, "Delete Template")
+        if (_isNewMode)
+        {
+            _templateService.AddTemplate(name, text);
+        }
+        else if (_selectedIndex >= 0)
+        {
+            _templateService.UpdateTemplate(_selectedIndex, name, text);
+        }
+
+        CloseDrawer();
+        RefreshList();
+    }
+
+    private void DrawerDelete_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedItem is null || _selectedIndex < 0)
+            return;
+
+        var dialog = new DeleteConfirmationDialog(_selectedItem.Name, "Delete Template")
         {
             Owner = Window.GetWindow(this)
         };
@@ -113,16 +145,8 @@ public partial class TemplatesPage : UserControl
         if (!dialog.Confirmed)
             return;
 
-        _templateService.RemoveTemplate(index);
-
-        // Clear the editor if the deleted template was selected
-        if (TemplateList.SelectedItem == item)
-        {
-            NameTextBox.Text = string.Empty;
-            TextTextBox.Text = string.Empty;
-            UpdateButton.IsEnabled = false;
-        }
-
+        _templateService.RemoveTemplate(_selectedIndex);
+        CloseDrawer();
         RefreshList();
     }
 }

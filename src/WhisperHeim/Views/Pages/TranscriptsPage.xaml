@@ -15,6 +15,52 @@
             <Setter Property="FontWeight" Value="Bold" />
             <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
         </Style>
+        <!-- Compact list row -->
+        <Style x:Key="CompactRowButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Padding="16,10" CornerRadius="8"
+                                Background="Transparent">
+                            <ContentPresenter HorizontalAlignment="Stretch" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- Group header toggle button -->
+        <Style x:Key="GroupToggleButton" TargetType="ToggleButton">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Padding" Value="8,6" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Bd" Padding="{TemplateBinding Padding}" CornerRadius="6"
+                                Background="Transparent">
+                            <ContentPresenter HorizontalAlignment="Stretch" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
 
     <Grid>
@@ -61,6 +107,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
@@ -75,7 +122,7 @@
             </StackPanel>
 
             <!-- Search & Filter Row -->
-            <Grid Grid.Row="1" Margin="0,0,0,20">
+            <Grid Grid.Row="1" Margin="0,0,0,16">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="12" />
@@ -110,452 +157,432 @@
                 </Button>
             </Grid>
 
-            <!-- Split: list + viewer -->
-            <Grid Grid.Row="2">
+            <!-- Table header -->
+            <Grid Grid.Row="2" Margin="16,0,16,4">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="200" MinWidth="160" MaxWidth="280" />
-                    <ColumnDefinition Width="24" />
                     <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="160" />
+                    <ColumnDefinition Width="120" />
                 </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="TITLE"
+                           Style="{StaticResource SectionLabel}" />
+                <TextBlock Grid.Column="1" Text="DURATION"
+                           Style="{StaticResource SectionLabel}" />
+                <TextBlock Grid.Column="2" Text="DATE"
+                           Style="{StaticResource SectionLabel}"
+                           HorizontalAlignment="Right" />
+            </Grid>
 
-                <!-- LEFT: Transcript list -->
-                <Grid Grid.Column="0">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-
-                    <TextBlock Grid.Row="0" Text="RECENT TRANSCRIPTS"
-                               Style="{StaticResource SectionLabel}"
-                               Margin="8,0,0,12" />
-
-                    <!-- Pending recordings (no transcript yet) -->
-                    <ItemsControl x:Name="PendingList"
-                                  Grid.Row="1"
-                                  Visibility="Collapsed">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border CornerRadius="12" Padding="16,14"
-                                        Margin="0,3"
-                                        Opacity="0.5"
-                                        Cursor="Hand"
-                                        MouseLeftButtonDown="PendingItem_Click"
-                                        Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}">
-                                    <Grid x:Name="PendingItemRoot">
-                                        <StackPanel>
-                                            <DockPanel Margin="0,0,0,4">
-                                                <Border DockPanel.Dock="Right"
-                                                        CornerRadius="4" Padding="6,2"
-                                                        Background="#33FF8C00"
-                                                        VerticalAlignment="Top">
+            <!-- Compact list with groups -->
+            <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
+                <StackPanel x:Name="GroupedListPanel">
+                    <!-- Pending recordings section -->
+                    <StackPanel x:Name="PendingSection" Visibility="Collapsed">
+                        <ToggleButton IsChecked="True"
+                                      Style="{StaticResource GroupToggleButton}"
+                                      x:Name="PendingGroupToggle"
+                                      Click="GroupToggle_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock x:Name="PendingGroupChevron" Text="&#xE70D;"
+                                           FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           VerticalAlignment="Center" Margin="0,0,8,0" />
+                                <TextBlock Text="PENDING" Style="{StaticResource SectionLabel}" VerticalAlignment="Center" />
+                                <TextBlock x:Name="PendingCountText" Style="{StaticResource SectionLabel}"
+                                           VerticalAlignment="Center" Margin="6,0,0,0" />
+                            </StackPanel>
+                        </ToggleButton>
+                        <ItemsControl x:Name="PendingList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Style="{StaticResource CompactRowButton}"
+                                            Click="PendingRow_Click">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="160" />
+                                                <ColumnDefinition Width="120" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                                <TextBlock Text="{Binding Name}"
+                                                           FontWeight="SemiBold"
+                                                           FontSize="13"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           TextWrapping="NoWrap"
+                                                           VerticalAlignment="Center"
+                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                                <Border CornerRadius="4" Padding="6,2" Margin="8,0,0,0"
+                                                        Background="#33FF8C00" VerticalAlignment="Center">
                                                     <TextBlock Text="PENDING"
                                                                FontSize="8" FontWeight="Bold"
                                                                Foreground="#FFFF8C00" />
                                                 </Border>
-                                                <TextBlock Text="{Binding Name}"
-                                                           FontWeight="SemiBold"
-                                                           FontSize="13"
-                                                           TextWrapping="NoWrap"
-                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                                           TextTrimming="CharacterEllipsis" />
-                                            </DockPanel>
-                                            <TextBlock Text="{Binding Detail}"
-                                                       FontSize="10"
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding Detail}"
+                                                       FontSize="11"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       VerticalAlignment="Center"
                                                        Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                        </Grid>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <!-- Transcript groups (populated dynamically) -->
+                    <ItemsControl x:Name="TranscriptGroupList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="0,4,0,0">
+                                    <ToggleButton IsChecked="{Binding IsExpanded, Mode=TwoWay}"
+                                                  Style="{StaticResource GroupToggleButton}"
+                                                  Click="TranscriptGroupToggle_Click">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding ChevronText}"
+                                                       FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                       VerticalAlignment="Center" Margin="0,0,8,0" />
+                                            <TextBlock Text="{Binding GroupName}" Style="{StaticResource SectionLabel}" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding CountDisplay}" Style="{StaticResource SectionLabel}"
+                                                       VerticalAlignment="Center" Margin="6,0,0,0" />
                                         </StackPanel>
-                                        <!-- Hover delete button -->
-                                        <Button x:Name="DeletePendingButton"
-                                                Click="DeletePendingItem_Click"
-                                                VerticalAlignment="Bottom"
-                                                HorizontalAlignment="Right"
-                                                Margin="0,0,-4,-2"
-                                                Padding="4"
+                                    </ToggleButton>
+                                    <ItemsControl ItemsSource="{Binding Items}"
+                                                  Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibility}}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Button Style="{StaticResource CompactRowButton}"
+                                                        Click="TranscriptRow_Click">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="160" />
+                                                            <ColumnDefinition Width="120" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0"
+                                                                   Text="{Binding Name}"
+                                                                   FontWeight="SemiBold"
+                                                                   FontSize="13"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   TextWrapping="NoWrap"
+                                                                   VerticalAlignment="Center"
+                                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                                        <TextBlock Grid.Column="1"
+                                                                   Text="{Binding DurationDisplay}"
+                                                                   FontSize="11"
+                                                                   VerticalAlignment="Center"
+                                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                        <TextBlock Grid.Column="2"
+                                                                   Text="{Binding DateDisplay}"
+                                                                   FontSize="11"
+                                                                   HorizontalAlignment="Right"
+                                                                   VerticalAlignment="Center"
+                                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                    </Grid>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Empty state -->
+            <TextBlock x:Name="EmptyState"
+                       Grid.Row="3"
+                       Text="No recordings yet. Press Ctrl+Win+R to start recording."
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                       FontSize="14"
+                       Visibility="Collapsed" />
+        </Grid>
+
+        <!-- Drawer overlay -->
+        <Border x:Name="DrawerOverlay"
+                Grid.RowSpan="2"
+                Background="#33000000"
+                Visibility="Collapsed"
+                MouseLeftButtonDown="DrawerOverlay_Click" />
+
+        <!-- Detail Drawer -->
+        <Border x:Name="DrawerPanel"
+                Grid.RowSpan="2"
+                HorizontalAlignment="Right"
+                Width="520"
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                Visibility="Collapsed">
+            <Border.Effect>
+                <DropShadowEffect Color="#FF000000" Opacity="0.15" BlurRadius="40" ShadowDepth="-4" Direction="180" />
+            </Border.Effect>
+            <Grid Margin="28,24">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- Drawer header with close button -->
+                <DockPanel Grid.Row="0" Margin="0,0,0,12">
+                    <Button DockPanel.Dock="Right"
+                            Click="DrawerClose_Click"
+                            VerticalAlignment="Top"
+                            Padding="6"
+                            Cursor="Hand"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            ToolTip="Close">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="IconBd" CornerRadius="6" Padding="{TemplateBinding Padding}"
+                                        Background="Transparent">
+                                    <ui:SymbolIcon Symbol="Dismiss24" FontSize="16"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="IconBd" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                    <StackPanel>
+                        <TextBox x:Name="TranscriptNameBox"
+                                 FontSize="18"
+                                 FontWeight="Bold"
+                                 Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                 Margin="0,0,0,6"
+                                 BorderThickness="0"
+                                 Background="Transparent"
+                                 LostFocus="TranscriptNameBox_LostFocus"
+                                 KeyDown="TranscriptNameBox_KeyDown" />
+                        <TextBlock x:Name="TranscriptInfo"
+                                   FontSize="11"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+                </DockPanel>
+
+                <!-- Audio playback controls -->
+                <Border Grid.Row="1"
+                        x:Name="PlaybackPanel"
+                        Visibility="Collapsed"
+                        Padding="14,10"
+                        Margin="0,0,0,12"
+                        CornerRadius="10"
+                        Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ui:Button x:Name="PlayPauseButton"
+                                   Grid.Column="0"
+                                   Content="Play"
+                                   Click="PlayPause_Click"
+                                   Padding="10,5"
+                                   Margin="0,0,8,0"
+                                   FontSize="12" />
+                        <ui:Button x:Name="StopButton"
+                                   Grid.Column="1"
+                                   Content="Stop"
+                                   Click="Stop_Click"
+                                   Padding="10,5"
+                                   Margin="0,0,8,0"
+                                   FontSize="12" />
+                        <TextBlock x:Name="PlaybackPositionText"
+                                   Grid.Column="3"
+                                   Text="00:00 / 00:00"
+                                   FontSize="11"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   VerticalAlignment="Center" />
+                    </Grid>
+                </Border>
+
+                <!-- Speaker names panel -->
+                <Border Grid.Row="2"
+                        x:Name="SpeakerNamesPanel"
+                        Visibility="Collapsed"
+                        Padding="14,10"
+                        Margin="0,0,0,12"
+                        CornerRadius="10"
+                        Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}"
+                        VerticalAlignment="Top">
+                    <StackPanel>
+                        <DockPanel Margin="0,0,0,8">
+                            <TextBlock Text="SPEAKER NAMES"
+                                       FontSize="10" FontWeight="Bold"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       VerticalAlignment="Center" />
+                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
+                                <Button x:Name="AddSpeakerButton"
+                                        Content="+ Add"
+                                        Click="AddSpeaker_Click"
+                                        Padding="8,3" FontSize="11"
+                                        Background="Transparent" BorderThickness="0"
+                                        Foreground="#FF005FAA" Cursor="Hand" />
+                                <Button x:Name="ReTranscribeButton"
+                                        Click="ReTranscribe_Click"
+                                        Padding="10,4" Cursor="Hand"
+                                        Margin="8,0,0,0"
+                                        BorderThickness="0">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="Bd" CornerRadius="6" Padding="{TemplateBinding Padding}"
+                                                    Background="#19005FAA">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <ui:SymbolIcon Symbol="ArrowSync24" Foreground="#FF005FAA" Margin="0,0,4,0" FontSize="12" />
+                                                    <TextBlock Text="RE-TRANSCRIBE" FontSize="9" FontWeight="Bold"
+                                                               Foreground="#FF005FAA" VerticalAlignment="Center" />
+                                                </StackPanel>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Bd" Property="Background" Value="#33005FAA" />
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </StackPanel>
+                        </DockPanel>
+                        <ItemsControl x:Name="SpeakerNamesList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <DockPanel Margin="0,2">
+                                        <Button Content="x"
+                                                Click="RemoveSpeaker_Click"
+                                                DockPanel.Dock="Right"
+                                                Padding="4,1" FontSize="10"
+                                                Background="Transparent" BorderThickness="0"
+                                                Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                                                 Cursor="Hand"
-                                                Visibility="Hidden"
-                                                Background="Transparent"
-                                                BorderThickness="0"
-                                                ToolTip="Delete recording">
-                                            <Button.Template>
-                                                <ControlTemplate TargetType="Button">
-                                                    <Border x:Name="IconBd" CornerRadius="6" Padding="{TemplateBinding Padding}"
-                                                            Background="Transparent">
-                                                        <ui:SymbolIcon Symbol="Delete24" FontSize="14"
-                                                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
-                                                    </Border>
-                                                    <ControlTemplate.Triggers>
-                                                        <Trigger Property="IsMouseOver" Value="True">
-                                                            <Setter TargetName="IconBd" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
-                                                        </Trigger>
-                                                    </ControlTemplate.Triggers>
-                                                </ControlTemplate>
-                                            </Button.Template>
-                                        </Button>
-                                        <Grid.Triggers>
-                                            <EventTrigger RoutedEvent="MouseEnter">
-                                                <BeginStoryboard>
-                                                    <Storyboard>
-                                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="DeletePendingButton"
-                                                                                       Storyboard.TargetProperty="Visibility">
-                                                            <DiscreteObjectKeyFrame KeyTime="0:0:0"
-                                                                                    Value="{x:Static Visibility.Visible}" />
-                                                        </ObjectAnimationUsingKeyFrames>
-                                                    </Storyboard>
-                                                </BeginStoryboard>
-                                            </EventTrigger>
-                                            <EventTrigger RoutedEvent="MouseLeave">
-                                                <BeginStoryboard>
-                                                    <Storyboard>
-                                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="DeletePendingButton"
-                                                                                       Storyboard.TargetProperty="Visibility">
-                                                            <DiscreteObjectKeyFrame KeyTime="0:0:0"
-                                                                                    Value="{x:Static Visibility.Hidden}" />
-                                                        </ObjectAnimationUsingKeyFrames>
-                                                    </Storyboard>
-                                                </BeginStoryboard>
-                                            </EventTrigger>
-                                        </Grid.Triggers>
-                                    </Grid>
+                                                VerticalAlignment="Center" />
+                                        <TextBox Text="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                                 FontSize="12"
+                                                 Padding="6,3"
+                                                 BorderThickness="1"
+                                                 LostFocus="SpeakerName_LostFocus" />
+                                    </DockPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
+                <!-- Transcript content -->
+                <ScrollViewer Grid.Row="3"
+                              VerticalScrollBarVisibility="Auto"
+                              x:Name="TranscriptScrollViewer">
+                    <ItemsControl x:Name="SegmentList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Margin="0,6,0,6"
+                                        Padding="16,12"
+                                        CornerRadius="12"
+                                        Background="{Binding CurrentBackground}"
+                                        Cursor="Hand"
+                                        MouseLeftButtonDown="Segment_MouseLeftButtonDown">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                            <TextBlock Text="{Binding DisplaySpeaker}"
+                                                       FontWeight="Bold"
+                                                       FontSize="11"
+                                                       Foreground="{Binding SpeakerColor}"
+                                                       Cursor="Hand"
+                                                       ToolTip="Click to rename speaker; Shift+Click to rename just this segment"
+                                                       MouseLeftButtonDown="SpeakerLabel_MouseLeftButtonDown"
+                                                       Visibility="{Binding IsEditingSpeaker, Converter={StaticResource InverseBoolToVisibility}}" />
+                                            <!-- Speaker name edit: ComboBox with editable text -->
+                                            <ComboBox IsEditable="True"
+                                                      Text="{Binding EditingSpeakerName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                      ItemsSource="{Binding AvailableSpeakerNames}"
+                                                      FontWeight="Bold"
+                                                      FontSize="11"
+                                                      MinWidth="120"
+                                                      Padding="2,0"
+                                                      Visibility="{Binding IsEditingSpeaker, Converter={StaticResource BoolToVisibility}}"
+                                                      LostFocus="SpeakerEditBox_LostFocus"
+                                                      KeyDown="SpeakerEditBox_KeyDown"
+                                                      Loaded="SpeakerEditBox_Loaded" />
+                                            <TextBlock Text="{Binding TimestampDisplay}"
+                                                       FontSize="10"
+                                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                                       Margin="10,0,0,0"
+                                                       VerticalAlignment="Center" />
+                                            <TextBlock Text="  playing"
+                                                       FontSize="10"
+                                                       Foreground="#FF005FAA"
+                                                       FontWeight="SemiBold"
+                                                       VerticalAlignment="Center"
+                                                       Visibility="{Binding IsCurrentlyPlaying, Converter={StaticResource BoolToVisibility}}" />
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding Text}"
+                                                   TextWrapping="Wrap"
+                                                   FontSize="13"
+                                                   LineHeight="20"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                    </StackPanel>
                                 </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+                </ScrollViewer>
 
-                    <ListBox x:Name="TranscriptList"
-                             Grid.Row="2"
-                             SelectionChanged="TranscriptList_SelectionChanged"
-                             Background="Transparent"
-                             BorderThickness="0"
-                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                        <ListBox.ItemContainerStyle>
-                            <Style TargetType="ListBoxItem">
-                                <Setter Property="Padding" Value="0" />
-                                <Setter Property="Margin" Value="0,3" />
-                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="ListBoxItem">
-                                            <Border x:Name="Bd" CornerRadius="12" Padding="16,14"
-                                                    ClipToBounds="True"
-                                                    Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}">
-                                                <ContentPresenter />
-                                            </Border>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsSelected" Value="True">
-                                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
-                                                </Trigger>
-                                                <MultiTrigger>
-                                                    <MultiTrigger.Conditions>
-                                                        <Condition Property="IsMouseOver" Value="True" />
-                                                        <Condition Property="IsSelected" Value="False" />
-                                                    </MultiTrigger.Conditions>
-                                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
-                                                </MultiTrigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                            </Style>
-                        </ListBox.ItemContainerStyle>
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <Grid x:Name="ItemRoot" ClipToBounds="True">
-                                    <StackPanel>
-                                        <DockPanel Margin="0,0,0,4">
-                                            <TextBlock Text="{Binding DateDisplay}"
-                                                       FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                                       DockPanel.Dock="Right" HorizontalAlignment="Right"
-                                                       TextWrapping="NoWrap"
-                                                       VerticalAlignment="Top" />
-                                            <TextBlock Text="{Binding Name}"
-                                                       FontWeight="SemiBold"
-                                                       FontSize="13"
-                                                       TextWrapping="NoWrap"
-                                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                                       TextTrimming="CharacterEllipsis" />
-                                        </DockPanel>
-                                        <TextBlock Text="{Binding DurationDisplay}"
-                                                   FontSize="10"
-                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                                        <TextBlock Text="{Binding PreviewText}"
-                                                   FontSize="10"
-                                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                                   TextTrimming="CharacterEllipsis"
-                                                   Margin="0,2,0,0" />
-                                    </StackPanel>
-                                    <!-- Hover trash icon -->
-                                    <Button x:Name="DeleteItemButton"
-                                            Click="DeleteTranscriptItem_Click"
-                                            VerticalAlignment="Bottom"
-                                            HorizontalAlignment="Right"
-                                            Margin="0,0,-4,-2"
-                                            Padding="4"
-                                            Cursor="Hand"
-                                            Visibility="Hidden"
-                                            Background="Transparent"
-                                            BorderThickness="0"
-                                            ToolTip="Delete transcript">
-                                        <Button.Template>
-                                            <ControlTemplate TargetType="Button">
-                                                <Border x:Name="IconBd" CornerRadius="6" Padding="{TemplateBinding Padding}"
-                                                        Background="Transparent">
-                                                    <ui:SymbolIcon Symbol="Delete24" FontSize="14"
-                                                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
-                                                </Border>
-                                                <ControlTemplate.Triggers>
-                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter TargetName="IconBd" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
-                                                    </Trigger>
-                                                </ControlTemplate.Triggers>
-                                            </ControlTemplate>
-                                        </Button.Template>
-                                    </Button>
-                                    <Grid.Triggers>
-                                        <EventTrigger RoutedEvent="MouseEnter">
-                                            <BeginStoryboard>
-                                                <Storyboard>
-                                                    <ObjectAnimationUsingKeyFrames Storyboard.TargetName="DeleteItemButton"
-                                                                                   Storyboard.TargetProperty="Visibility">
-                                                        <DiscreteObjectKeyFrame KeyTime="0:0:0"
-                                                                                Value="{x:Static Visibility.Visible}" />
-                                                    </ObjectAnimationUsingKeyFrames>
-                                                </Storyboard>
-                                            </BeginStoryboard>
-                                        </EventTrigger>
-                                        <EventTrigger RoutedEvent="MouseLeave">
-                                            <BeginStoryboard>
-                                                <Storyboard>
-                                                    <ObjectAnimationUsingKeyFrames Storyboard.TargetName="DeleteItemButton"
-                                                                                   Storyboard.TargetProperty="Visibility">
-                                                        <DiscreteObjectKeyFrame KeyTime="0:0:0"
-                                                                                Value="{x:Static Visibility.Hidden}" />
-                                                    </ObjectAnimationUsingKeyFrames>
-                                                </Storyboard>
-                                            </BeginStoryboard>
-                                        </EventTrigger>
-                                    </Grid.Triggers>
-                                </Grid>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </Grid>
+                <!-- Placeholder -->
+                <TextBlock x:Name="PlaceholderText"
+                           Grid.Row="3"
+                           Text="Select a transcript to view"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                           FontSize="14"
+                           Visibility="Collapsed" />
 
-                <!-- RIGHT: Transcript viewer -->
-                <Border Grid.Column="2"
-                        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                        CornerRadius="12">
-                    <Border.Effect>
-                        <DropShadowEffect Color="#FF005FAA" Opacity="0.04" BlurRadius="32" ShadowDepth="8" Direction="270" />
-                    </Border.Effect>
-                    <Grid Margin="28,24">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
+                <!-- Action buttons -->
+                <Border Grid.Row="4"
+                        Padding="0,12,0,0"
+                        BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}" BorderThickness="0,1,0,0"
+                        x:Name="ActionPanel"
+                        Visibility="Collapsed">
+                    <DockPanel>
+                        <!-- Delete on the left -->
+                        <Button Click="DrawerDeleteTranscript_Click"
+                                DockPanel.Dock="Left"
+                                Padding="10,8" Cursor="Hand"
+                                BorderThickness="0">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="Bd" CornerRadius="8" Padding="{TemplateBinding Padding}"
+                                            Background="Transparent">
+                                        <StackPanel Orientation="Horizontal">
+                                            <ui:SymbolIcon Symbol="Delete24" Foreground="#FFE74856" Margin="0,0,6,0" FontSize="14" />
+                                            <TextBlock Text="DELETE" FontSize="10" FontWeight="Bold"
+                                                       Foreground="#FFE74856" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bd" Property="Background" Value="#19E74856" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
 
-                        <!-- Viewer header -->
-                        <StackPanel Grid.Row="0" x:Name="ViewerHeader" Visibility="Collapsed">
-                            <TextBox x:Name="TranscriptNameBox"
-                                     FontSize="18"
-                                     FontWeight="Bold"
-                                     Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                     Margin="0,0,0,6"
-                                     BorderThickness="0"
-                                     Background="Transparent"
-                                     LostFocus="TranscriptNameBox_LostFocus"
-                                     KeyDown="TranscriptNameBox_KeyDown" />
-                            <TextBlock x:Name="TranscriptInfo"
-                                       FontSize="11"
-                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                       Margin="0,0,0,16" />
-                        </StackPanel>
-
-                        <!-- Audio playback controls -->
-                        <Border Grid.Row="1"
-                                x:Name="PlaybackPanel"
-                                Visibility="Collapsed"
-                                Padding="14,10"
-                                Margin="0,0,0,12"
-                                CornerRadius="10"
-                                Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <ui:Button x:Name="PlayPauseButton"
-                                           Grid.Column="0"
-                                           Content="Play"
-                                           Click="PlayPause_Click"
-                                           Padding="10,5"
-                                           Margin="0,0,8,0"
-                                           FontSize="12" />
-                                <ui:Button x:Name="StopButton"
-                                           Grid.Column="1"
-                                           Content="Stop"
-                                           Click="Stop_Click"
-                                           Padding="10,5"
-                                           Margin="0,0,8,0"
-                                           FontSize="12" />
-                                <TextBlock x:Name="PlaybackPositionText"
-                                           Grid.Column="3"
-                                           Text="00:00 / 00:00"
-                                           FontSize="11"
-                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                           VerticalAlignment="Center" />
-                            </Grid>
-                        </Border>
-
-                        <!-- Speaker names panel (shown for transcripts with remote speaker names) -->
-                        <Border Grid.Row="2"
-                                x:Name="SpeakerNamesPanel"
-                                Visibility="Collapsed"
-                                Padding="14,10"
-                                Margin="0,0,0,12"
-                                CornerRadius="10"
-                                Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}"
-                                VerticalAlignment="Top">
-                            <StackPanel>
-                                <DockPanel Margin="0,0,0,8">
-                                    <TextBlock Text="SPEAKER NAMES"
-                                               FontSize="10" FontWeight="Bold"
-                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                               VerticalAlignment="Center" />
-                                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
-                                        <Button x:Name="AddSpeakerButton"
-                                                Content="+ Add"
-                                                Click="AddSpeaker_Click"
-                                                Padding="8,3" FontSize="11"
-                                                Background="Transparent" BorderThickness="0"
-                                                Foreground="#FF005FAA" Cursor="Hand" />
-                                        <Button x:Name="ReTranscribeButton"
-                                                Click="ReTranscribe_Click"
-                                                Padding="10,4" Cursor="Hand"
-                                                Margin="8,0,0,0"
-                                                BorderThickness="0">
-                                            <Button.Template>
-                                                <ControlTemplate TargetType="Button">
-                                                    <Border x:Name="Bd" CornerRadius="6" Padding="{TemplateBinding Padding}"
-                                                            Background="#19005FAA">
-                                                        <StackPanel Orientation="Horizontal">
-                                                            <ui:SymbolIcon Symbol="ArrowSync24" Foreground="#FF005FAA" Margin="0,0,4,0" FontSize="12" />
-                                                            <TextBlock Text="RE-TRANSCRIBE" FontSize="9" FontWeight="Bold"
-                                                                       Foreground="#FF005FAA" VerticalAlignment="Center" />
-                                                        </StackPanel>
-                                                    </Border>
-                                                    <ControlTemplate.Triggers>
-                                                        <Trigger Property="IsMouseOver" Value="True">
-                                                            <Setter TargetName="Bd" Property="Background" Value="#33005FAA" />
-                                                        </Trigger>
-                                                    </ControlTemplate.Triggers>
-                                                </ControlTemplate>
-                                            </Button.Template>
-                                        </Button>
-                                    </StackPanel>
-                                </DockPanel>
-                                <ItemsControl x:Name="SpeakerNamesList">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <DockPanel Margin="0,2">
-                                                <Button Content="x"
-                                                        Click="RemoveSpeaker_Click"
-                                                        DockPanel.Dock="Right"
-                                                        Padding="4,1" FontSize="10"
-                                                        Background="Transparent" BorderThickness="0"
-                                                        Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                                        Cursor="Hand"
-                                                        VerticalAlignment="Center" />
-                                                <TextBox Text="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
-                                                         FontSize="12"
-                                                         Padding="6,3"
-                                                         BorderThickness="1"
-                                                         LostFocus="SpeakerName_LostFocus" />
-                                            </DockPanel>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- Transcript content -->
-                        <ScrollViewer Grid.Row="3"
-                                      VerticalScrollBarVisibility="Auto"
-                                      x:Name="TranscriptScrollViewer">
-                            <ItemsControl x:Name="SegmentList">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Margin="0,6,0,6"
-                                                Padding="16,12"
-                                                CornerRadius="12"
-                                                Background="{Binding CurrentBackground}"
-                                                Cursor="Hand"
-                                                MouseLeftButtonDown="Segment_MouseLeftButtonDown">
-                                            <StackPanel>
-                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                                    <TextBlock Text="{Binding DisplaySpeaker}"
-                                                               FontWeight="Bold"
-                                                               FontSize="11"
-                                                               Foreground="{Binding SpeakerColor}"
-                                                               Cursor="Hand"
-                                                               ToolTip="Click to rename speaker; Shift+Click to rename just this segment"
-                                                               MouseLeftButtonDown="SpeakerLabel_MouseLeftButtonDown"
-                                                               Visibility="{Binding IsEditingSpeaker, Converter={StaticResource InverseBoolToVisibility}}" />
-                                                    <!-- Speaker name edit: ComboBox with editable text for dropdown + manual entry -->
-                                                    <ComboBox IsEditable="True"
-                                                              Text="{Binding EditingSpeakerName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                              ItemsSource="{Binding AvailableSpeakerNames}"
-                                                              FontWeight="Bold"
-                                                              FontSize="11"
-                                                              MinWidth="120"
-                                                              Padding="2,0"
-                                                              Visibility="{Binding IsEditingSpeaker, Converter={StaticResource BoolToVisibility}}"
-                                                              LostFocus="SpeakerEditBox_LostFocus"
-                                                              KeyDown="SpeakerEditBox_KeyDown"
-                                                              Loaded="SpeakerEditBox_Loaded" />
-                                                    <TextBlock Text="{Binding TimestampDisplay}"
-                                                               FontSize="10"
-                                                               Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                                               Margin="10,0,0,0"
-                                                               VerticalAlignment="Center" />
-                                                    <TextBlock Text="  playing"
-                                                               FontSize="10"
-                                                               Foreground="#FF005FAA"
-                                                               FontWeight="SemiBold"
-                                                               VerticalAlignment="Center"
-                                                               Visibility="{Binding IsCurrentlyPlaying, Converter={StaticResource BoolToVisibility}}" />
-                                                </StackPanel>
-                                                <TextBlock Text="{Binding Text}"
-                                                           TextWrapping="Wrap"
-                                                           FontSize="13"
-                                                           LineHeight="20"
-                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                                            </StackPanel>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
-
-                        <!-- Placeholder -->
-                        <TextBlock x:Name="PlaceholderText"
-                                   Grid.Row="3"
-                                   Text="Select a transcript to view"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"
-                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                   FontSize="14" />
-
-                        <!-- Action buttons -->
-                        <StackPanel Grid.Row="4"
-                                    Orientation="Horizontal"
-                                    Margin="0,16,0,0"
-                                    x:Name="ActionPanel"
-                                    Visibility="Collapsed">
+                        <!-- Export actions on the right -->
+                        <StackPanel Orientation="Horizontal"
+                                    DockPanel.Dock="Right"
+                                    HorizontalAlignment="Right">
                             <Button Click="CopyToClipboard_Click"
                                     Margin="0,0,8,0" Padding="14,8" Cursor="Hand"
                                     BorderThickness="0">
@@ -611,13 +638,13 @@
                                 </Button.Template>
                             </Button>
                             <Button Content="JSON" Click="ExportJson_Click"
-                                    Margin="0,0,8,0" Padding="10,8"
+                                    Margin="0,0,0,0" Padding="10,8"
                                     Background="Transparent" BorderThickness="0"
                                     Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="11" Cursor="Hand" />
                         </StackPanel>
-                    </Grid>
+                    </DockPanel>
                 </Border>
             </Grid>
-        </Grid>
+        </Border>
     </Grid>
 </UserControl>
