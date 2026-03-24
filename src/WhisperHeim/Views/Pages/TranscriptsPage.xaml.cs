@@ -13,6 +13,7 @@ using Microsoft.Win32;
 using WhisperHeim.Services.Audio;
 using WhisperHeim.Services.CallTranscription;
 using WhisperHeim.Services.Recording;
+using WhisperHeim.Services.Transcription;
 
 namespace WhisperHeim.Views.Pages;
 
@@ -23,6 +24,7 @@ namespace WhisperHeim.Views.Pages;
 public partial class TranscriptsPage : UserControl
 {
     private readonly ITranscriptStorageService _storageService;
+    private readonly TranscriptionBusyService _busyService;
     private readonly List<TranscriptListItem> _allItems = new();
     private readonly TranscriptAudioPlayer _audioPlayer = new();
     private readonly DispatcherTimer _copiedIndicatorTimer;
@@ -30,11 +32,13 @@ public partial class TranscriptsPage : UserControl
     private List<SegmentViewModel>? _currentSegmentViewModels;
     private string? _currentlyTranscribingSessionDir;
 
-    public TranscriptsPage(ITranscriptStorageService storageService)
+    public TranscriptsPage(
+        ITranscriptStorageService storageService,
+        TranscriptionBusyService busyService)
     {
         _storageService = storageService;
+        _busyService = busyService;
         InitializeComponent();
-        LoadTranscriptList();
 
         _audioPlayer.PositionChanged += OnAudioPositionChanged;
         _audioPlayer.PlaybackStopped += OnAudioPlaybackStopped;
@@ -46,9 +50,26 @@ public partial class TranscriptsPage : UserControl
             _copiedIndicatorTimer.Stop();
         };
 
+        Loaded += (_, _) =>
+        {
+            // Refresh the list each time the page becomes visible so stale
+            // entries (e.g. deleted while on another tab) are removed.
+            LoadTranscriptList();
+        };
+
         Unloaded += (_, _) =>
         {
             _audioPlayer.Dispose();
+        };
+
+        // Refresh pending items when the engine busy state changes so the
+        // "Engine busy" / "click to transcribe" labels update in real time.
+        _busyService.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(TranscriptionBusyService.IsBusy))
+            {
+                Dispatcher.BeginInvoke(LoadPendingSessions);
+            }
         };
     }
 
@@ -164,11 +185,14 @@ public partial class TranscriptsPage : UserControl
             }
 
             var wavFiles = Directory.GetFiles(dir, "*.wav");
+            bool isEngineBusy = _busyService.IsBusy && !isCurrentlyTranscribing;
             var detail = isCurrentlyTranscribing
                 ? "Transcribing..."
-                : $"{wavFiles.Length} audio file{(wavFiles.Length != 1 ? "s" : "")} — click to transcribe";
+                : isEngineBusy
+                    ? "Engine busy — waiting for current transcription to finish"
+                    : $"{wavFiles.Length} audio file{(wavFiles.Length != 1 ? "s" : "")} — click to transcribe";
 
-            items.Add(new PendingRecordingItem(dir, name, detail, isCurrentlyTranscribing));
+            items.Add(new PendingRecordingItem(dir, name, detail, isCurrentlyTranscribing || isEngineBusy));
         }
 
         PendingList.ItemsSource = items;
@@ -246,13 +270,14 @@ public partial class TranscriptsPage : UserControl
                 Directory.Delete(item.SessionDir, recursive: true);
                 Trace.TraceInformation("[TranscriptsPage] Deleted pending session: {0}", item.SessionDir);
             }
-
-            LoadTranscriptList();
         }
         catch (Exception ex)
         {
             Trace.TraceError("[TranscriptsPage] Failed to delete pending session: {0}", ex.Message);
         }
+
+        // Always refresh the list so the deleted item disappears from the UI
+        LoadTranscriptList();
     }
 
     private void ApplyFilter()
@@ -660,12 +685,12 @@ public partial class TranscriptsPage : UserControl
         if (!dialog.Confirmed)
             return;
 
+        // Release the audio file first — the player holds it open
+        StopPlayback();
+        _audioPlayer.Close();
+
         try
         {
-            // Release the audio file first — the player holds it open
-            StopPlayback();
-            _audioPlayer.Close();
-
             if (File.Exists(item.FilePath))
             {
                 // Delete the entire session folder (transcript + WAV files)
@@ -688,14 +713,17 @@ public partial class TranscriptsPage : UserControl
                     Trace.TraceInformation("[TranscriptsPage] Deleted transcript: {0}", item.FilePath);
                 }
             }
-
-            ClearViewer();
-            LoadTranscriptList();
         }
         catch (Exception ex)
         {
             Trace.TraceError("[TranscriptsPage] Failed to delete transcript: {0}", ex.Message);
         }
+
+        // Always remove the item from the list and refresh the UI,
+        // even if the disk delete failed — prevents stale ghost entries.
+        _allItems.Remove(item);
+        ClearViewer();
+        ApplyFilter();
     }
 
     private void CopyToClipboard_Click(object sender, RoutedEventArgs e)
