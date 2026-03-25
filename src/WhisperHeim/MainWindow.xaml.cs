@@ -63,6 +63,9 @@ public partial class MainWindow : FluentWindow
     // Text-to-speech for the TTS page
     private readonly ITextToSpeechService _textToSpeechService;
 
+    // Data path service for resolving user-configured data directory
+    private readonly DataPathService _dataPathService;
+
     // Read-aloud hotkey service (captures selected text and signals navigation)
     private readonly ReadAloudHotkeyService _readAloudHotkeyService;
 
@@ -106,6 +109,7 @@ public partial class MainWindow : FluentWindow
         IHighQualityLoopbackService highQualityLoopbackService,
         IHighQualityRecorderService highQualityRecorderService,
         ITextToSpeechService textToSpeechService,
+        DataPathService dataPathService,
         ReadAloudHotkeyService readAloudHotkeyService,
         TranscriptionQueueService transcriptionQueueService)
     {
@@ -123,6 +127,7 @@ public partial class MainWindow : FluentWindow
         _highQualityLoopbackService = highQualityLoopbackService;
         _highQualityRecorderService = highQualityRecorderService;
         _textToSpeechService = textToSpeechService;
+        _dataPathService = dataPathService;
         _readAloudHotkeyService = readAloudHotkeyService;
         _transcriptionQueueService = transcriptionQueueService;
 
@@ -729,7 +734,8 @@ public partial class MainWindow : FluentWindow
                     _textToSpeechService,
                     _highQualityRecorderService,
                     _highQualityLoopbackService,
-                    _settingsService),
+                    _settingsService,
+                    _dataPathService),
                 "Settings" => new GeneralPage(_settingsService),
                 "About" => new AboutPage(_modelManager),
                 _ => null

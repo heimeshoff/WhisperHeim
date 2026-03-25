@@ -20,13 +20,9 @@ public partial class TextToSpeechPage : UserControl
     private const double MinimumDurationSeconds = 5.0;
 
     /// <summary>
-    /// Directory for custom voice reference .wav files.
+    /// Directory for custom voice reference .wav files (resolved from DataPathService).
     /// </summary>
-    private static readonly string CustomVoicesDir =
-        Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "WhisperHeim",
-            "voices");
+    private readonly string _customVoicesDir;
 
     // ── TTS services ──
     private readonly ITextToSpeechService _ttsService;
@@ -50,12 +46,14 @@ public partial class TextToSpeechPage : UserControl
         ITextToSpeechService ttsService,
         IHighQualityRecorderService recorderService,
         IHighQualityLoopbackService loopbackService,
-        SettingsService settingsService)
+        SettingsService settingsService,
+        DataPathService dataPathService)
     {
         _ttsService = ttsService;
         _recorderService = recorderService;
         _loopbackService = loopbackService;
         _settingsService = settingsService;
+        _customVoicesDir = dataPathService.VoicesPath;
 
         InitializeComponent();
 
@@ -466,7 +464,7 @@ public partial class TextToSpeechPage : UserControl
             voiceName = voiceName.Replace(ch, '_');
         }
 
-        var destPath = Path.Combine(CustomVoicesDir, $"{voiceName}.wav");
+        var destPath = Path.Combine(_customVoicesDir, $"{voiceName}.wav");
 
         if (File.Exists(destPath))
         {
@@ -652,10 +650,10 @@ public partial class TextToSpeechPage : UserControl
 
         VoicesList.Items.Clear();
 
-        if (!Directory.Exists(CustomVoicesDir))
+        if (!Directory.Exists(_customVoicesDir))
             return;
 
-        var wavFiles = Directory.GetFiles(CustomVoicesDir, "*.wav");
+        var wavFiles = Directory.GetFiles(_customVoicesDir, "*.wav");
 
         foreach (var wavFile in wavFiles)
         {
@@ -726,7 +724,7 @@ public partial class TextToSpeechPage : UserControl
         // Find and select the matching voice in the combo box
         for (int i = 0; i < VoiceCombo.Items.Count; i++)
         {
-            if (VoiceCombo.Items[i] is VoiceComboItem item && item.VoiceId == voiceName)
+            if (VoiceCombo.Items[i] is VoiceComboItem item && item.VoiceId == $"custom:{voiceName}")
             {
                 VoiceCombo.SelectedIndex = i;
                 // VoiceCombo_SelectionChanged will persist DefaultVoiceId

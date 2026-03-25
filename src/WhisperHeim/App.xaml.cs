@@ -226,6 +226,7 @@ public partial class App : Application
             highQualityLoopbackService,
             highQualityRecorderService,
             textToSpeechService,
+            _dataPathService,
             _readAloudHotkeyService,
             transcriptionQueueService);
         MainWindow = mainWindow;
