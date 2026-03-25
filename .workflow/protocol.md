@@ -2,6 +2,23 @@
 
 ---
 
+## 2026-03-25 23:15 -- Task Completed: 083 - Unify Recordings & File Transcription
+
+**Type:** Task Completion
+**Task:** 083 - Unify Recordings & File Transcription
+**Summary:** Added Start/Stop Recording and Browse buttons to the Recordings page, implemented file import with move/copy-to-session-dir, produces CallTranscript-compatible JSON, supports re-transcription with diarization. Removed TranscribeFilesPage and Transcriptions nav item. Build passes, 32 tests pass.
+**Files changed:** 8 files
+
+---
+
+## 2026-03-25 23:06 -- Task Started: 083 - Unify Recordings & File Transcription
+
+**Type:** Task Start
+**Task:** 083 - Unify Recordings & File Transcription
+**Milestone:** M3 (Voice Message Transcription)
+
+---
+
 ## 2026-03-25 23:05 -- Task Completed: 084 - Sidebar Collapse Icon & Branding Reshuffle
 
 **Type:** Task Completion
