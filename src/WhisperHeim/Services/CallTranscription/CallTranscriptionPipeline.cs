@@ -1,7 +1,9 @@
 using System.Diagnostics;
 using System.IO;
 using NAudio.Wave;
+using WhisperHeim.Services.Audio;
 using WhisperHeim.Services.Diarization;
+using WhisperHeim.Services.Models;
 using WhisperHeim.Services.Recording;
 using WhisperHeim.Services.Transcription;
 
@@ -103,26 +105,27 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
             ? remoteSpeakerNames.Count
             : -1; // auto-detect
 
-        // -- Mic stream: skip diarization, single segment for local user --
+        // -- Mic stream: VAD-only, never diarize (single known speaker) --
         DiarizationResult? micDiarization = null;
         if (micExists && micDurationSeconds > 0.5)
         {
-            ReportProgress(progress, PipelineStage.Diarizing, 0, "Processing microphone (single speaker)...");
+            ReportProgress(progress, PipelineStage.Diarizing, 0, "Processing microphone (VAD speech detection)...");
 
             // The mic always has exactly one speaker (the local user).
-            // Skip expensive diarization and create a single segment spanning the full audio.
-            var micSegment = new DiarizationSegment(
-                SpeakerId: 0,
-                StartTime: TimeSpan.Zero,
-                EndTime: TimeSpan.FromSeconds(micDurationSeconds));
+            // Use Silero VAD to detect actual speech boundaries instead of
+            // fixed-length chunks or expensive diarization.
+            var micSegments = await Task.Run(
+                () => DetectSpeechSegmentsWithVad(session.MicWavFilePath, micDurationSeconds),
+                cancellationToken);
+
             micDiarization = new DiarizationResult(
-                [micSegment], SpeakerCount: 1,
+                micSegments, SpeakerCount: 1,
                 AudioDuration: TimeSpan.FromSeconds(micDurationSeconds),
                 ProcessingDuration: TimeSpan.Zero);
 
             Trace.TraceInformation(
-                "[CallTranscriptionPipeline] Mic: skipped diarization, single segment ({0:F1}s)",
-                micDurationSeconds);
+                "[CallTranscriptionPipeline] Mic: VAD detected {0} speech segments ({1:F1}s total audio)",
+                micSegments.Count, micDurationSeconds);
         }
 
         // -- Diarize system stream --
@@ -384,7 +387,8 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
     private static async Task<DiarizationResult?> DiarizeChunkOutOfProcessAsync(
         float[] samples,
         int numSpeakers,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        float? threshold = null)
     {
         var tempFile = Path.Combine(Path.GetTempPath(), $"wh_diarize_{Guid.NewGuid():N}.raw");
 
@@ -402,13 +406,17 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
             var embModel = Models.ModelManagerService.SpeakerEmbeddingModelPath;
 
             using var proc = new System.Diagnostics.Process();
+            var thresholdArg = threshold.HasValue
+                ? $" --threshold {threshold.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}"
+                : "";
+
             proc.StartInfo = new System.Diagnostics.ProcessStartInfo
             {
                 FileName = exePath,
                 Arguments = $"--diarize-worker --samples \"{tempFile}\" " +
                             $"--segmentation \"{segModel}\" " +
                             $"--embedding \"{embModel}\" " +
-                            $"--num-speakers {numSpeakers}",
+                            $"--num-speakers {numSpeakers}{thresholdArg}",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -517,12 +525,11 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
         }
 
         Trace.TraceInformation(
-            "[CallTranscriptionPipeline] Diarizing {0:F0}s from file in {1}s chunks",
-            totalSeconds, chunkSeconds);
+            "[CallTranscriptionPipeline] Diarizing {0:F0}s from file in {1}s chunks (numSpeakers={2})",
+            totalSeconds, chunkSeconds, numSpeakers);
 
         var sw = Stopwatch.StartNew();
-        var allSegments = new List<DiarizationSegment>();
-        var speakerIds = new HashSet<int>();
+        var chunkResults = new List<(double OffsetSeconds, DiarizationResult Result)>();
 
         int stepSeconds = chunkSeconds - overlapSeconds;
         int totalChunks = (int)Math.Ceiling((totalSeconds - overlapSeconds) / stepSeconds);
@@ -593,31 +600,45 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
                 TotalChunks = totalChunks,
             });
 
-            // Offset segments to absolute timeline, deduplicate overlap zone
-            double keepFrom = offsetSec == 0 ? 0 : offsetSec + overlapSeconds / 2.0;
+            // Filter segments to the non-overlapping zone of this chunk
+            double keepFrom = offsetSec == 0 ? 0 : overlapSeconds / 2.0;
             double keepTo = (offsetSec + stepSeconds >= totalSeconds)
                 ? double.MaxValue
-                : offsetSec + stepSeconds + overlapSeconds / 2.0;
+                : (double)stepSeconds + overlapSeconds / 2.0;
+
+            var filteredSegments = new List<DiarizationSegment>();
+            var filteredSpeakerIds = new HashSet<int>();
 
             foreach (var seg in chunkResult.Segments)
             {
-                var absoluteStart = seg.StartTime + TimeSpan.FromSeconds(offsetSec);
-                var absoluteEnd = seg.EndTime + TimeSpan.FromSeconds(offsetSec);
-                double midpoint = (absoluteStart.TotalSeconds + absoluteEnd.TotalSeconds) / 2.0;
-
+                double midpoint = (seg.StartTime.TotalSeconds + seg.EndTime.TotalSeconds) / 2.0;
                 if (midpoint >= keepFrom && midpoint < keepTo)
                 {
-                    allSegments.Add(new DiarizationSegment(
-                        seg.SpeakerId, absoluteStart, absoluteEnd));
-                    speakerIds.Add(seg.SpeakerId);
+                    filteredSegments.Add(seg);
+                    filteredSpeakerIds.Add(seg.SpeakerId);
                 }
             }
+
+            chunkResults.Add((offsetSec, new DiarizationResult(
+                filteredSegments, filteredSpeakerIds.Count,
+                chunkResult.AudioDuration, chunkResult.ProcessingDuration)));
 
             chunkIndex++;
         }
 
         sw.Stop();
+
+        // Use cross-chunk speaker consistency remapping for multi-speaker audio
+        var allSegments = numSpeakers > 1
+            ? RemapSpeakerIdsAcrossChunks(chunkResults, numSpeakers)
+            : chunkResults.SelectMany(cr =>
+                cr.Result.Segments.Select(seg => new DiarizationSegment(
+                    seg.SpeakerId,
+                    seg.StartTime + TimeSpan.FromSeconds(cr.OffsetSeconds),
+                    seg.EndTime + TimeSpan.FromSeconds(cr.OffsetSeconds)))).ToList();
+
         allSegments.Sort((a, b) => a.StartTime.CompareTo(b.StartTime));
+        var speakerIds = new HashSet<int>(allSegments.Select(s => s.SpeakerId));
 
         Trace.TraceInformation(
             "[CallTranscriptionPipeline] File diarization complete: {0:F1}s in {1:F0}ms — {2} speakers, {3} segments ({4} chunks)",
@@ -822,6 +843,194 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
                 writer.WriteSample((m + s) * 0.5f);
             }
         }
+    }
+
+    /// <summary>
+    /// Uses Silero VAD to detect speech boundaries in a WAV file.
+    /// Returns segments attributed to speaker 0 (the local user).
+    /// This avoids expensive diarization for the mic stream which always
+    /// has a single known speaker.
+    /// </summary>
+    private static IReadOnlyList<DiarizationSegment> DetectSpeechSegmentsWithVad(
+        string wavFilePath, double totalDurationSeconds)
+    {
+        var segments = new List<DiarizationSegment>();
+
+        var vadModelPath = ModelManagerService.SileroVadModelPath;
+        if (!File.Exists(vadModelPath))
+        {
+            Trace.TraceWarning(
+                "[CallTranscriptionPipeline] Silero VAD model not found at {0}, falling back to single segment.",
+                vadModelPath);
+            // Fallback: return the entire audio as one segment
+            segments.Add(new DiarizationSegment(0, TimeSpan.Zero, TimeSpan.FromSeconds(totalDurationSeconds)));
+            return segments;
+        }
+
+        var settings = new VadSettings
+        {
+            MinSpeechDurationMs = 300,
+            MinSilenceDurationMs = 600,
+        };
+
+        // Use the sherpa-onnx VAD directly for offline batch processing
+        // to collect completed speech segments with their timestamps
+        var vadConfig = new SherpaOnnx.VadModelConfig();
+        vadConfig.SileroVad.Model = vadModelPath;
+        vadConfig.SileroVad.Threshold = settings.SpeechThreshold;
+        vadConfig.SileroVad.MinSilenceDuration = settings.MinSilenceDurationMs / 1000f;
+        vadConfig.SileroVad.MinSpeechDuration = settings.MinSpeechDurationMs / 1000f;
+        vadConfig.SileroVad.MaxSpeechDuration = 120f; // Cap at 2 minutes per segment
+        vadConfig.SileroVad.WindowSize = settings.ChunkSamples;
+        vadConfig.SampleRate = ExpectedSampleRate;
+        vadConfig.NumThreads = 1;
+
+        using var vadDetector = new SherpaOnnx.VoiceActivityDetector(vadConfig, bufferSizeInSeconds: 60);
+
+        // Read audio in chunks to avoid loading entire file
+        using var reader = new AudioFileReader(wavFilePath);
+        var sampleProvider = reader.ToSampleProvider();
+
+        ISampleProvider provider;
+        if (reader.WaveFormat.SampleRate != ExpectedSampleRate || reader.WaveFormat.Channels != 1)
+        {
+            var mono = reader.WaveFormat.Channels > 1
+                ? new NAudio.Wave.SampleProviders.StereoToMonoSampleProvider(sampleProvider)
+                : sampleProvider;
+            provider = new NAudio.Wave.SampleProviders.WdlResamplingSampleProvider(
+                (ISampleProvider)mono, ExpectedSampleRate);
+        }
+        else
+        {
+            provider = sampleProvider;
+        }
+
+        int windowSize = settings.ChunkSamples;
+        var buffer = new float[ExpectedSampleRate]; // 1 second read buffer
+        var pending = new List<float>();
+        int samplesRead;
+
+        while ((samplesRead = provider.Read(buffer, 0, buffer.Length)) > 0)
+        {
+            pending.AddRange(buffer.AsSpan(0, samplesRead).ToArray());
+
+            while (pending.Count >= windowSize)
+            {
+                var chunk = new float[windowSize];
+                pending.CopyTo(0, chunk, 0, windowSize);
+                pending.RemoveRange(0, windowSize);
+
+                vadDetector.AcceptWaveform(chunk);
+
+                while (!vadDetector.IsEmpty())
+                {
+                    var seg = vadDetector.Front();
+                    vadDetector.Pop();
+
+                    var startTime = TimeSpan.FromSeconds((double)seg.Start / ExpectedSampleRate);
+                    var endTime = startTime + TimeSpan.FromSeconds((double)seg.Samples.Length / ExpectedSampleRate);
+
+                    // Skip very short segments (< 0.3s) that are likely noise
+                    if ((endTime - startTime).TotalSeconds >= 0.3)
+                    {
+                        segments.Add(new DiarizationSegment(
+                            SpeakerId: 0, StartTime: startTime, EndTime: endTime));
+                    }
+                }
+            }
+        }
+
+        // Flush remaining audio
+        vadDetector.Flush();
+        while (!vadDetector.IsEmpty())
+        {
+            var seg = vadDetector.Front();
+            vadDetector.Pop();
+
+            var startTime = TimeSpan.FromSeconds((double)seg.Start / ExpectedSampleRate);
+            var endTime = startTime + TimeSpan.FromSeconds((double)seg.Samples.Length / ExpectedSampleRate);
+
+            if ((endTime - startTime).TotalSeconds >= 0.3)
+            {
+                segments.Add(new DiarizationSegment(
+                    SpeakerId: 0, StartTime: startTime, EndTime: endTime));
+            }
+        }
+
+        // If VAD found no segments (e.g., very quiet audio), fall back to single segment
+        if (segments.Count == 0 && totalDurationSeconds > 0.5)
+        {
+            Trace.TraceWarning(
+                "[CallTranscriptionPipeline] VAD detected no speech in mic audio, falling back to single segment.");
+            segments.Add(new DiarizationSegment(0, TimeSpan.Zero, TimeSpan.FromSeconds(totalDurationSeconds)));
+        }
+
+        Trace.TraceInformation(
+            "[CallTranscriptionPipeline] VAD: {0} speech segments detected in {1:F1}s mic audio",
+            segments.Count, totalDurationSeconds);
+
+        return segments;
+    }
+
+    /// <summary>
+    /// Remaps speaker IDs across chunks to ensure cross-chunk consistency.
+    /// For group calls (numSpeakers > 1), speaker IDs assigned independently per chunk
+    /// may not correspond. This method uses a simple first-appearance ordering heuristic:
+    /// within each chunk, speakers are renumbered in order of first appearance,
+    /// which provides basic consistency when speakers take turns.
+    /// </summary>
+    private static List<DiarizationSegment> RemapSpeakerIdsAcrossChunks(
+        List<(double OffsetSeconds, DiarizationResult Result)> chunkResults,
+        int numSpeakers)
+    {
+        // For single-speaker streams, no remapping needed
+        if (numSpeakers == 1)
+        {
+            var segments = new List<DiarizationSegment>();
+            foreach (var (offset, result) in chunkResults)
+            {
+                foreach (var seg in result.Segments)
+                {
+                    segments.Add(new DiarizationSegment(
+                        SpeakerId: 0,
+                        StartTime: seg.StartTime + TimeSpan.FromSeconds(offset),
+                        EndTime: seg.EndTime + TimeSpan.FromSeconds(offset)));
+                }
+            }
+            return segments;
+        }
+
+        // For multi-speaker: renumber speakers by order of first appearance within each chunk.
+        // This assumes speakers tend to appear in the same order across chunks.
+        var allSegments = new List<DiarizationSegment>();
+
+        foreach (var (offset, result) in chunkResults)
+        {
+            // Build a mapping from original speaker ID to remapped ID (order of first appearance)
+            var remapping = new Dictionary<int, int>();
+            int nextId = 0;
+
+            // Sort segments by start time to determine order of first appearance
+            var sortedSegments = result.Segments.OrderBy(s => s.StartTime).ToList();
+
+            foreach (var seg in sortedSegments)
+            {
+                if (!remapping.ContainsKey(seg.SpeakerId))
+                {
+                    remapping[seg.SpeakerId] = nextId++;
+                }
+            }
+
+            foreach (var seg in sortedSegments)
+            {
+                allSegments.Add(new DiarizationSegment(
+                    SpeakerId: remapping[seg.SpeakerId],
+                    StartTime: seg.StartTime + TimeSpan.FromSeconds(offset),
+                    EndTime: seg.EndTime + TimeSpan.FromSeconds(offset)));
+            }
+        }
+
+        return allSegments;
     }
 
     /// <summary>

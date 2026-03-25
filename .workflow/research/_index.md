@@ -28,6 +28,10 @@
 
 | 2026-03-23 | Transcript Analysis with LLM | [transcript-analysis-with-llm.md](transcript-analysis-with-llm.md) | Claude subscription cannot be used programmatically (blocked since Jan 2026); best alternative is Ollama + Qwen 2.5 14B locally via OllamaSharp NuGet — zero cost, local-first, ~80-90% of GPT-4 quality for extraction tasks |
 
+## Transcription Engine Overhaul (2026-03-25)
+
+| 2026-03-25 | Transcription Engine Overhaul | [transcription-engine-overhaul.md](transcription-engine-overhaul.md) | For dual-stream calls, replace diarization with VAD-only per stream (mic="You", loopback="Remote"); fixes over-segmentation, ordering, and stability. Add transcription queue with bottom-bar UI. Apply linear drift correction for long recordings. |
+
 ## UI Framework (2026-03-21)
 
 - **WPF + WPF UI (lepoco/wpfui)**: Mica, Fluent controls, tray icon via WPF-UI.Tray. Best fit for Windows 11 tray app.

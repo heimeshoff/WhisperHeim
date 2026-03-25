@@ -173,7 +173,6 @@ public partial class App : Application
         // Create services
         var transcriptionService = new TranscriptionService();
         transcriptionService.LoadModel();
-        var transcriptionBusyService = new TranscriptionBusyService();
         var inputSimulator = new InputSimulator();
         var fileTranscriptionService = new FileTranscriptionService(transcriptionService);
         var templateService = new TemplateService(_settingsService);
@@ -185,6 +184,12 @@ public partial class App : Application
         var callTranscriptionPipeline = new CallTranscriptionPipeline(
             speakerDiarizationService, transcriptionService, transcriptStorageService);
         var callRecordingHotkeyService = new CallRecordingHotkeyService(callRecordingService);
+
+        // Create transcription queue service (replaces TranscriptionBusyService)
+        var transcriptionQueueService = new TranscriptionQueueService(
+            callTranscriptionPipeline,
+            transcriptStorageService,
+            () => _settingsService!.Current.General.DefaultSpeakerName);
 
         // Create text-to-speech service (lazy-loaded: model loads on first use)
         var textToSpeechService = new TextToSpeechService();
@@ -221,7 +226,7 @@ public partial class App : Application
             highQualityRecorderService,
             textToSpeechService,
             _readAloudHotkeyService,
-            transcriptionBusyService);
+            transcriptionQueueService);
         MainWindow = mainWindow;
 
         if (startMinimized)

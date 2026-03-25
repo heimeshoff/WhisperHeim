@@ -18,14 +18,14 @@ namespace WhisperHeim.Views.Pages;
 public partial class TranscribeFilesPage : UserControl
 {
     private readonly IFileTranscriptionService _fileTranscriptionService;
-    private readonly TranscriptionBusyService _busyService;
+    private readonly TranscriptionQueueService _busyService;
     private readonly TranscribeFilesViewModel _viewModel = new();
     private CancellationTokenSource? _cts;
     private bool _isDragOver;
 
     public TranscribeFilesPage(
         IFileTranscriptionService fileTranscriptionService,
-        TranscriptionBusyService busyService)
+        TranscriptionQueueService busyService)
     {
         _fileTranscriptionService = fileTranscriptionService;
         _busyService = busyService;
@@ -35,7 +35,7 @@ public partial class TranscribeFilesPage : UserControl
         // Bind to busy service changes to update UI
         _busyService.PropertyChanged += (_, args) =>
         {
-            if (args.PropertyName == nameof(TranscriptionBusyService.IsBusy))
+            if (args.PropertyName == nameof(TranscriptionQueueService.ActiveItem))
             {
                 Dispatcher.BeginInvoke(UpdateBusyState);
             }

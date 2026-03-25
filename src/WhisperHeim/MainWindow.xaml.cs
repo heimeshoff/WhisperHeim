@@ -14,7 +14,7 @@ using WhisperHeim.Services.Dictation;
 using WhisperHeim.Services.FileTranscription;
 using WhisperHeim.Services.Recording;
 using WhisperHeim.Services.Transcription;
-using TranscriptionBusyService = WhisperHeim.Services.Transcription.TranscriptionBusyService;
+using WhisperHeim.Views.Controls;
 using WhisperHeim.Services.Hotkey;
 using WhisperHeim.Services.Input;
 using WhisperHeim.Services.Models;
@@ -66,8 +66,8 @@ public partial class MainWindow : FluentWindow
     // Read-aloud hotkey service (captures selected text and signals navigation)
     private readonly ReadAloudHotkeyService _readAloudHotkeyService;
 
-    // Transcription engine busy guard — prevents concurrent engine access
-    private readonly TranscriptionBusyService _transcriptionBusyService;
+    // Transcription queue — replaces the old TranscriptionBusyService
+    private readonly TranscriptionQueueService _transcriptionQueueService;
 
     // Hotkey and orchestration
     private readonly GlobalHotkeyService _hotkeyService = new();
@@ -84,9 +84,7 @@ public partial class MainWindow : FluentWindow
     // Cache pages so they are not recreated on every navigation
     private readonly Dictionary<string, object> _pageCache = new();
 
-    // Sequential transcription queue — ensures only one pipeline runs at a time
-    private readonly Queue<CallRecordingSession> _transcriptionQueue = new();
-    private bool _isTranscriptionRunning;
+    // (Queue is now managed by TranscriptionQueueService)
 
     // Sidebar collapsed state
     private bool _isSidebarCollapsed;
@@ -109,7 +107,7 @@ public partial class MainWindow : FluentWindow
         IHighQualityRecorderService highQualityRecorderService,
         ITextToSpeechService textToSpeechService,
         ReadAloudHotkeyService readAloudHotkeyService,
-        TranscriptionBusyService transcriptionBusyService)
+        TranscriptionQueueService transcriptionQueueService)
     {
         _settingsService = settingsService;
         _audioCaptureService = audioCaptureService;
@@ -126,9 +124,13 @@ public partial class MainWindow : FluentWindow
         _highQualityRecorderService = highQualityRecorderService;
         _textToSpeechService = textToSpeechService;
         _readAloudHotkeyService = readAloudHotkeyService;
-        _transcriptionBusyService = transcriptionBusyService;
+        _transcriptionQueueService = transcriptionQueueService;
 
         InitializeComponent();
+
+        // Wire up the transcription queue bottom bar
+        TranscriptionBar.Initialize(_transcriptionQueueService);
+        _transcriptionQueueService.ItemCompleted += OnTranscriptionItemCompleted;
 
         // Restore saved window position/size or center on screen
         RestoreWindowPosition();
@@ -413,103 +415,19 @@ public partial class MainWindow : FluentWindow
 
     private void EnqueueTranscription(CallRecordingSession session)
     {
-        _transcriptionQueue.Enqueue(session);
-        Trace.TraceInformation(
-            "[MainWindow] Enqueued transcription. Queue depth: {0}", _transcriptionQueue.Count);
-
-        UpdateTranscriptionQueueUI();
-        ProcessTranscriptionQueue();
+        // Derive a title from the session directory name (e.g. "2026-03-25_14-30-00")
+        var sessionDir = Path.GetDirectoryName(session.MicWavFilePath);
+        var title = Path.GetFileName(sessionDir) ?? "Recording";
+        _transcriptionQueueService.Enqueue(title, session);
     }
 
-    private async void ProcessTranscriptionQueue()
+    private void OnTranscriptionItemCompleted(object? sender, TranscriptionQueueItem item)
     {
-        if (_isTranscriptionRunning)
-            return;
-
-        if (_transcriptionQueue.Count == 0)
-            return;
-
-        _isTranscriptionRunning = true;
-        var transcriptsPage = GetOrCreateTranscriptsPage();
-
-        while (_transcriptionQueue.Count > 0)
+        Application.Current?.Dispatcher?.BeginInvoke(() =>
         {
-            var session = _transcriptionQueue.Dequeue();
-            UpdateTranscriptionQueueUI();
-
-            var sessionDir = Path.GetDirectoryName(session.MicWavFilePath);
-
-            Trace.TraceInformation(
-                "[MainWindow] Processing transcription. Remaining in queue: {0}",
-                _transcriptionQueue.Count);
-            Trace.TraceInformation("[MainWindow] Session: mic={0}, system={1}",
-                session.MicWavFilePath, session.SystemWavFilePath);
-
-            // Acquire the transcription engine busy guard
-            if (!_transcriptionBusyService.TryAcquire("Call transcription"))
-            {
-                Trace.TraceWarning(
-                    "[MainWindow] Engine busy, re-queuing session for later.");
-                _transcriptionQueue.Enqueue(session);
-                break;
-            }
-
-            transcriptsPage.ShowTranscribingIndicator();
-            transcriptsPage.SetTranscribingSession(sessionDir);
-
-            try
-            {
-                var pipelineProgress = new Progress<TranscriptionPipelineProgress>(p =>
-                {
-                    transcriptsPage.UpdatePipelineProgress(p.Description);
-                });
-
-                var remoteSpeakerNames = session.RemoteSpeakerNames;
-                var localSpeakerName = _settingsService.Current.General.DefaultSpeakerName;
-
-                var transcript = await Task.Run(async () =>
-                {
-                    try
-                    {
-                        return await _callTranscriptionPipeline.ProcessAsync(
-                            session, remoteSpeakerNames, localSpeakerName, pipelineProgress);
-                    }
-                    catch (Exception ex)
-                    {
-                        Trace.TraceError("[MainWindow] Pipeline background thread exception: {0}\n{1}",
-                            ex.Message, ex.StackTrace);
-                        throw;
-                    }
-                });
-
-                Trace.TraceInformation("[MainWindow] Transcription pipeline completed: {0} segments.",
-                    transcript.Segments.Count);
-            }
-            catch (Exception ex)
-            {
-                Trace.TraceError("[MainWindow] Transcription pipeline failed: {0}\n{1}",
-                    ex.Message, ex.StackTrace);
-            }
-            finally
-            {
-                _transcriptionBusyService.Release();
-            }
-
-            transcriptsPage.SetTranscribingSession(null);
-            transcriptsPage.UpdatePipelineProgress("");
+            var transcriptsPage = GetOrCreateTranscriptsPage();
             transcriptsPage.RefreshList();
-            UpdateTranscriptionQueueUI();
-        }
-
-        _isTranscriptionRunning = false;
-        transcriptsPage.HideTranscribingIndicator();
-    }
-
-    private void UpdateTranscriptionQueueUI()
-    {
-        var transcriptsPage = GetOrCreateTranscriptsPage();
-        int queued = _transcriptionQueue.Count;
-        transcriptsPage.UpdateQueueCount(queued);
+        });
     }
 
     private TranscriptsPage GetOrCreateTranscriptsPage()
@@ -517,7 +435,7 @@ public partial class MainWindow : FluentWindow
         if (_pageCache.TryGetValue("Recordings", out var cached) && cached is TranscriptsPage page)
             return page;
 
-        page = new TranscriptsPage(_transcriptStorageService, _transcriptionBusyService);
+        page = new TranscriptsPage(_transcriptStorageService, _transcriptionQueueService);
         page.TranscriptionRequested += OnPendingTranscriptionRequested;
         page.ReTranscriptionRequested += OnPendingTranscriptionRequested;
         _pageCache["Recordings"] = page;
@@ -791,7 +709,7 @@ public partial class MainWindow : FluentWindow
                 "Dictation" => new DictationPage(_settingsService, _audioCaptureService),
                 "Templates" => new TemplatesPage(_templateService),
                 "Recordings" => GetOrCreateTranscriptsPage(),
-                "Transcriptions" => new TranscribeFilesPage(_fileTranscriptionService, _transcriptionBusyService),
+                "Transcriptions" => new TranscribeFilesPage(_fileTranscriptionService, _transcriptionQueueService),
                 "TextToSpeech" => new TextToSpeechPage(
                     _textToSpeechService,
                     _highQualityRecorderService,

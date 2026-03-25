@@ -64,7 +64,7 @@ public partial class TranscriptionProgressDialog : Window
         try
         {
             Result = await Task.Run(
-                () => _pipeline.ProcessAsync(_session, _remoteSpeakerNames, _localSpeakerName, progress, _cts.Token),
+                async () => await _pipeline.ProcessAsync(_session, _remoteSpeakerNames, _localSpeakerName, progress, _cts.Token),
                 _cts.Token);
 
             Succeeded = true;

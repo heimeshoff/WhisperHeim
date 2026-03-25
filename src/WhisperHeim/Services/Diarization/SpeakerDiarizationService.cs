@@ -19,9 +19,10 @@ public sealed class SpeakerDiarizationService : ISpeakerDiarizationService
     /// <summary>
     /// Default clustering threshold when the number of speakers is unknown.
     /// Lower values produce more speakers; higher values merge more aggressively.
-    /// 0.5 is the sherpa-onnx default.
+    /// 0.80 reduces over-segmentation compared to the sherpa-onnx default of 0.5.
+    /// When NumClusters is positive, this threshold is ignored entirely.
     /// </summary>
-    private const float DefaultClusteringThreshold = 0.5f;
+    internal const float DefaultClusteringThreshold = 0.80f;
 
     /// <summary>
     /// Sample rate expected by the diarization pipeline (16 kHz).
@@ -278,6 +279,7 @@ public sealed class SpeakerDiarizationService : ISpeakerDiarizationService
     public async Task<IReadOnlyList<AttributedDiarizationSegment>> DiarizeDualStreamAsync(
         float[] micSamples,
         float[] loopbackSamples,
+        int loopbackNumSpeakers = -1,
         IProgress<DiarizationProgress>? progress = null,
         CancellationToken cancellationToken = default)
     {
@@ -287,26 +289,28 @@ public sealed class SpeakerDiarizationService : ISpeakerDiarizationService
             throw new InvalidOperationException(
                 "Models are not loaded. Call LoadModels() before diarizing.");
 
-        // Step 1: Diarize each stream sequentially.
-        // They share a native lock anyway, and sequential execution avoids
-        // unobserved task exceptions if one fails.
-        // Mic stream should have primarily one speaker (the local user).
-        // Loopback stream has remote speakers.
-        var micResult = await DiarizeAsync(micSamples, numSpeakers: 1, cancellationToken: cancellationToken);
-        var loopbackResult = await DiarizeAsync(loopbackSamples, numSpeakers: -1, cancellationToken: cancellationToken);
-
-        // Step 2: Build attributed segments
-        var attributed = new List<AttributedDiarizationSegment>();
-
-        // Mic segments are the local user
-        foreach (var seg in micResult.Segments)
+        // Mic stream: never diarize. The mic always has a single known speaker
+        // (the local user). All mic audio is attributed to speaker 0.
+        var micSegments = new List<AttributedDiarizationSegment>();
+        if (micSamples.Length > 0)
         {
-            attributed.Add(new AttributedDiarizationSegment(
-                SpeakerId: 0, // Local user is always speaker 0
-                StartTime: seg.StartTime,
-                EndTime: seg.EndTime,
+            var micDuration = TimeSpan.FromSeconds((double)micSamples.Length / ExpectedSampleRate);
+            micSegments.Add(new AttributedDiarizationSegment(
+                SpeakerId: 0,
+                StartTime: TimeSpan.Zero,
+                EndTime: micDuration,
                 Source: SpeakerSource.Microphone));
         }
+
+        // Loopback stream: diarize with constrained speaker count when provided.
+        // When NumClusters is positive, the clustering threshold is ignored entirely,
+        // which is the key fix for over-segmentation.
+        var loopbackResult = await DiarizeAsync(
+            loopbackSamples, numSpeakers: loopbackNumSpeakers,
+            cancellationToken: cancellationToken);
+
+        // Build attributed segments
+        var attributed = new List<AttributedDiarizationSegment>(micSegments);
 
         // Loopback segments are remote speakers, offset speaker IDs to avoid collision
         foreach (var seg in loopbackResult.Segments)
@@ -322,9 +326,10 @@ public sealed class SpeakerDiarizationService : ISpeakerDiarizationService
         attributed.Sort((a, b) => a.StartTime.CompareTo(b.StartTime));
 
         Trace.TraceInformation(
-            "[SpeakerDiarizationService] Dual-stream diarization: mic={0} segments, loopback={1} segments, total={2}",
-            micResult.Segments.Count,
+            "[SpeakerDiarizationService] Dual-stream diarization: mic={0} segments (VAD-only), loopback={1} segments (numSpeakers={2}), total={3}",
+            micSegments.Count,
             loopbackResult.Segments.Count,
+            loopbackNumSpeakers,
             attributed.Count);
 
         return attributed;

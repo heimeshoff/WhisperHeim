@@ -315,8 +315,12 @@
                 Grid.RowSpan="2"
                 HorizontalAlignment="Right"
                 Width="520"
-                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                Visibility="Collapsed">
+                Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+                Visibility="Collapsed"
+                RenderTransformOrigin="1,0.5">
+            <Border.RenderTransform>
+                <TranslateTransform x:Name="DrawerTranslate" X="520" />
+            </Border.RenderTransform>
             <Border.Effect>
                 <DropShadowEffect Color="#FF000000" Opacity="0.15" BlurRadius="40" ShadowDepth="-4" Direction="180" />
             </Border.Effect>

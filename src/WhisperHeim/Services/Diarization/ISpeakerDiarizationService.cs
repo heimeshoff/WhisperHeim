@@ -35,17 +35,22 @@ public interface ISpeakerDiarizationService : IDisposable
 
     /// <summary>
     /// Performs speaker diarization with dual-stream attribution.
-    /// Uses separate mic and loopback streams to attribute speakers:
-    /// mic audio = local user, loopback audio = remote speakers.
+    /// The mic stream uses VAD only (single known speaker, never diarized).
+    /// The loopback stream is diarized with constrained speaker count when provided.
     /// </summary>
     /// <param name="micSamples">Float32 PCM samples from the microphone, 16 kHz mono.</param>
     /// <param name="loopbackSamples">Float32 PCM samples from system audio loopback, 16 kHz mono.</param>
+    /// <param name="loopbackNumSpeakers">
+    /// Expected number of speakers in the loopback stream. Use -1 to auto-detect.
+    /// When positive, NumClusters is set and the clustering threshold is ignored.
+    /// </param>
     /// <param name="progress">Optional progress reporter.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Diarization result with source-attributed speaker segments.</returns>
     Task<IReadOnlyList<AttributedDiarizationSegment>> DiarizeDualStreamAsync(
         float[] micSamples,
         float[] loopbackSamples,
+        int loopbackNumSpeakers = -1,
         IProgress<DiarizationProgress>? progress = null,
         CancellationToken cancellationToken = default);
 }

@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         xmlns:tray="clr-namespace:Wpf.Ui.Tray.Controls;assembly=Wpf.Ui.Tray"
+        xmlns:controls="clr-namespace:WhisperHeim.Views.Controls"
         Title="WhisperHeim"
         Height="800" Width="1200"
         WindowStartupLocation="Manual"
@@ -47,6 +48,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <!-- TitleBar -->
@@ -201,5 +203,10 @@
             <ContentPresenter x:Name="PageContent"
                               Grid.Column="1" />
         </Grid>
+
+        <!-- Transcription queue bottom bar (visible across all pages) -->
+        <controls:TranscriptionBottomBar x:Name="TranscriptionBar"
+                                          Grid.Row="2"
+                                          Visibility="Collapsed" />
     </Grid>
 </ui:FluentWindow>

@@ -199,8 +199,12 @@
         <Border x:Name="DrawerPanel"
                 HorizontalAlignment="Right"
                 Width="440"
-                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                Visibility="Collapsed">
+                Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+                Visibility="Collapsed"
+                RenderTransformOrigin="1,0.5">
+            <Border.RenderTransform>
+                <TranslateTransform x:Name="DrawerTranslate" X="440" />
+            </Border.RenderTransform>
             <Border.Effect>
                 <DropShadowEffect Color="#FF000000" Opacity="0.15" BlurRadius="40" ShadowDepth="-4" Direction="180" />
             </Border.Effect>

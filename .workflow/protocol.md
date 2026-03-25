@@ -2,6 +2,124 @@
 
 ---
 
+## 2026-03-25 15:30 -- Batch Started: [075, 077]
+
+**Type:** Batch Start
+**Tasks:** 075 - Transcription Queue Service + Bottom Bar UI, 077 - Fix Diarization (VAD mic + constrained loopback)
+**Mode:** Parallel (batch of 2)
+
+---
+
+## 2026-03-25 15:00 -- Idea Captured: Transcription Engine Overhaul
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/075 through 079
+**Summary:** Overhaul the transcription engine into 5 tasks: (075) transcription queue with bottom bar UI, (076) active recording card with auto-transcribe on stop, (077) fix diarization with VAD-only mic + constrained loopback, (078) fix temporal ordering via clock drift correction, (079) fix speaker assignment UI combo box bug + per-segment reassignment. All filed to todo, all under M2.
+
+---
+
+## 2026-03-25 14:00 -- Research: Transcription Engine Overhaul
+
+**Type:** Research
+**Topic:** Diarization accuracy, dual-stream merging, long-recording stability, and transcription queue architecture
+**File:** research/transcription-engine-overhaul.md
+**Key findings:**
+- For dual-stream recordings, replace full diarization with VAD-only per stream (mic = "You", loopback = "Remote Speaker") -- eliminates over-segmentation, fixes ordering, reduces memory usage
+- Over-segmentation caused by low clustering threshold (0.5) and independent per-chunk speaker IDs; fix by setting NumClusters explicitly or raising threshold to 0.75-0.85
+- Clock drift between WASAPI mic and loopback streams (~1s per 16min) causes temporal ordering errors; fix with linear drift correction based on WAV duration comparison
+- Replace modal TranscriptionProgressDialog with persistent bottom-bar queue UI; auto-enqueue recordings on stop and files on import
+
+---
+
+## 2026-03-24 -- Task Completed: 071 - Notion-Style List View with Detail Drawer
+
+**Type:** Task Completion
+**Task:** 071 - Notion-Style List View with Detail Drawer
+**Summary:** Replaced side-by-side card layouts on TemplatesPage and TranscriptsPage with compact table views and right-side overlay detail drawers. Transcripts grouped by date with collapsible sections. Delete actions moved inside drawers. 32/32 tests pass.
+**Files changed:** 5 files
+
+---
+
+## 2026-03-24 -- Task Started: 071 - Notion-Style List View with Detail Drawer
+
+**Type:** Task Start
+**Task:** 071 - Notion-Style List View with Detail Drawer
+**Milestone:** --
+
+---
+
+## 2026-03-24 -- Task Completed: 073 - Speaker Name List and Manual Transcribe
+
+**Type:** Task Completion
+**Task:** 073 - Speaker Name List and Manual Transcribe
+**Summary:** Removed auto-transcription, added speaker name list with add/remove/edit, numSpeakers hint for loopback diarization, skipped mic diarization, DefaultSpeakerName setting, editable ComboBox for speaker name selection in transcript viewer, and re-transcribe button. Build clean, 32/32 tests passed.
+**Files changed:** 10 files
+
+---
+
+## 2026-03-24 -- Task Completed: 074 - Transcription Engine Busy Guard
+
+**Type:** Task Completion
+**Task:** 074 - Transcription Engine Busy Guard
+**Summary:** Created centralized TranscriptionBusyService with TryAcquire/Release pattern, integrated into all transcription entry points with disabled buttons and "Engine busy" overlay when engine is in use.
+**Files changed:** 6 files
+
+---
+
+## 2026-03-24 -- Task Completed: 072 - Fix Recording Delete Stale UI
+
+**Type:** Task Completion
+**Task:** 072 - Fix Recording Delete Stale UI
+**Summary:** Fixed stale UI after recording deletion by moving LoadTranscriptList() outside try block and adding Loaded event handler to refresh list on page navigation.
+**Files changed:** 2 files
+
+---
+
+## 2026-03-24 -- Batch Started: [072, 073, 074]
+
+**Type:** Batch Start
+**Tasks:** 072 - Fix Recording Delete Stale UI, 073 - Speaker Name List and Manual Transcribe, 074 - Transcription Engine Busy Guard
+**Mode:** Parallel (batch of 3)
+
+---
+
+## 2026-03-24 -- Idea Captured: Transcription Engine Busy Guard
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/074-transcription-engine-busy-guard.md
+**Summary:** Bug fix — concurrent transcriptions silently fail (stuck "Transcribing" forever). Add engine busy detection, gray out transcribe buttons with "Engine busy" label, auto-enable when engine frees up. No parallel transcriptions allowed.
+
+---
+
+## 2026-03-24 -- Idea Captured: Speaker Name List and Manual Transcription
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/073-speaker-list-and-manual-transcribe.md
+**Summary:** Rework call recording flow: no auto-transcription, user defines remote speaker names, count hint fixes diarization over-segmentation, skip mic diarization, name dropdown in transcript viewer, re-transcribe button for re-processing.
+
+---
+
+## 2026-03-24 -- Idea Captured: Fix Recording Delete Stale UI
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/072-fix-recording-delete-stale-ui.md
+**Summary:** Bug fix — deleting a recording removes files on disk but the list item remains in the UI, even after tab navigation. State/cache not being invalidated after delete.
+
+---
+
+## 2026-03-24 -- Idea Captured: Notion-Style List View with Detail Drawer
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/071-notion-style-list-and-drawer.md
+**Summary:** Replace side-by-side card layout on Templates and Recordings pages with compact single-row list view (with grouping) and a right-side overlay detail drawer. Improves information density, scannability, and organization.
+
+---
+
 ## 2026-03-23 -- Task Completed: 070 - Fix Pill Overlay Visualization
 
 **Type:** Task Completion

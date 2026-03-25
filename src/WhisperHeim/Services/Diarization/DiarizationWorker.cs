@@ -23,6 +23,7 @@ internal static class DiarizationWorker
         {
             string? samplesPath = null, segPath = null, embPath = null;
             int numSpeakers = -1;
+            float threshold = SpeakerDiarizationService.DefaultClusteringThreshold;
 
             for (int i = 0; i < args.Length - 1; i++)
             {
@@ -32,6 +33,7 @@ internal static class DiarizationWorker
                     case "--segmentation": segPath = args[++i]; break;
                     case "--embedding": embPath = args[++i]; break;
                     case "--num-speakers": numSpeakers = int.Parse(args[++i]); break;
+                    case "--threshold": threshold = float.Parse(args[++i], System.Globalization.CultureInfo.InvariantCulture); break;
                 }
             }
 
@@ -56,7 +58,7 @@ internal static class DiarizationWorker
             config.Embedding.NumThreads = Math.Min(Environment.ProcessorCount, 4);
             config.Embedding.Provider = "cpu";
             config.Clustering.NumClusters = numSpeakers;
-            config.Clustering.Threshold = 0.5f;
+            config.Clustering.Threshold = threshold;
             config.MinDurationOn = 0.3f;
             config.MinDurationOff = 0.5f;
 

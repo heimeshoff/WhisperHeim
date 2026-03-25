@@ -1,6 +1,8 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
 using WhisperHeim.Models;
 using WhisperHeim.Services.Templates;
 
@@ -86,18 +88,42 @@ public partial class TemplatesPage : UserControl
         DrawerDeleteButton.Visibility = isNew ? Visibility.Collapsed : Visibility.Visible;
         DrawerOverlay.Visibility = Visibility.Visible;
         DrawerPanel.Visibility = Visibility.Visible;
+        AnimateDrawer(open: true);
 
         // Focus the name field
         NameTextBox.Focus();
     }
 
+    private void AnimateDrawer(bool open)
+    {
+        var anim = new DoubleAnimation
+        {
+            To = open ? 0 : 440,
+            Duration = TimeSpan.FromMilliseconds(250),
+            EasingFunction = open
+                ? new CubicEase { EasingMode = EasingMode.EaseOut }
+                : new CubicEase { EasingMode = EasingMode.EaseIn },
+        };
+
+        if (!open)
+        {
+            anim.Completed += (_, _) =>
+            {
+                DrawerOverlay.Visibility = Visibility.Collapsed;
+                DrawerPanel.Visibility = Visibility.Collapsed;
+            };
+        }
+
+        DrawerTranslate.BeginAnimation(TranslateTransform.XProperty, anim);
+    }
+
     private void CloseDrawer()
     {
-        DrawerOverlay.Visibility = Visibility.Collapsed;
-        DrawerPanel.Visibility = Visibility.Collapsed;
         _selectedItem = null;
         _selectedIndex = -1;
         _isNewMode = false;
+
+        AnimateDrawer(open: false);
     }
 
     private void DrawerClose_Click(object sender, RoutedEventArgs e)

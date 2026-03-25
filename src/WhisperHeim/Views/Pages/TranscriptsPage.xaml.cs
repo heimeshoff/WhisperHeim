@@ -9,6 +9,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using Microsoft.Win32;
 using WhisperHeim.Services.Audio;
@@ -25,7 +26,7 @@ namespace WhisperHeim.Views.Pages;
 public partial class TranscriptsPage : UserControl
 {
     private readonly ITranscriptStorageService _storageService;
-    private readonly TranscriptionBusyService _busyService;
+    private readonly TranscriptionQueueService _queueService;
     private readonly List<TranscriptListItem> _allItems = new();
     private readonly TranscriptAudioPlayer _audioPlayer = new();
     private readonly DispatcherTimer _copiedIndicatorTimer;
@@ -37,10 +38,10 @@ public partial class TranscriptsPage : UserControl
 
     public TranscriptsPage(
         ITranscriptStorageService storageService,
-        TranscriptionBusyService busyService)
+        TranscriptionQueueService queueService)
     {
         _storageService = storageService;
-        _busyService = busyService;
+        _queueService = queueService;
         InitializeComponent();
 
         _audioPlayer.PositionChanged += OnAudioPositionChanged;
@@ -65,11 +66,11 @@ public partial class TranscriptsPage : UserControl
             _audioPlayer.Dispose();
         };
 
-        // Refresh pending items when the engine busy state changes so the
+        // Refresh pending items when the queue state changes so the
         // "Engine busy" / "click to transcribe" labels update in real time.
-        _busyService.PropertyChanged += (_, args) =>
+        _queueService.PropertyChanged += (_, args) =>
         {
-            if (args.PropertyName == nameof(TranscriptionBusyService.IsBusy))
+            if (args.PropertyName == nameof(TranscriptionQueueService.ActiveItem))
             {
                 Dispatcher.BeginInvoke(LoadPendingSessions);
             }
@@ -194,7 +195,7 @@ public partial class TranscriptsPage : UserControl
             }
 
             var wavFiles = Directory.GetFiles(dir, "*.wav");
-            bool isEngineBusy = _busyService.IsBusy && !isCurrentlyTranscribing;
+            bool isEngineBusy = _queueService.IsBusy && !isCurrentlyTranscribing;
             var detail = isCurrentlyTranscribing
                 ? "Transcribing..."
                 : isEngineBusy
@@ -364,11 +365,35 @@ public partial class TranscriptsPage : UserControl
             DisplayTranscript(transcript);
             DrawerOverlay.Visibility = Visibility.Visible;
             DrawerPanel.Visibility = Visibility.Visible;
+            AnimateDrawer(open: true);
         }
         catch (Exception ex)
         {
             Trace.TraceError("[TranscriptsPage] Failed to load transcript: {0}", ex.Message);
         }
+    }
+
+    private void AnimateDrawer(bool open)
+    {
+        var anim = new DoubleAnimation
+        {
+            To = open ? 0 : 520,
+            Duration = TimeSpan.FromMilliseconds(250),
+            EasingFunction = open
+                ? new CubicEase { EasingMode = EasingMode.EaseOut }
+                : new CubicEase { EasingMode = EasingMode.EaseIn },
+        };
+
+        if (!open)
+        {
+            anim.Completed += (_, _) =>
+            {
+                DrawerOverlay.Visibility = Visibility.Collapsed;
+                DrawerPanel.Visibility = Visibility.Collapsed;
+            };
+        }
+
+        DrawerTranslate.BeginAnimation(TranslateTransform.XProperty, anim);
     }
 
     private void CloseDrawer()
@@ -378,14 +403,13 @@ public partial class TranscriptsPage : UserControl
         PlaybackPanel.Visibility = Visibility.Collapsed;
         SpeakerNamesPanel.Visibility = Visibility.Collapsed;
 
-        DrawerOverlay.Visibility = Visibility.Collapsed;
-        DrawerPanel.Visibility = Visibility.Collapsed;
-
         _selectedTranscript = null;
         _selectedListItem = null;
         _currentSegmentViewModels = null;
         ActionPanel.Visibility = Visibility.Collapsed;
         SegmentList.ItemsSource = null;
+
+        AnimateDrawer(open: false);
     }
 
     private void DrawerClose_Click(object sender, RoutedEventArgs e)
