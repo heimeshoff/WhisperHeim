@@ -44,3 +44,30 @@ The speaker ComboBox in the transcript detail drawer closes immediately when cli
 
 ## Work Log
 <!-- Appended by /work during execution -->
+
+### 2026-03-25 - Implementation Complete
+
+**Changes made:**
+
+1. **Bug fix: ComboBox closes immediately** - Added `IsInsideInteractiveControl()` helper that walks the visual tree from the click source; if it finds a ComboBox, TextBox, or ToggleButton before reaching the segment Border, the `Segment_MouseLeftButtonDown` handler returns early without triggering audio playback. Also added `PreviewMouseLeftButtonDown` on the ComboBox itself that marks the event as handled and re-opens the dropdown via dispatcher to prevent event bubbling.
+
+2. **Per-segment speaker reassignment via ComboBox** - Added `SelectionChanged` handler on the speaker ComboBox that commits the edit immediately when a name is selected from the dropdown. The existing LostFocus/KeyDown handlers continue to work for typed-in names.
+
+3. **"Apply to all" prompt** - After a per-segment rename (Shift+Click), if other segments share the same original speaker name, a MessageBox prompt asks whether to apply the rename to all matching segments. If confirmed, uses `RenameSpeakerGlobally` to update all.
+
+4. **Speaker name header editing propagates to segments** - Enhanced `SpeakerNameItem` with `PreviousName` tracking. When a speaker name is edited in the header panel and focus is lost, `SaveSpeakerNames` detects the rename, updates the `SpeakerNameMap` entries and per-segment overrides, and refreshes all segment display names.
+
+5. **Add new speaker names after transcription** - Already supported via the existing "+ Add" button in the speaker names panel.
+
+**Acceptance Criteria:**
+- [x] Speaker ComboBox opens and stays open when clicked (bug fixed)
+- [x] Clicking a ComboBox does not trigger audio playback
+- [x] Any segment's speaker can be reassigned via the ComboBox dropdown
+- [x] Speaker reassignment persists to transcript JSON
+- [x] "Apply to all" option when reassigning a speaker (bulk update)
+- [x] New speaker names can be added after transcription
+- [x] Editing a speaker name in the header updates all segments with that speaker
+
+**Files changed:**
+- `src/WhisperHeim/Views/Pages/TranscriptsPage.xaml` - Added PreviewMouseLeftButtonDown and SelectionChanged handlers on speaker ComboBox
+- `src/WhisperHeim/Views/Pages/TranscriptsPage.xaml.cs` - Added IsInsideInteractiveControl, SpeakerComboBox_PreviewMouseLeftButtonDown, SpeakerComboBox_SelectionChanged; enhanced Segment_MouseLeftButtonDown, CommitSpeakerEditAsync, SaveSpeakerNames, SpeakerNameItem

@@ -817,12 +817,31 @@ public partial class TranscriptsPage : UserControl
         if (e.Handled)
             return;
 
+        // Don't trigger audio playback when clicking on interactive controls (ComboBox, TextBox, etc.)
+        if (e.OriginalSource is DependencyObject source && IsInsideInteractiveControl(source))
+            return;
+
         if (sender is FrameworkElement { DataContext: SegmentViewModel vm })
         {
             _audioPlayer.PlayFrom(vm.Segment.StartTime);
             UpdatePlayPauseButton();
             e.Handled = true;
         }
+    }
+
+    private static bool IsInsideInteractiveControl(DependencyObject element)
+    {
+        var current = element;
+        while (current != null)
+        {
+            if (current is ComboBox or TextBox or ToggleButton)
+                return true;
+            // Stop walking when we reach the segment Border
+            if (current is Border { Cursor: var cursor } && cursor == System.Windows.Input.Cursors.Hand)
+                break;
+            current = VisualTreeHelper.GetParent(current);
+        }
+        return false;
     }
 
     private void OnAudioPositionChanged(object? sender, TimeSpan position)
@@ -903,6 +922,41 @@ public partial class TranscriptsPage : UserControl
         e.Handled = true;
     }
 
+    private void SpeakerComboBox_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        // Prevent click from bubbling to the segment Border (which triggers audio playback)
+        e.Handled = true;
+
+        // Let WPF's ComboBox handle the click normally by re-raising via dispatcher
+        if (sender is ComboBox comboBox)
+        {
+            comboBox.Dispatcher.BeginInvoke(() =>
+            {
+                comboBox.IsDropDownOpen = !comboBox.IsDropDownOpen;
+            }, DispatcherPriority.Input);
+        }
+    }
+
+    private async void SpeakerComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (sender is not ComboBox { DataContext: SegmentViewModel vm } comboBox)
+            return;
+
+        if (!vm.IsEditingSpeaker)
+            return;
+
+        // Only process if a selection was actually made from the dropdown
+        if (e.AddedItems.Count == 0)
+            return;
+
+        var selectedName = e.AddedItems[0]?.ToString();
+        if (string.IsNullOrEmpty(selectedName))
+            return;
+
+        vm.EditingSpeakerName = selectedName;
+        await CommitSpeakerEditAsync(vm);
+    }
+
     private void SpeakerEditBox_Loaded(object sender, RoutedEventArgs e)
     {
         if (sender is ComboBox comboBox && comboBox.DataContext is SegmentViewModel { IsEditingSpeaker: true })
@@ -964,17 +1018,43 @@ public partial class TranscriptsPage : UserControl
             Trace.TraceInformation(
                 "[TranscriptsPage] Per-segment speaker rename: '{0}' -> '{1}'",
                 currentDisplay, newName);
+
+            // Offer to apply to all segments with the same original speaker
+            var sameSpeakerCount = _currentSegmentViewModels?
+                .Count(s => s != vm && s.DisplaySpeaker == currentDisplay) ?? 0;
+
+            if (sameSpeakerCount > 0)
+            {
+                var result = MessageBox.Show(
+                    $"Apply \"{newName}\" to all {sameSpeakerCount + 1} segments currently labelled \"{currentDisplay}\"?",
+                    "Apply to all segments",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    _selectedTranscript.RenameSpeakerGlobally(vm.Segment.Speaker, newName);
+
+                    if (_currentSegmentViewModels is not null)
+                    {
+                        foreach (var svm in _currentSegmentViewModels.Where(s => s.Segment.Speaker == vm.Segment.Speaker))
+                            svm.RefreshDisplaySpeaker();
+                    }
+
+                    Trace.TraceInformation(
+                        "[TranscriptsPage] Applied speaker rename to all: '{0}' -> '{1}'",
+                        currentDisplay, newName);
+                }
+            }
         }
         else
         {
             _selectedTranscript.RenameSpeakerGlobally(vm.Segment.Speaker, newName);
 
-            if (SegmentList.ItemsSource is List<SegmentViewModel> allVms)
+            if (_currentSegmentViewModels is not null)
             {
-                foreach (var svm in allVms.Where(s => s.Segment.Speaker == vm.Segment.Speaker))
-                {
+                foreach (var svm in _currentSegmentViewModels.Where(s => s.Segment.Speaker == vm.Segment.Speaker))
                     svm.RefreshDisplaySpeaker();
-                }
             }
 
             vm.CommitEditSpeaker();
@@ -1043,10 +1123,49 @@ public partial class TranscriptsPage : UserControl
     {
         if (_selectedTranscript is null) return;
 
+        // Collect renames to propagate to segments
+        var renames = _speakerNameItems
+            .Where(i => i.PreviousName is not null
+                        && !string.IsNullOrWhiteSpace(i.Name)
+                        && i.PreviousName != i.Name)
+            .Select(i => (OldName: i.PreviousName!, NewName: i.Name!))
+            .ToList();
+
+        // Clear previous-name tracking
+        foreach (var item in _speakerNameItems)
+            item.PreviousName = null;
+
         _selectedTranscript.RemoteSpeakerNames = _speakerNameItems
             .Select(i => i.Name ?? "")
             .Where(n => !string.IsNullOrWhiteSpace(n))
             .ToList();
+
+        // Propagate renames: update the speaker name map and refresh segment display names
+        foreach (var (oldName, newName) in renames)
+        {
+            // Find the cluster ID that maps to the old name and update it
+            var keysToUpdate = _selectedTranscript.SpeakerNameMap
+                .Where(kv => kv.Value == oldName)
+                .Select(kv => kv.Key)
+                .ToList();
+
+            foreach (var key in keysToUpdate)
+                _selectedTranscript.SpeakerNameMap[key] = newName;
+
+            // Also update any per-segment overrides that match the old name
+            if (_currentSegmentViewModels is not null)
+            {
+                foreach (var vm in _currentSegmentViewModels)
+                {
+                    if (vm.Segment.SpeakerOverride == oldName)
+                        vm.Segment.SpeakerOverride = newName;
+                }
+            }
+
+            Trace.TraceInformation(
+                "[TranscriptsPage] Speaker name header rename: '{0}' -> '{1}'",
+                oldName, newName);
+        }
 
         try
         {
@@ -1056,7 +1175,11 @@ public partial class TranscriptsPage : UserControl
             {
                 var names = BuildAvailableSpeakerNames();
                 foreach (var vm in _currentSegmentViewModels)
+                {
                     vm.AvailableSpeakerNames = names;
+                    if (renames.Count > 0)
+                        vm.RefreshDisplaySpeaker();
+                }
             }
         }
         catch (Exception ex)
@@ -1523,10 +1646,14 @@ internal sealed class SpeakerNameItem : INotifyPropertyChanged
         get => _name;
         set
         {
+            PreviousName ??= _name;
             _name = value;
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Name)));
         }
     }
+
+    /// <summary>Tracks the name before the most recent edit (set once per focus cycle, cleared after save).</summary>
+    public string? PreviousName { get; set; }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 }

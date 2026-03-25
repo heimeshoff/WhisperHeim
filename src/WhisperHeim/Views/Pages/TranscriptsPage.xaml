@@ -671,6 +671,8 @@
                                                       MinWidth="120"
                                                       Padding="2,0"
                                                       Visibility="{Binding IsEditingSpeaker, Converter={StaticResource BoolToVisibility}}"
+                                                      PreviewMouseLeftButtonDown="SpeakerComboBox_PreviewMouseLeftButtonDown"
+                                                      SelectionChanged="SpeakerComboBox_SelectionChanged"
                                                       LostFocus="SpeakerEditBox_LostFocus"
                                                       KeyDown="SpeakerEditBox_KeyDown"
                                                       Loaded="SpeakerEditBox_Loaded" />

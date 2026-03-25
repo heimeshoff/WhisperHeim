@@ -2,6 +2,24 @@
 
 ---
 
+## 2026-03-25 16:30 -- Task Completed: 078 - Fix Temporal Ordering (clock drift)
+
+**Type:** Task Completion
+**Task:** 078 - Fix Temporal Ordering -- Clock Drift Correction
+**Summary:** Linear clock drift correction scales loopback segment timestamps by micDuration/loopbackDuration before merging, fixing out-of-order segments from WASAPI hardware clock divergence. Drift logged for diagnostics.
+**Files changed:** 1 file
+
+---
+
+## 2026-03-25 16:30 -- Task Completed: 076 - Active Recording Card + Auto-Transcribe
+
+**Type:** Task Completion
+**Task:** 076 - Active Recording Card + Auto-Transcribe on Stop
+**Summary:** Active recording card at top of Transcripts page with pulsing red indicator, live duration counter, and drawer for editing title/speaker count/speaker names. Auto-enqueues into TranscriptionQueueService on recording stop with pre-filled metadata.
+**Files changed:** 3 files
+
+---
+
 ## 2026-03-25 16:10 -- Batch Started: [076, 078]
 
 **Type:** Batch Start
