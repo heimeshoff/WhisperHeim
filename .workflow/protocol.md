@@ -2,6 +2,32 @@
 
 ---
 
+## 2026-03-25 16:10 -- Batch Started: [076, 078]
+
+**Type:** Batch Start
+**Tasks:** 076 - Active Recording Card + Auto-Transcribe, 078 - Fix Temporal Ordering (clock drift)
+**Mode:** Parallel (batch of 2)
+
+---
+
+## 2026-03-25 16:00 -- Task Completed: 077 - Fix Diarization (VAD mic + constrained loopback)
+
+**Type:** Task Completion
+**Task:** 077 - Fix Diarization -- VAD-Only Mic + Constrained Loopback
+**Summary:** VAD-only mic stream processing replaces fixed 120s chunks. Loopback diarization constrained with NumClusters from speaker count. Threshold raised to 0.80. Cross-chunk speaker ID consistency for group calls. Out-of-process worker updated.
+**Files changed:** 5 files
+
+---
+
+## 2026-03-25 16:00 -- Task Completed: 075 - Transcription Queue Service + Bottom Bar UI
+
+**Type:** Task Completion
+**Task:** 075 - Transcription Queue Service + Bottom Bar UI
+**Summary:** Replaced modal TranscriptionProgressDialog and TranscriptionBusyService with FIFO TranscriptionQueueService and persistent TranscriptionBottomBar. Sequential background processing with per-item stage tracking, cancel/remove/retry, collapsible bar across all pages.
+**Files changed:** 9 files
+
+---
+
 ## 2026-03-25 15:30 -- Batch Started: [075, 077]
 
 **Type:** Batch Start

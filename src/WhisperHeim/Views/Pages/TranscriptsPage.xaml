@@ -176,6 +176,59 @@
             <!-- Compact list with groups -->
             <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
                 <StackPanel x:Name="GroupedListPanel">
+                    <!-- Active recording card -->
+                    <Border x:Name="ActiveRecordingCard"
+                            Visibility="Collapsed"
+                            Margin="0,0,0,12"
+                            Padding="16,14"
+                            CornerRadius="12"
+                            Cursor="Hand"
+                            MouseLeftButtonDown="ActiveRecordingCard_Click">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                <GradientStop Color="#33FF3B30" Offset="0" />
+                                <GradientStop Color="#22FF6B5A" Offset="1" />
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <Border.BorderBrush>
+                            <SolidColorBrush Color="#44FF3B30" />
+                        </Border.BorderBrush>
+                        <Border.BorderThickness>1</Border.BorderThickness>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <!-- Pulsing recording indicator -->
+                            <Ellipse x:Name="RecordingDot"
+                                     Grid.Column="0"
+                                     Width="10" Height="10"
+                                     Fill="#FFFF3B30"
+                                     Margin="0,0,12,0"
+                                     VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock x:Name="ActiveRecordingTitle"
+                                           Text="Recording in progress..."
+                                           FontWeight="SemiBold"
+                                           FontSize="13"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                <TextBlock x:Name="ActiveRecordingSubtitle"
+                                           Text="Click to edit metadata"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           Margin="0,2,0,0" />
+                            </StackPanel>
+                            <TextBlock x:Name="ActiveRecordingDuration"
+                                       Grid.Column="2"
+                                       Text="00:00"
+                                       FontSize="16"
+                                       FontWeight="Bold"
+                                       Foreground="#FFFF3B30"
+                                       VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
+
                     <!-- Pending recordings section -->
                     <StackPanel x:Name="PendingSection" Visibility="Collapsed">
                         <ToggleButton IsChecked="True"
@@ -333,8 +386,111 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
+                <!-- Active Recording Drawer Content (shown when editing active recording metadata) -->
+                <StackPanel x:Name="ActiveRecordingDrawerContent"
+                            Grid.Row="0" Grid.RowSpan="5"
+                            Visibility="Collapsed">
+                    <!-- Close button -->
+                    <DockPanel Margin="0,0,0,16">
+                        <Button DockPanel.Dock="Right"
+                                Click="DrawerClose_Click"
+                                VerticalAlignment="Top"
+                                Padding="6"
+                                Cursor="Hand"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                ToolTip="Close">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="IconBd" CornerRadius="6" Padding="{TemplateBinding Padding}"
+                                            Background="Transparent">
+                                        <ui:SymbolIcon Symbol="Dismiss24" FontSize="16"
+                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="IconBd" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <Ellipse Width="8" Height="8" Fill="#FFFF3B30" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                <TextBlock Text="RECORDING IN PROGRESS"
+                                           FontSize="10" FontWeight="Bold"
+                                           Foreground="#FFFF3B30" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <TextBlock x:Name="DrawerRecordingDuration"
+                                       Text="00:00"
+                                       FontSize="24" FontWeight="Bold"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        </StackPanel>
+                    </DockPanel>
+
+                    <!-- Session title -->
+                    <TextBlock Text="SESSION TITLE"
+                               FontSize="10" FontWeight="Bold"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               Margin="0,0,0,6" />
+                    <ui:TextBox x:Name="ActiveSessionTitleBox"
+                             FontSize="14"
+                             Padding="10,8"
+                             Margin="0,0,0,16"
+                             PlaceholderText="Enter a title for this recording..." />
+
+                    <!-- Remote speaker count -->
+                    <TextBlock Text="REMOTE SPEAKERS"
+                               FontSize="10" FontWeight="Bold"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               Margin="0,0,0,6" />
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                        <Button x:Name="DecrementSpeakerButton"
+                                Content="-" Click="DecrementSpeakerCount_Click"
+                                Padding="10,4" FontSize="14" FontWeight="Bold"
+                                Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}"
+                                BorderThickness="0" Cursor="Hand" />
+                        <TextBlock x:Name="ActiveSpeakerCountText"
+                                   Text="0"
+                                   FontSize="16" FontWeight="SemiBold"
+                                   Margin="16,0" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        <Button x:Name="IncrementSpeakerButton"
+                                Content="+" Click="IncrementSpeakerCount_Click"
+                                Padding="10,4" FontSize="14" FontWeight="Bold"
+                                Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}"
+                                BorderThickness="0" Cursor="Hand" />
+                    </StackPanel>
+
+                    <!-- Speaker names list -->
+                    <TextBlock Text="SPEAKER NAMES"
+                               FontSize="10" FontWeight="Bold"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               Margin="0,0,0,6" />
+                    <ItemsControl x:Name="ActiveSpeakerNamesList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBox Text="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                         FontSize="12"
+                                         Padding="8,6"
+                                         Margin="0,0,0,6"
+                                         BorderThickness="1" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Info text -->
+                    <TextBlock Text="Speaker names will be used for transcription when the recording stops."
+                               FontSize="11"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                               TextWrapping="Wrap"
+                               Margin="0,16,0,0" />
+                </StackPanel>
+
                 <!-- Drawer header with close button -->
-                <DockPanel Grid.Row="0" Margin="0,0,0,12">
+                <DockPanel Grid.Row="0" Margin="0,0,0,12"
+                           x:Name="TranscriptDrawerContent">
                     <Button DockPanel.Dock="Right"
                             Click="DrawerClose_Click"
                             VerticalAlignment="Top"

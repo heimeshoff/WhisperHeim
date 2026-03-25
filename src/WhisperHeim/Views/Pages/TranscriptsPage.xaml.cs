@@ -27,21 +27,32 @@ public partial class TranscriptsPage : UserControl
 {
     private readonly ITranscriptStorageService _storageService;
     private readonly TranscriptionQueueService _queueService;
+    private readonly ICallRecordingService _recordingService;
     private readonly List<TranscriptListItem> _allItems = new();
     private readonly TranscriptAudioPlayer _audioPlayer = new();
     private readonly DispatcherTimer _copiedIndicatorTimer;
+    private readonly DispatcherTimer _recordingDurationTimer;
+    private readonly DispatcherTimer _recordingDotPulseTimer;
     private CallTranscript? _selectedTranscript;
     private TranscriptListItem? _selectedListItem;
     private List<SegmentViewModel>? _currentSegmentViewModels;
     private string? _currentlyTranscribingSessionDir;
     private readonly List<TranscriptGroupViewModel> _groups = new();
 
+    // Active recording state
+    private bool _isActiveRecordingDrawerOpen;
+    private List<SpeakerNameItem> _activeRecordingSpeakerNames = new();
+    private string _activeRecordingTitle = "";
+    private int _activeRecordingSpeakerCount;
+
     public TranscriptsPage(
         ITranscriptStorageService storageService,
-        TranscriptionQueueService queueService)
+        TranscriptionQueueService queueService,
+        ICallRecordingService recordingService)
     {
         _storageService = storageService;
         _queueService = queueService;
+        _recordingService = recordingService;
         InitializeComponent();
 
         _audioPlayer.PositionChanged += OnAudioPositionChanged;
@@ -54,11 +65,27 @@ public partial class TranscriptsPage : UserControl
             _copiedIndicatorTimer.Stop();
         };
 
+        // Timer to update the active recording duration display
+        _recordingDurationTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        _recordingDurationTimer.Tick += OnRecordingDurationTick;
+
+        // Timer to pulse the recording dot
+        _recordingDotPulseTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(800) };
+        _recordingDotPulseTimer.Tick += OnRecordingDotPulseTick;
+
+        // Subscribe to recording events
+        _recordingService.RecordingStarted += OnRecordingStarted;
+        _recordingService.RecordingStopped += OnRecordingStopped;
+
         Loaded += (_, _) =>
         {
             // Refresh the list each time the page becomes visible so stale
             // entries (e.g. deleted while on another tab) are removed.
             LoadTranscriptList();
+
+            // Show active recording card if a recording is in progress
+            if (_recordingService.IsRecording)
+                ShowActiveRecordingCard();
         };
 
         Unloaded += (_, _) =>
@@ -113,6 +140,171 @@ public partial class TranscriptsPage : UserControl
     {
         _currentlyTranscribingSessionDir = sessionDir;
         Dispatcher.Invoke(LoadPendingSessions);
+    }
+
+    // --- Active Recording ---
+
+    private void OnRecordingStarted(object? sender, CallRecordingSession session)
+    {
+        Dispatcher.BeginInvoke(() =>
+        {
+            _activeRecordingTitle = "";
+            _activeRecordingSpeakerCount = 0;
+            _activeRecordingSpeakerNames.Clear();
+            ShowActiveRecordingCard();
+        });
+    }
+
+    private void OnRecordingStopped(object? sender, CallRecordingStoppedEventArgs e)
+    {
+        Dispatcher.BeginInvoke(() =>
+        {
+            HideActiveRecordingCard();
+
+            if (e.Exception is not null)
+            {
+                Trace.TraceWarning("[TranscriptsPage] Recording stopped with error, skipping auto-enqueue: {0}",
+                    e.Exception.Message);
+                return;
+            }
+
+            // Auto-enqueue for transcription
+            var session = e.Session;
+
+            // Apply speaker names from the active recording UI
+            session.RemoteSpeakerNames = _activeRecordingSpeakerNames
+                .Select(i => i.Name ?? "")
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .ToList();
+
+            // Derive a title
+            var title = !string.IsNullOrWhiteSpace(_activeRecordingTitle)
+                ? _activeRecordingTitle
+                : $"Call {session.StartTimestamp.LocalDateTime:yyyy-MM-dd HH:mm}";
+
+            _queueService.Enqueue(title, session);
+            Trace.TraceInformation("[TranscriptsPage] Auto-enqueued recording for transcription: {0}", title);
+
+            // Refresh to show it moved from pending state
+            LoadTranscriptList();
+        });
+    }
+
+    private void ShowActiveRecordingCard()
+    {
+        ActiveRecordingCard.Visibility = Visibility.Visible;
+        UpdateActiveRecordingDuration();
+        _recordingDurationTimer.Start();
+        _recordingDotPulseTimer.Start();
+
+        // Start the pulsing animation on the recording dot
+        var pulseAnim = new DoubleAnimation
+        {
+            From = 1.0,
+            To = 0.3,
+            Duration = TimeSpan.FromMilliseconds(800),
+            AutoReverse = true,
+            RepeatBehavior = RepeatBehavior.Forever,
+        };
+        RecordingDot.BeginAnimation(UIElement.OpacityProperty, pulseAnim);
+    }
+
+    private void HideActiveRecordingCard()
+    {
+        ActiveRecordingCard.Visibility = Visibility.Collapsed;
+        _recordingDurationTimer.Stop();
+        _recordingDotPulseTimer.Stop();
+        RecordingDot.BeginAnimation(UIElement.OpacityProperty, null);
+
+        // Close the active recording drawer if it's open
+        if (_isActiveRecordingDrawerOpen)
+        {
+            _isActiveRecordingDrawerOpen = false;
+            CloseDrawer();
+        }
+    }
+
+    private void UpdateActiveRecordingDuration()
+    {
+        if (_recordingService.CurrentSession is not null)
+        {
+            var duration = _recordingService.CurrentSession.Duration;
+            var formatted = CallRecordingService.FormatDuration(duration);
+            ActiveRecordingDuration.Text = formatted;
+
+            if (_isActiveRecordingDrawerOpen)
+                DrawerRecordingDuration.Text = formatted;
+        }
+    }
+
+    private void OnRecordingDurationTick(object? sender, EventArgs e)
+    {
+        UpdateActiveRecordingDuration();
+    }
+
+    private void OnRecordingDotPulseTick(object? sender, EventArgs e)
+    {
+        // The pulse animation is handled by DoubleAnimation on RecordingDot.Opacity
+    }
+
+    private void ActiveRecordingCard_Click(object sender, MouseButtonEventArgs e)
+    {
+        OpenActiveRecordingDrawer();
+        e.Handled = true;
+    }
+
+    private void OpenActiveRecordingDrawer()
+    {
+        _isActiveRecordingDrawerOpen = true;
+
+        // Hide transcript drawer content, show active recording content
+        ActiveRecordingDrawerContent.Visibility = Visibility.Visible;
+        TranscriptDrawerContent.Visibility = Visibility.Collapsed;
+        // Also hide child panels that belong to transcript view
+        PlaybackPanel.Visibility = Visibility.Collapsed;
+        SpeakerNamesPanel.Visibility = Visibility.Collapsed;
+        SegmentList.ItemsSource = null;
+        PlaceholderText.Visibility = Visibility.Collapsed;
+        ActionPanel.Visibility = Visibility.Collapsed;
+
+        // Populate fields
+        ActiveSessionTitleBox.Text = _activeRecordingTitle;
+        ActiveSpeakerCountText.Text = _activeRecordingSpeakerCount.ToString();
+        ActiveSpeakerNamesList.ItemsSource = _activeRecordingSpeakerNames;
+
+        UpdateActiveRecordingDuration();
+
+        DrawerOverlay.Visibility = Visibility.Visible;
+        DrawerPanel.Visibility = Visibility.Visible;
+        AnimateDrawer(open: true);
+    }
+
+    private void IncrementSpeakerCount_Click(object sender, RoutedEventArgs e)
+    {
+        _activeRecordingSpeakerCount++;
+        ActiveSpeakerCountText.Text = _activeRecordingSpeakerCount.ToString();
+        SyncActiveSpeakerNameSlots();
+    }
+
+    private void DecrementSpeakerCount_Click(object sender, RoutedEventArgs e)
+    {
+        if (_activeRecordingSpeakerCount <= 0) return;
+        _activeRecordingSpeakerCount--;
+        ActiveSpeakerCountText.Text = _activeRecordingSpeakerCount.ToString();
+        SyncActiveSpeakerNameSlots();
+    }
+
+    private void SyncActiveSpeakerNameSlots()
+    {
+        // Grow or shrink the speaker name list to match the count
+        while (_activeRecordingSpeakerNames.Count < _activeRecordingSpeakerCount)
+            _activeRecordingSpeakerNames.Add(new SpeakerNameItem { Name = "" });
+
+        while (_activeRecordingSpeakerNames.Count > _activeRecordingSpeakerCount)
+            _activeRecordingSpeakerNames.RemoveAt(_activeRecordingSpeakerNames.Count - 1);
+
+        ActiveSpeakerNamesList.ItemsSource = null;
+        ActiveSpeakerNamesList.ItemsSource = _activeRecordingSpeakerNames;
     }
 
     /// <summary>
@@ -249,7 +441,9 @@ public partial class TranscriptsPage : UserControl
         TranscriptGroupList.ItemsSource = _groups;
 
         var totalCount = filtered.Count();
-        EmptyState.Visibility = totalCount == 0 && PendingSection.Visibility == Visibility.Collapsed
+        EmptyState.Visibility = totalCount == 0
+            && PendingSection.Visibility == Visibility.Collapsed
+            && ActiveRecordingCard.Visibility == Visibility.Collapsed
             ? Visibility.Visible
             : Visibility.Collapsed;
     }
@@ -360,6 +554,10 @@ public partial class TranscriptsPage : UserControl
                 return;
             }
 
+            _isActiveRecordingDrawerOpen = false;
+            ActiveRecordingDrawerContent.Visibility = Visibility.Collapsed;
+            TranscriptDrawerContent.Visibility = Visibility.Visible;
+
             _selectedTranscript = transcript;
             _selectedListItem = item;
             DisplayTranscript(transcript);
@@ -398,6 +596,26 @@ public partial class TranscriptsPage : UserControl
 
     private void CloseDrawer()
     {
+        if (_isActiveRecordingDrawerOpen)
+        {
+            // Save active recording metadata before closing
+            _activeRecordingTitle = ActiveSessionTitleBox.Text?.Trim() ?? "";
+            _isActiveRecordingDrawerOpen = false;
+            ActiveRecordingDrawerContent.Visibility = Visibility.Collapsed;
+            TranscriptDrawerContent.Visibility = Visibility.Visible;
+
+            // Update the card subtitle with the title if set
+            if (!string.IsNullOrWhiteSpace(_activeRecordingTitle))
+                ActiveRecordingTitle.Text = _activeRecordingTitle;
+            else
+                ActiveRecordingTitle.Text = "Recording in progress...";
+
+            var speakerCount = _activeRecordingSpeakerNames.Count(s => !string.IsNullOrWhiteSpace(s.Name));
+            ActiveRecordingSubtitle.Text = speakerCount > 0
+                ? $"{speakerCount} speaker{(speakerCount != 1 ? "s" : "")} defined - Click to edit"
+                : "Click to edit metadata";
+        }
+
         StopPlayback();
         _audioPlayer.Close();
         PlaybackPanel.Visibility = Visibility.Collapsed;

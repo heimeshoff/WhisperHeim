@@ -251,6 +251,10 @@ public partial class MainWindow : FluentWindow
         _callRecordingService.RecordingStopped += OnCallRecordingStopped;
         _callRecordingService.DurationUpdated += OnCallRecordingDurationUpdated;
         _callRecordingService.StreamFailed += OnCallRecordingStreamFailed;
+
+        // Eagerly create the Transcripts page so it receives recording events
+        // (start/stop) even before the user navigates to it.
+        GetOrCreateTranscriptsPage();
     }
 
     /// <summary>
@@ -406,10 +410,10 @@ public partial class MainWindow : FluentWindow
                     e.Exception.Message);
             }
 
-            // No auto-transcription — the recording appears as a pending session
-            // with a "Transcribe" button. The user can define speaker names first.
-            var transcriptsPage = GetOrCreateTranscriptsPage();
-            transcriptsPage.RefreshList();
+            // Auto-transcription is handled by TranscriptsPage via its recording
+            // service subscription. Just ensure the page cache is warm so the
+            // event handler is wired up.
+            GetOrCreateTranscriptsPage();
         });
     }
 
@@ -435,7 +439,7 @@ public partial class MainWindow : FluentWindow
         if (_pageCache.TryGetValue("Recordings", out var cached) && cached is TranscriptsPage page)
             return page;
 
-        page = new TranscriptsPage(_transcriptStorageService, _transcriptionQueueService);
+        page = new TranscriptsPage(_transcriptStorageService, _transcriptionQueueService, _callRecordingService);
         page.TranscriptionRequested += OnPendingTranscriptionRequested;
         page.ReTranscriptionRequested += OnPendingTranscriptionRequested;
         _pageCache["Recordings"] = page;

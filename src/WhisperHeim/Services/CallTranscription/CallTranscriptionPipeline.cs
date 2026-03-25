@@ -165,6 +165,35 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
                     SpeakerId: seg.SpeakerId + 1, seg.StartTime, seg.EndTime, SpeakerSource.Loopback));
         }
 
+        // ── Clock drift correction ────────────────────────────────────
+        // WASAPI mic and loopback use different hardware clocks (ADC vs DAC)
+        // that drift ~0.1% (1ms/s). For a 30-min recording this is ~1.8s,
+        // enough to reorder segments. Fix: scale loopback timestamps so both
+        // streams share the mic's time base.
+        if (micExists && systemExists && micDurationSeconds > 0.5 && systemDurationSeconds > 0.5)
+        {
+            double driftCorrection = micDurationSeconds / systemDurationSeconds;
+            double driftSeconds = Math.Abs(micDurationSeconds - systemDurationSeconds);
+
+            Trace.TraceInformation(
+                "[CallTranscriptionPipeline] Clock drift correction: factor={0:F6}, " +
+                "drift={1:F3}s over {2:F1}s recording (mic={3:F3}s, loopback={4:F3}s)",
+                driftCorrection, driftSeconds, micDurationSeconds,
+                micDurationSeconds, systemDurationSeconds);
+
+            // Scale loopback segment timestamps to mic's time base
+            for (int i = 0; i < diarizedSegments.Count; i++)
+            {
+                var seg = diarizedSegments[i];
+                if (seg.Source == SpeakerSource.Loopback)
+                {
+                    var correctedStart = TimeSpan.FromSeconds(seg.StartTime.TotalSeconds * driftCorrection);
+                    var correctedEnd = TimeSpan.FromSeconds(seg.EndTime.TotalSeconds * driftCorrection);
+                    diarizedSegments[i] = seg with { StartTime = correctedStart, EndTime = correctedEnd };
+                }
+            }
+        }
+
         // Fallback: if neither stream had data, nothing to do
         if (diarizedSegments.Count == 0 && micDiarization is null && systemDiarization is null)
         {

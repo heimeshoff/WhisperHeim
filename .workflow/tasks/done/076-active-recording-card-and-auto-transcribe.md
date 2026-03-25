@@ -32,13 +32,13 @@ Show the active recording session as a card in the Transcripts page, allow editi
 - The manual transcription trigger on pending items should enqueue into the queue rather than launching a modal dialog
 
 ## Acceptance Criteria
-- [ ] Active recording session visible as a card in Transcripts page
-- [ ] Card shows live duration, recording indicator, and session metadata
-- [ ] Clicking active card opens drawer with editable title, speaker count, and speaker names
-- [ ] Clicking active card does NOT trigger transcription
-- [ ] Stopping a recording auto-enqueues it for transcription with pre-filled metadata
-- [ ] Pending recordings can still be manually enqueued
-- [ ] Tray icon click during recording opens the main window normally
+- [x] Active recording session visible as a card in Transcripts page
+- [x] Card shows live duration, recording indicator, and session metadata
+- [x] Clicking active card opens drawer with editable title, speaker count, and speaker names
+- [x] Clicking active card does NOT trigger transcription
+- [x] Stopping a recording auto-enqueues it for transcription with pre-filled metadata
+- [x] Pending recordings can still be manually enqueued
+- [x] Tray icon click during recording opens the main window normally
 
 ## Notes
 - Task 073 already added speaker name list and manual transcription trigger -- build on that work
@@ -47,3 +47,21 @@ Show the active recording session as a card in the Transcripts page, allow editi
 
 ## Work Log
 <!-- Appended by /work during execution -->
+
+### 2026-03-25 — Implementation Complete
+
+**What was done:**
+1. Added active recording card to TranscriptsPage XAML — red-accented card at top of list with pulsing recording dot, live duration counter, and subtitle showing metadata status.
+2. Added active recording drawer — clicking the card opens a side drawer with editable session title, remote speaker count (increment/decrement), and speaker name text fields. Does NOT trigger transcription.
+3. Implemented auto-enqueue on recording stop — when recording stops, the session is automatically enqueued into TranscriptionQueueService with any pre-filled metadata (title, speaker names).
+4. Passed ICallRecordingService to TranscriptsPage constructor and subscribed to RecordingStarted/RecordingStopped events.
+5. Updated MainWindow to pass recording service to TranscriptsPage and eagerly create the page so it receives events even before navigation.
+6. Pending recordings remain manually enqueueable via existing PendingRow_Click and ReTranscribe_Click handlers (unchanged).
+7. Tray icon click continues to open the main window normally (no changes needed).
+
+**All acceptance criteria met.** Build succeeds with 0 errors.
+
+**Files changed:**
+- `src/WhisperHeim/Views/Pages/TranscriptsPage.xaml` — Active recording card + active recording drawer content
+- `src/WhisperHeim/Views/Pages/TranscriptsPage.xaml.cs` — Recording service integration, active card/drawer logic, auto-enqueue on stop
+- `src/WhisperHeim/MainWindow.xaml.cs` — Pass recording service to TranscriptsPage, eager page creation
