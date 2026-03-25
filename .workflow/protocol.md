@@ -2,6 +2,50 @@
 
 ---
 
+## 2026-03-25 23:05 -- Task Completed: 084 - Sidebar Collapse Icon & Branding Reshuffle
+
+**Type:** Task Completion
+**Task:** 084 - Sidebar Collapse Icon & Branding Reshuffle
+**Summary:** Replaced sidebar collapse button with a chevron on the right edge, moved About to bottom of nav, replaced Dictation header with About-style branding, unified subtitle text.
+**Files changed:** 4 files
+
+---
+
+## 2026-03-25 23:04 -- Task Completed: 082 - Fix Date Column & Sorting
+
+**Type:** Task Completion
+**Task:** 082 - Fix Date Column & Sorting
+**Summary:** Fixed date parsing for new-format session directories and added clickable column headers with within-group sorting and sort direction indicators.
+**Files changed:** 2 files
+
+---
+
+## 2026-03-25 23:00 -- Batch Started: [082, 084]
+
+**Type:** Batch Start
+**Tasks:** 082 - Fix Date Column & Sorting, 084 - Sidebar Collapse Icon & Branding Reshuffle
+**Mode:** Parallel (batch of 2)
+
+---
+
+## 2026-03-25 22:45 -- Idea Captured: Sidebar Collapse Icon & Branding Reshuffle
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/084-sidebar-collapse-icon-and-branding-reshuffle.md
+**Summary:** Replace sidebar collapse button with a chevron on the right edge, move About to bottom of nav, replace Dictation page header with About-style branding (logo + title + version), unify subtitle text across both pages using the Dictation page's version.
+
+---
+
+## 2026-03-25 22:30 -- Idea Captured: Unify Recordings & File Transcription
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/083-unify-recordings-and-file-transcription.md
+**Summary:** Merge the Transcriptions page into the Recordings page. Add Start/Stop Recording and Browse buttons. Imported files get moved into recordings/ and transcribed without diarization by default. Re-transcribe in drawer triggers diarization when multiple speakers defined. Remove TranscribeFilesPage and dead code afterward.
+
+---
+
 ## 2026-03-25 21:00 -- Idea Captured: Fix Date Column & Add Column Sorting
 
 **Type:** Idea Capture
