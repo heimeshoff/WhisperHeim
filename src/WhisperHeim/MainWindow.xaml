@@ -149,13 +149,6 @@
                                        FontSize="11" FontWeight="Medium" />
                         </StackPanel>
                     </ListBoxItem>
-                    <ListBoxItem Tag="Transcriptions" Style="{StaticResource NavPillItem}">
-                        <StackPanel Orientation="Horizontal">
-                            <ui:SymbolIcon Symbol="ArrowDownload24" Margin="0,0,10,0" FontSize="18" />
-                            <TextBlock x:Name="NavLabelTranscriptions" Text="TRANSCRIPTIONS" VerticalAlignment="Center"
-                                       FontSize="11" FontWeight="Medium" />
-                        </StackPanel>
-                    </ListBoxItem>
                     <ListBoxItem Tag="TextToSpeech" Style="{StaticResource NavPillItem}">
                         <StackPanel Orientation="Horizontal">
                             <ui:SymbolIcon Symbol="ReadAloud24" Margin="0,0,10,0" FontSize="18" />

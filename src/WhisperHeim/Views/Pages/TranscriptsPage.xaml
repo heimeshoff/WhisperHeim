@@ -118,7 +118,62 @@
                            Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                            Margin="0,0,0,6" />
                 <TextBlock Text="Press Ctrl+Win+R to start or stop a call recording."
-                           Style="{StaticResource SubtleText}" />
+                           Style="{StaticResource SubtleText}"
+                           Margin="0,0,0,12" />
+                <!-- Action buttons: Start/Stop Recording + Browse -->
+                <StackPanel Orientation="Horizontal">
+                    <Button x:Name="StartStopRecordingButton"
+                            Click="StartStopRecording_Click"
+                            Padding="16,8" Cursor="Hand"
+                            Margin="0,0,10,0"
+                            BorderThickness="0">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bd" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                            <GradientStop Color="#FF005FAA" Offset="0" />
+                                            <GradientStop Color="#FF0078D4" Offset="1" />
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="Opacity" Value="0.9" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon x:Name="RecordButtonIcon" Symbol="Record24" Foreground="White" Margin="0,0,6,0" FontSize="14" />
+                            <TextBlock x:Name="RecordButtonText" Text="Start Recording" Foreground="White"
+                                       FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="BrowseFilesButton"
+                            Click="BrowseFiles_Click"
+                            Padding="16,8" Cursor="Hand"
+                            BorderThickness="0">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bd" CornerRadius="8" Padding="{TemplateBinding Padding}"
+                                        Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <ui:SymbolIcon Symbol="FolderOpen24" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,6,0" FontSize="14" />
+                                        <TextBlock Text="Browse" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                   FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </StackPanel>
             </StackPanel>
 
             <!-- Search & Filter Row -->
@@ -390,7 +445,7 @@
             <!-- Empty state -->
             <TextBlock x:Name="EmptyState"
                        Grid.Row="3"
-                       Text="No recordings yet. Press Ctrl+Win+R to start recording."
+                       Text="No recordings yet. Start a recording or browse for audio files above."
                        HorizontalAlignment="Center"
                        VerticalAlignment="Center"
                        Foreground="{DynamicResource TextFillColorTertiaryBrush}"

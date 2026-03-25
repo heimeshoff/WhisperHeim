@@ -67,11 +67,34 @@ public sealed class TranscriptionQueueItem : INotifyPropertyChanged
         EnqueuedAt = DateTimeOffset.Now;
     }
 
+    /// <summary>
+    /// Constructor for imported file transcription with a session directory.
+    /// </summary>
+    public TranscriptionQueueItem(
+        string title,
+        string filePath,
+        string sessionDir)
+    {
+        Id = Guid.NewGuid();
+        Title = title;
+        ItemType = QueueItemType.File;
+        FilePath = filePath;
+        SessionDir = sessionDir;
+        EnqueuedAt = DateTimeOffset.Now;
+    }
+
     public Guid Id { get; }
     public string Title { get; }
     public QueueItemType ItemType { get; }
     public CallRecordingSession? Session { get; }
     public string? FilePath { get; }
+
+    /// <summary>
+    /// Session directory for imported file transcriptions.
+    /// When set, a transcript.json will be saved to this directory after transcription.
+    /// </summary>
+    public string? SessionDir { get; }
+
     public DateTimeOffset EnqueuedAt { get; }
 
     public QueueItemStage Stage
@@ -285,7 +308,7 @@ public sealed class TranscriptionQueueService : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Enqueues an audio file for transcription.
+    /// Enqueues an audio file for transcription (ephemeral, no transcript.json saved).
     /// Returns the queue item so the caller can track its progress.
     /// </summary>
     public TranscriptionQueueItem EnqueueFile(string filePath)
@@ -301,6 +324,27 @@ public sealed class TranscriptionQueueService : INotifyPropertyChanged
         Trace.TraceInformation(
             "[TranscriptionQueue] Enqueued file '{0}'. Queue depth: {1}",
             title, Items.Count);
+
+        ProcessNext();
+        return item;
+    }
+
+    /// <summary>
+    /// Enqueues an imported audio file for transcription, producing a transcript.json
+    /// in the given session directory when complete.
+    /// </summary>
+    public TranscriptionQueueItem EnqueueFileImport(string title, string filePath, string sessionDir)
+    {
+        var item = new TranscriptionQueueItem(title, filePath, sessionDir);
+        DispatcherInvoke(() =>
+        {
+            Items.Add(item);
+            OnPropertyChanged(nameof(StatusText));
+        });
+
+        Trace.TraceInformation(
+            "[TranscriptionQueue] Enqueued file import '{0}' -> {1}. Queue depth: {2}",
+            title, sessionDir, Items.Count);
 
         ProcessNext();
         return item;
@@ -361,7 +405,12 @@ public sealed class TranscriptionQueueService : INotifyPropertyChanged
 
         // Create a fresh item for the retry
         if (item.ItemType == QueueItemType.File && item.FilePath is not null)
-            EnqueueFile(item.FilePath);
+        {
+            if (item.SessionDir is not null)
+                EnqueueFileImport(item.Title, item.FilePath, item.SessionDir);
+            else
+                EnqueueFile(item.FilePath);
+        }
         else if (item.Session is not null)
             Enqueue(item.Title, item.Session);
         Trace.TraceInformation("[TranscriptionQueue] Retrying '{0}'.", item.Title);
@@ -573,12 +622,67 @@ public sealed class TranscriptionQueueService : INotifyPropertyChanged
         Trace.TraceInformation("[TranscriptionQueue] ProcessFileItem completed for '{0}': {1} chars.",
             item.FilePath, result.Text?.Length ?? 0);
 
+        var resultText = string.IsNullOrWhiteSpace(result.Text)
+            ? "(No speech detected)"
+            : result.Text;
+
         DispatcherInvoke(() =>
         {
-            item.ResultText = string.IsNullOrWhiteSpace(result.Text)
-                ? "(No speech detected)"
-                : result.Text;
+            item.ResultText = resultText;
         });
+
+        // If this is an imported file with a session directory, save a transcript.json
+        if (item.SessionDir is not null)
+        {
+            await SaveFileImportTranscript(item, result);
+        }
+    }
+
+    /// <summary>
+    /// Creates a CallTranscript-compatible transcript.json for an imported file.
+    /// </summary>
+    private async Task SaveFileImportTranscript(TranscriptionQueueItem item, FileTranscription.FileTranscriptionResult result)
+    {
+        var now = DateTimeOffset.Now;
+        var audioFileName = System.IO.Path.GetFileName(item.FilePath!);
+
+        // Build a single-speaker transcript
+        var segments = new List<CallTranscription.TranscriptSegment>();
+
+        if (!string.IsNullOrWhiteSpace(result.Text))
+        {
+            segments.Add(new CallTranscription.TranscriptSegment
+            {
+                Speaker = "Speaker",
+                StartTime = TimeSpan.Zero,
+                EndTime = result.AudioDuration,
+                Text = result.Text,
+                IsLocalSpeaker = false,
+            });
+        }
+
+        var transcript = new CallTranscription.CallTranscript
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = item.Title,
+            RecordingStartedUtc = item.EnqueuedAt,
+            RecordingEndedUtc = item.EnqueuedAt + result.AudioDuration,
+            Segments = segments,
+            AudioFilePath = audioFileName,
+        };
+
+        // Write transcript.json to the session directory
+        var transcriptPath = System.IO.Path.Combine(item.SessionDir!, "transcript.json");
+        var json = System.Text.Json.JsonSerializer.Serialize(transcript, new System.Text.Json.JsonSerializerOptions
+        {
+            WriteIndented = true,
+            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+        });
+        await System.IO.File.WriteAllTextAsync(transcriptPath, json);
+        transcript.FilePath = transcriptPath;
+
+        Trace.TraceInformation(
+            "[TranscriptionQueue] Saved file import transcript to {0}", transcriptPath);
     }
 
     private static QueueItemStage MapStage(PipelineStage stage) => stage switch

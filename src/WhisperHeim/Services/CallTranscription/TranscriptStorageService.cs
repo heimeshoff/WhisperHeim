@@ -162,7 +162,15 @@ public sealed class TranscriptStorageService : ITranscriptStorageService
     }
 
     /// <summary>
-    /// Returns session directories that contain WAV files but no transcript.json.
+    /// Audio file extensions recognized as valid session content (WAV + import formats).
+    /// </summary>
+    private static readonly HashSet<string> AudioExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".wav", ".ogg", ".mp3", ".m4a"
+    };
+
+    /// <summary>
+    /// Returns session directories that contain audio files but no transcript.json.
     /// Each entry is the full path to the session directory.
     /// </summary>
     public IReadOnlyList<string> ListPendingSessions()
@@ -178,8 +186,9 @@ public sealed class TranscriptStorageService : ITranscriptStorageService
             if (hasTranscript)
                 continue;
 
-            var hasWav = Directory.GetFiles(sessionDir, "*.wav").Length > 0;
-            if (hasWav)
+            var hasAudio = Directory.GetFiles(sessionDir)
+                .Any(f => AudioExtensions.Contains(Path.GetExtension(f)));
+            if (hasAudio)
                 pending.Add(sessionDir);
         }
 

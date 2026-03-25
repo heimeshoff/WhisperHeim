@@ -51,7 +51,7 @@ public partial class MainWindow : FluentWindow
     // Transcript storage for the Transcripts page
     private readonly ITranscriptStorageService _transcriptStorageService;
 
-    // File transcription for the Transcribe Files page
+    // File transcription for imported audio files on the Recordings page
     private readonly IFileTranscriptionService _fileTranscriptionService;
 
     // High-quality loopback for voice cloning from system audio
@@ -455,7 +455,7 @@ public partial class MainWindow : FluentWindow
         if (_pageCache.TryGetValue("Recordings", out var cached) && cached is TranscriptsPage page)
             return page;
 
-        page = new TranscriptsPage(_transcriptStorageService, _transcriptionQueueService, _callRecordingService);
+        page = new TranscriptsPage(_transcriptStorageService, _transcriptionQueueService, _callRecordingService, _fileTranscriptionService);
         page.TranscriptionRequested += OnPendingTranscriptionRequested;
         page.ReTranscriptionRequested += OnPendingTranscriptionRequested;
         _pageCache["Recordings"] = page;
@@ -755,7 +755,6 @@ public partial class MainWindow : FluentWindow
                 "Dictation" => new DictationPage(_settingsService, _audioCaptureService),
                 "Templates" => new TemplatesPage(_templateService),
                 "Recordings" => GetOrCreateTranscriptsPage(),
-                "Transcriptions" => new TranscribeFilesPage(_fileTranscriptionService, _transcriptionQueueService),
                 "TextToSpeech" => new TextToSpeechPage(
                     _textToSpeechService,
                     _highQualityRecorderService,
@@ -814,7 +813,6 @@ public partial class MainWindow : FluentWindow
         NavLabelDictation.Visibility = labelVisibility;
         NavLabelTemplates.Visibility = labelVisibility;
         NavLabelRecordings.Visibility = labelVisibility;
-        NavLabelTranscriptions.Visibility = labelVisibility;
         NavLabelTextToSpeech.Visibility = labelVisibility;
         NavLabelSettings.Visibility = labelVisibility;
         NavLabelAbout.Visibility = labelVisibility;

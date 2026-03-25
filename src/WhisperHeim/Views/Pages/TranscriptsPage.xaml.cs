@@ -14,6 +14,7 @@ using System.Windows.Threading;
 using Microsoft.Win32;
 using WhisperHeim.Services.Audio;
 using WhisperHeim.Services.CallTranscription;
+using WhisperHeim.Services.FileTranscription;
 using WhisperHeim.Services.Recording;
 using WhisperHeim.Services.Transcription;
 
@@ -28,6 +29,7 @@ public partial class TranscriptsPage : UserControl
     private readonly ITranscriptStorageService _storageService;
     private readonly TranscriptionQueueService _queueService;
     private readonly ICallRecordingService _recordingService;
+    private readonly IFileTranscriptionService _fileTranscriptionService;
     private readonly List<TranscriptListItem> _allItems = new();
     private readonly TranscriptAudioPlayer _audioPlayer = new();
     private readonly DispatcherTimer _copiedIndicatorTimer;
@@ -52,11 +54,13 @@ public partial class TranscriptsPage : UserControl
     public TranscriptsPage(
         ITranscriptStorageService storageService,
         TranscriptionQueueService queueService,
-        ICallRecordingService recordingService)
+        ICallRecordingService recordingService,
+        IFileTranscriptionService fileTranscriptionService)
     {
         _storageService = storageService;
         _queueService = queueService;
         _recordingService = recordingService;
+        _fileTranscriptionService = fileTranscriptionService;
         InitializeComponent();
 
         _audioPlayer.PositionChanged += OnAudioPositionChanged;
@@ -90,6 +94,9 @@ public partial class TranscriptsPage : UserControl
             // Show active recording card if a recording is in progress
             if (_recordingService.IsRecording)
                 ShowActiveRecordingCard();
+
+            // Sync Start/Stop button state
+            UpdateRecordingButtonState();
         };
 
         Unloaded += (_, _) =>
@@ -162,6 +169,7 @@ public partial class TranscriptsPage : UserControl
             _activeRecordingSpeakerCount = 0;
             _activeRecordingSpeakerNames.Clear();
             ShowActiveRecordingCard();
+            UpdateRecordingButtonState();
         });
     }
 
@@ -170,6 +178,7 @@ public partial class TranscriptsPage : UserControl
         Dispatcher.BeginInvoke(() =>
         {
             HideActiveRecordingCard();
+            UpdateRecordingButtonState();
 
             if (e.Exception is not null)
             {
@@ -337,6 +346,104 @@ public partial class TranscriptsPage : UserControl
         });
     }
 
+    // --- Start/Stop Recording + Browse ---
+
+    private void UpdateRecordingButtonState()
+    {
+        if (_recordingService.IsRecording)
+        {
+            RecordButtonText.Text = "Stop Recording";
+            RecordButtonIcon.Symbol = Wpf.Ui.Controls.SymbolRegular.RecordStop24;
+        }
+        else
+        {
+            RecordButtonText.Text = "Start Recording";
+            RecordButtonIcon.Symbol = Wpf.Ui.Controls.SymbolRegular.Record24;
+        }
+    }
+
+    private void StartStopRecording_Click(object sender, RoutedEventArgs e)
+    {
+        if (_recordingService.IsRecording)
+        {
+            _recordingService.StopRecording();
+        }
+        else
+        {
+            _recordingService.StartRecording();
+        }
+
+        UpdateRecordingButtonState();
+    }
+
+    private void BrowseFiles_Click(object sender, RoutedEventArgs e)
+    {
+        var supportedExts = string.Join(";", _fileTranscriptionService.SupportedExtensions.Select(ext => $"*{ext}"));
+        var dialog = new OpenFileDialog
+        {
+            Title = "Import audio files",
+            Filter = $"Audio files ({supportedExts})|{supportedExts}|All files (*.*)|*.*",
+            Multiselect = true
+        };
+
+        if (dialog.ShowDialog() != true)
+            return;
+
+        foreach (var filePath in dialog.FileNames)
+        {
+            if (!_fileTranscriptionService.IsSupported(filePath))
+                continue;
+
+            ImportAudioFile(filePath);
+        }
+    }
+
+    private void ImportAudioFile(string sourceFilePath)
+    {
+        if (_storageService is not TranscriptStorageService concreteStorage)
+        {
+            Trace.TraceWarning("[TranscriptsPage] Cannot import file: storage service is not concrete.");
+            return;
+        }
+
+        var now = DateTimeOffset.Now;
+        var sessionDir = concreteStorage.CreateSessionDirectory(now);
+        var originalFileName = Path.GetFileName(sourceFilePath);
+        var destPath = Path.Combine(sessionDir, originalFileName);
+
+        // Move the file, fall back to copy on failure
+        try
+        {
+            File.Move(sourceFilePath, destPath);
+            Trace.TraceInformation("[TranscriptsPage] Moved imported file to {0}", destPath);
+        }
+        catch (IOException)
+        {
+            try
+            {
+                File.Copy(sourceFilePath, destPath, overwrite: false);
+                Trace.TraceInformation("[TranscriptsPage] Copied imported file to {0} (move failed, cross-drive?)", destPath);
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceError("[TranscriptsPage] Failed to import file '{0}': {1}", sourceFilePath, ex.Message);
+                return;
+            }
+        }
+
+        // Derive a title from the original filename (without extension)
+        var title = Path.GetFileNameWithoutExtension(originalFileName);
+
+        // Enqueue for transcription via the queue service (file-based transcription)
+        // The queue service ProcessFileItem will be updated to produce a transcript.json
+        var queueItem = _queueService.EnqueueFileImport(title, destPath, sessionDir);
+
+        Trace.TraceInformation("[TranscriptsPage] Imported and enqueued '{0}' from '{1}'", title, sourceFilePath);
+
+        // Refresh the list to show the new pending item
+        LoadTranscriptList();
+    }
+
     // --- List loading ---
 
     private void LoadTranscriptList()
@@ -383,6 +490,16 @@ public partial class TranscriptsPage : UserControl
             }
         }
 
+        // Also check queued file import items (by session dir)
+        foreach (var qItem in _queueService.Items)
+        {
+            if (qItem.SessionDir is not null &&
+                qItem.Stage is not (QueueItemStage.Completed or QueueItemStage.Failed))
+            {
+                queuedSessionDirs.Add(Path.GetFullPath(qItem.SessionDir));
+            }
+        }
+
         foreach (var dir in pendingDirs)
         {
             var dirName = Path.GetFileName(dir);
@@ -423,8 +540,8 @@ public partial class TranscriptsPage : UserControl
             }
             else
             {
-                var wavFiles = Directory.GetFiles(dir, "*.wav");
-                var detail = $"{wavFiles.Length} audio file{(wavFiles.Length != 1 ? "s" : "")}";
+                var audioFiles = CountAudioFiles(dir);
+                var detail = $"{audioFiles} audio file{(audioFiles != 1 ? "s" : "")}";
                 pendingItems.Add(new PendingRecordingItem(dir, name, detail, false));
             }
         }
@@ -451,6 +568,25 @@ public partial class TranscriptsPage : UserControl
         {
             PendingSection.Visibility = Visibility.Collapsed;
         }
+    }
+
+    /// <summary>
+    /// Counts audio files (WAV + supported import formats) in a session directory.
+    /// </summary>
+    private int CountAudioFiles(string dir)
+    {
+        var count = 0;
+        foreach (var file in Directory.GetFiles(dir))
+        {
+            var ext = Path.GetExtension(file);
+            if (string.Equals(ext, ".wav", StringComparison.OrdinalIgnoreCase) ||
+                _fileTranscriptionService.SupportedExtensions.Contains(ext.ToLowerInvariant()))
+            {
+                count++;
+            }
+        }
+
+        return count;
     }
 
     private void ApplyFilter()
@@ -582,38 +718,51 @@ public partial class TranscriptsPage : UserControl
         var micPath = Path.Combine(item.SessionDir, "mic.wav");
         var systemPath = Path.Combine(item.SessionDir, "system.wav");
 
-        if (!File.Exists(micPath))
+        if (File.Exists(micPath))
         {
-            Trace.TraceWarning("[TranscriptsPage] Pending session has no mic.wav: {0}", item.SessionDir);
-            return;
-        }
+            // Standard call recording session (mic.wav + optional system.wav)
+            var dirName = Path.GetFileName(item.SessionDir);
+            DateTimeOffset startTimestamp;
+            if (dirName.Length >= 15 &&
+                DateTime.TryParseExact(
+                    dirName[..15],
+                    "yyyyMMdd_HHmmss",
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.None,
+                    out var date))
+            {
+                startTimestamp = new DateTimeOffset(date, TimeZoneInfo.Local.GetUtcOffset(date));
+            }
+            else
+            {
+                startTimestamp = DateTimeOffset.UtcNow;
+            }
 
-        var dirName = Path.GetFileName(item.SessionDir);
-        DateTimeOffset startTimestamp;
-        if (dirName.Length >= 15 &&
-            DateTime.TryParseExact(
-                dirName[..15],
-                "yyyyMMdd_HHmmss",
-                System.Globalization.CultureInfo.InvariantCulture,
-                System.Globalization.DateTimeStyles.None,
-                out var date))
-        {
-            startTimestamp = new DateTimeOffset(date, TimeZoneInfo.Local.GetUtcOffset(date));
+            var session = new CallRecordingSession(
+                micPath,
+                File.Exists(systemPath) ? systemPath : micPath,
+                startTimestamp);
+
+            var lastWrite = File.GetLastWriteTimeUtc(micPath);
+            session.EndTimestamp = new DateTimeOffset(lastWrite, TimeSpan.Zero);
+
+            TranscriptionRequested?.Invoke(this, session);
         }
         else
         {
-            startTimestamp = DateTimeOffset.UtcNow;
+            // Imported audio file (no mic.wav) — use file transcription pipeline
+            var audioFile = Directory.GetFiles(item.SessionDir)
+                .FirstOrDefault(f => _fileTranscriptionService.IsSupported(f));
+
+            if (audioFile is null)
+            {
+                Trace.TraceWarning("[TranscriptsPage] Pending session has no supported audio files: {0}", item.SessionDir);
+                return;
+            }
+
+            var title = Path.GetFileNameWithoutExtension(audioFile);
+            _queueService.EnqueueFileImport(title, audioFile, item.SessionDir);
         }
-
-        var session = new CallRecordingSession(
-            micPath,
-            File.Exists(systemPath) ? systemPath : micPath,
-            startTimestamp);
-
-        var lastWrite = File.GetLastWriteTimeUtc(micPath);
-        session.EndTimestamp = new DateTimeOffset(lastWrite, TimeSpan.Zero);
-
-        TranscriptionRequested?.Invoke(this, session);
 
         // Refresh immediately so the item moves from Pending to Transcribing/Queued
         LoadPendingSessions();
@@ -1341,19 +1490,22 @@ public partial class TranscriptsPage : UserControl
         var micPath = Path.Combine(transcriptDir, "mic.wav");
         var systemPath = Path.Combine(transcriptDir, "system.wav");
 
-        if (!File.Exists(micPath))
+        // Check if this is an imported single-file session (no mic.wav)
+        var hasMicWav = File.Exists(micPath);
+        string? importedAudioFile = null;
+
+        if (!hasMicWav)
         {
-            Trace.TraceWarning("[TranscriptsPage] Cannot re-transcribe: no mic.wav found in {0}", transcriptDir);
-            return;
+            // Look for any supported audio file in the session directory
+            importedAudioFile = FindImportedAudioFile(transcriptDir);
+            if (importedAudioFile is null)
+            {
+                Trace.TraceWarning("[TranscriptsPage] Cannot re-transcribe: no audio files found in {0}", transcriptDir);
+                return;
+            }
         }
 
-        var session = new CallRecordingSession(
-            micPath,
-            File.Exists(systemPath) ? systemPath : micPath,
-            _selectedTranscript.RecordingStartedUtc);
-        session.EndTimestamp = _selectedTranscript.RecordingEndedUtc;
-        session.RemoteSpeakerNames = _selectedTranscript.RemoteSpeakerNames.ToList();
-
+        // Delete existing transcript
         try
         {
             if (_selectedTranscript.FilePath is not null && File.Exists(_selectedTranscript.FilePath))
@@ -1370,8 +1522,69 @@ public partial class TranscriptsPage : UserControl
 
         CloseDrawer();
 
-        ReTranscriptionRequested?.Invoke(this, session);
+        if (importedAudioFile is not null)
+        {
+            // Re-transcribe an imported file
+            // If multiple speakers are defined, use the call pipeline with diarization
+            var speakerNames = _selectedTranscript.RemoteSpeakerNames
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .ToList();
+
+            if (speakerNames.Count > 1)
+            {
+                // Feed as system stream for diarization (no mic stream)
+                var session = new CallRecordingSession(
+                    importedAudioFile, // mic = same file (no separate mic)
+                    importedAudioFile, // system = the imported file
+                    _selectedTranscript.RecordingStartedUtc);
+                session.EndTimestamp = _selectedTranscript.RecordingEndedUtc;
+                session.RemoteSpeakerNames = speakerNames;
+
+                ReTranscriptionRequested?.Invoke(this, session);
+            }
+            else
+            {
+                // Single speaker: re-transcribe with flat pipeline
+                _queueService.EnqueueFileImport(
+                    _selectedTranscript.Name,
+                    importedAudioFile,
+                    transcriptDir);
+            }
+        }
+        else
+        {
+            // Standard call recording re-transcription
+            var session = new CallRecordingSession(
+                micPath,
+                File.Exists(systemPath) ? systemPath : micPath,
+                _selectedTranscript.RecordingStartedUtc);
+            session.EndTimestamp = _selectedTranscript.RecordingEndedUtc;
+            session.RemoteSpeakerNames = _selectedTranscript.RemoteSpeakerNames.ToList();
+
+            ReTranscriptionRequested?.Invoke(this, session);
+        }
+
         LoadTranscriptList();
+    }
+
+    /// <summary>
+    /// Finds an imported audio file in a session directory (non-wav audio files).
+    /// Falls back to the audio file path stored in the transcript if available.
+    /// </summary>
+    private string? FindImportedAudioFile(string sessionDir)
+    {
+        // First check if the transcript has a resolved audio path
+        if (_selectedTranscript?.ResolvedAudioFilePath is not null)
+            return _selectedTranscript.ResolvedAudioFilePath;
+
+        // Look for any supported audio file
+        foreach (var file in Directory.GetFiles(sessionDir))
+        {
+            if (_fileTranscriptionService.IsSupported(file))
+                return file;
+        }
+
+        return null;
     }
 
     // --- Export ---
