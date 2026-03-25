@@ -361,11 +361,12 @@ public partial class TranscriptsPage : UserControl
         var transcribingItems = new List<PendingRecordingItem>();
         var pendingItems = new List<PendingRecordingItem>();
 
-        // Also check queued items in the queue service
+        // Check actively queued/processing items (not completed or failed)
         var queuedSessionDirs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var qItem in _queueService.Items)
         {
-            if (qItem.Session is not null)
+            if (qItem.Session is not null &&
+                qItem.Stage is not (QueueItemStage.Completed or QueueItemStage.Failed))
             {
                 var sessionDir = Path.GetDirectoryName(qItem.Session.MicWavFilePath);
                 if (sessionDir is not null)

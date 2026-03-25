@@ -131,6 +131,7 @@ public partial class MainWindow : FluentWindow
         // Wire up the transcription queue bottom bar
         TranscriptionBar.Initialize(_transcriptionQueueService);
         _transcriptionQueueService.ItemCompleted += OnTranscriptionItemCompleted;
+        _transcriptionQueueService.ItemFailed += OnTranscriptionItemFailed;
 
         // Restore saved window position/size or center on screen
         RestoreWindowPosition();
@@ -427,6 +428,16 @@ public partial class MainWindow : FluentWindow
 
     private void OnTranscriptionItemCompleted(object? sender, TranscriptionQueueItem item)
     {
+        Application.Current?.Dispatcher?.BeginInvoke(() =>
+        {
+            var transcriptsPage = GetOrCreateTranscriptsPage();
+            transcriptsPage.RefreshList();
+        });
+    }
+
+    private void OnTranscriptionItemFailed(object? sender, TranscriptionQueueItem item)
+    {
+        // Refresh pending list so cancelled/failed recordings move back to pending
         Application.Current?.Dispatcher?.BeginInvoke(() =>
         {
             var transcriptsPage = GetOrCreateTranscriptsPage();
