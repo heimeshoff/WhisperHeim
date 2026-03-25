@@ -32,10 +32,10 @@ On first launch the app will download the required AI models (~500 MB total). Th
 To create a self-contained executable that runs without .NET installed:
 
 ```bash
-dotnet publish src/WhisperHeim/WhisperHeim.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true
+dotnet publish src/WhisperHeim/WhisperHeim.csproj -c Release -r win-x64 --self-contained -o publish -p:PublishSingleFile=true -v q 2>&1 | tail -5
 ```
 
-The output will be in `src/WhisperHeim/bin/Release/net9.0-windows/win-x64/publish/`.
+The output will be in `publish/`.
 
 ## Project Structure
 

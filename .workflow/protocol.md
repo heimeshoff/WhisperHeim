@@ -2,6 +2,15 @@
 
 ---
 
+## 2026-03-25 21:00 -- Idea Captured: Fix Date Column & Add Column Sorting
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/082-fix-date-column-and-sorting.md
+**Summary:** Fix the recordings date column showing "transcript" instead of actual dates (caused by new session-directory format not being parsed), and add click-to-sort on column headers with toggle asc/desc within groups.
+
+---
+
 ## 2026-03-25 19:15 -- Task Completed: 081 - Fix Library Voices Combo Box
 
 **Type:** Task Completion

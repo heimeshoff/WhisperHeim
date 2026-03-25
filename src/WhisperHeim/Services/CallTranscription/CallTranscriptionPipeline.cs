@@ -454,21 +454,36 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
 
             proc.Start();
 
-            var stdoutTask = proc.StandardOutput.ReadToEndAsync(cancellationToken);
-            var stderrTask = proc.StandardError.ReadToEndAsync(cancellationToken);
+            // Kill the child process immediately if the user cancels
+            using var cancelReg = cancellationToken.Register(() =>
+            {
+                Trace.TraceInformation("[CallTranscriptionPipeline] Cancel requested — killing diarization child process.");
+                try { proc.Kill(entireProcessTree: true); } catch { }
+            });
 
-            // Timeout: 2 minutes per chunk should be more than enough
+            // Timeout: 2 minutes per chunk, linked to user cancel token
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutCts.CancelAfter(TimeSpan.FromMinutes(2));
+
+            // Read stdout/stderr with the linked token so they cancel too
+            var stdoutTask = proc.StandardOutput.ReadToEndAsync(timeoutCts.Token);
+            var stderrTask = proc.StandardError.ReadToEndAsync(timeoutCts.Token);
 
             try
             {
                 await proc.WaitForExitAsync(timeoutCts.Token);
             }
-            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            catch (OperationCanceledException)
             {
-                // Timeout — kill the child
+                // Kill the child on timeout or user cancel
                 try { proc.Kill(entireProcessTree: true); } catch { }
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    Trace.TraceInformation("[CallTranscriptionPipeline] Diarization cancelled by user.");
+                    throw;
+                }
+
                 Trace.TraceWarning("[CallTranscriptionPipeline] Diarization child process timed out.");
                 return null;
             }

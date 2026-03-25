@@ -138,6 +138,7 @@ public sealed class TranscriptionQueueService : INotifyPropertyChanged
     private readonly Func<string> _getLocalSpeakerName;
     private TranscriptionQueueItem? _activeItem;
     private bool _isProcessing;
+    private bool _isCancelling;
     private CancellationTokenSource? _activeCts;
 
     // External acquire/release for non-queue callers
@@ -333,7 +334,18 @@ public sealed class TranscriptionQueueService : INotifyPropertyChanged
         if (_activeCts is not null)
         {
             Trace.TraceInformation("[TranscriptionQueue] Cancelling active item '{0}'.", _activeItem?.Title);
+            _isCancelling = true;
             _activeCts.Cancel();
+
+            // Immediately update UI to show cancelling state
+            if (_activeItem is not null)
+            {
+                DispatcherInvoke(() =>
+                {
+                    _activeItem.StageDescription = "Cancelling...";
+                    OnPropertyChanged(nameof(StatusText));
+                });
+            }
         }
     }
 
@@ -439,6 +451,7 @@ public sealed class TranscriptionQueueService : INotifyPropertyChanged
     private async Task ProcessItem(TranscriptionQueueItem item)
     {
         _activeCts = new CancellationTokenSource();
+        _isCancelling = false;
 
         Trace.TraceInformation("[TranscriptionQueue] Processing '{0}' (type={1}).", item.Title, item.ItemType);
 
@@ -511,7 +524,7 @@ public sealed class TranscriptionQueueService : INotifyPropertyChanged
         {
             DispatcherInvoke(() =>
             {
-                if (item.Stage is QueueItemStage.Completed or QueueItemStage.Failed)
+                if (item.Stage is QueueItemStage.Completed or QueueItemStage.Failed || _isCancelling)
                     return;
                 item.Stage = MapStage(p.Stage);
                 item.StagePercent = p.StagePercent;
@@ -543,7 +556,7 @@ public sealed class TranscriptionQueueService : INotifyPropertyChanged
             {
                 Application.Current?.Dispatcher?.BeginInvoke(() =>
                 {
-                    if (item.Stage is QueueItemStage.Completed or QueueItemStage.Failed)
+                    if (item.Stage is QueueItemStage.Completed or QueueItemStage.Failed || _isCancelling)
                         return;
                     item.Stage = QueueItemStage.Transcribing;
                     item.StagePercent = p * 100;

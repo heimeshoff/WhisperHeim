@@ -116,6 +116,9 @@ public partial class TranscriptionBottomBar : UserControl
         if (sender is not Button button) return;
         if (button.Tag is not TranscriptionQueueItem item) return;
 
+        System.Diagnostics.Trace.TraceInformation(
+            "[BottomBar] Action clicked for '{0}', stage={1}", item.Title, item.Stage);
+
         switch (item.Stage)
         {
             case QueueItemStage.Queued:
