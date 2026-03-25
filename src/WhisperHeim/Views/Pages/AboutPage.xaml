@@ -39,7 +39,7 @@
                                Margin="8,8,0,0" />
                 </StackPanel>
 
-                <TextBlock Text="High-fidelity local transcription powered by the quiet engine of modern neural networks."
+                <TextBlock Text="Transform your voice into text locally and securely. Experience near-instant transcription with zero data leakage."
                            FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                            HorizontalAlignment="Center"
                            TextAlignment="Center"

@@ -709,13 +709,39 @@ public partial class MainWindow : FluentWindow
         Topmost = false;
     }
 
+    private bool _suppressNavSelectionSync;
+
     private void NavList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         // Guard: SelectionChanged fires during InitializeComponent before controls are ready
         if (PageContent is null) return;
 
+        if (_suppressNavSelectionSync) return;
+
         if (NavList.SelectedItem is ListBoxItem item && item.Tag is string tag)
         {
+            // Clear bottom list selection when main list is selected
+            _suppressNavSelectionSync = true;
+            NavBottomList.SelectedIndex = -1;
+            _suppressNavSelectionSync = false;
+
+            NavigateTo(tag);
+        }
+    }
+
+    private void NavBottomList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (PageContent is null) return;
+
+        if (_suppressNavSelectionSync) return;
+
+        if (NavBottomList.SelectedItem is ListBoxItem item && item.Tag is string tag)
+        {
+            // Clear main list selection when bottom list is selected
+            _suppressNavSelectionSync = true;
+            NavList.SelectedIndex = -1;
+            _suppressNavSelectionSync = false;
+
             NavigateTo(tag);
         }
     }
@@ -774,11 +800,10 @@ public partial class MainWindow : FluentWindow
         var targetWidth = collapsed ? SidebarCollapsedWidth : SidebarExpandedWidth;
         var labelVisibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
 
-        // Update toggle button appearance
+        // Update toggle chevron appearance
         SidebarToggleIcon.Symbol = collapsed
-            ? Wpf.Ui.Controls.SymbolRegular.PanelLeftExpand24
-            : Wpf.Ui.Controls.SymbolRegular.PanelLeftContract24;
-        SidebarToggleLabel.Visibility = labelVisibility;
+            ? Wpf.Ui.Controls.SymbolRegular.ChevronRight24
+            : Wpf.Ui.Controls.SymbolRegular.ChevronLeft24;
         SidebarToggleButton.ToolTip = collapsed ? "Expand sidebar" : "Collapse sidebar";
 
         // Show/hide text labels and adjust branding layout
@@ -796,7 +821,7 @@ public partial class MainWindow : FluentWindow
 
         // Adjust icon margins when collapsed (center the icons)
         var iconMargin = collapsed ? new Thickness(0) : new Thickness(0, 0, 10, 0);
-        foreach (var item in NavList.Items.OfType<ListBoxItem>())
+        foreach (var item in NavList.Items.OfType<ListBoxItem>().Concat(NavBottomList.Items.OfType<ListBoxItem>()))
         {
             if (item.Content is StackPanel sp && sp.Children[0] is Wpf.Ui.Controls.SymbolIcon icon)
             {
