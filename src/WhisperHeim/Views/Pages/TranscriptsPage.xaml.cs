@@ -39,6 +39,10 @@ public partial class TranscriptsPage : UserControl
     private string? _currentlyTranscribingSessionDir;
     private readonly List<TranscriptGroupViewModel> _groups = new();
 
+    // Column sorting state
+    private string _sortColumn = "Date";
+    private bool _sortAscending = false; // Default: Date descending (newest first)
+
     // Active recording state
     private bool _isActiveRecordingDrawerOpen;
     private List<SpeakerNameItem> _activeRecordingSpeakerNames = new();
@@ -481,7 +485,8 @@ public partial class TranscriptsPage : UserControl
         {
             var displayName = group.First().GroupDisplayName;
             var isExpanded = expandedState.TryGetValue(displayName, out var was) ? was : true;
-            _groups.Add(new TranscriptGroupViewModel(displayName, group.ToList(), isExpanded));
+            var sortedItems = ApplySortWithinGroup(group.ToList());
+            _groups.Add(new TranscriptGroupViewModel(displayName, sortedItems, isExpanded));
         }
 
         TranscriptGroupList.ItemsSource = null;
@@ -493,6 +498,49 @@ public partial class TranscriptsPage : UserControl
             && ActiveRecordingCard.Visibility == Visibility.Collapsed
             ? Visibility.Visible
             : Visibility.Collapsed;
+    }
+
+    private List<TranscriptListItem> ApplySortWithinGroup(List<TranscriptListItem> items)
+    {
+        IEnumerable<TranscriptListItem> sorted = _sortColumn switch
+        {
+            "Title" => _sortAscending
+                ? items.OrderBy(i => i.Name, StringComparer.OrdinalIgnoreCase)
+                : items.OrderByDescending(i => i.Name, StringComparer.OrdinalIgnoreCase),
+            "Duration" => _sortAscending
+                ? items.OrderBy(i => i.ParsedDuration)
+                : items.OrderByDescending(i => i.ParsedDuration),
+            _ => _sortAscending // "Date"
+                ? items.OrderBy(i => i.ParsedDate ?? DateTime.MinValue)
+                : items.OrderByDescending(i => i.ParsedDate ?? DateTime.MinValue),
+        };
+        return sorted.ToList();
+    }
+
+    private void ColumnHeader_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button btn || btn.Tag is not string column) return;
+
+        if (_sortColumn == column)
+        {
+            _sortAscending = !_sortAscending;
+        }
+        else
+        {
+            _sortColumn = column;
+            _sortAscending = column == "Title"; // Title defaults ascending, others descending
+        }
+
+        UpdateSortIndicators();
+        ApplyFilter();
+    }
+
+    private void UpdateSortIndicators()
+    {
+        var arrow = _sortAscending ? " \u2191" : " \u2193"; // ↑ or ↓
+        TitleSortHeader.Text = "TITLE" + (_sortColumn == "Title" ? arrow : "");
+        DurationSortHeader.Text = "DURATION" + (_sortColumn == "Duration" ? arrow : "");
+        DateSortHeader.Text = "DATE" + (_sortColumn == "Date" ? arrow : "");
     }
 
     // --- Search ---
@@ -1510,28 +1558,38 @@ internal sealed class TranscriptListItem
         FilePath = filePath;
         FileName = fileName;
 
-        // Parse date from filename: transcript_YYYYMMDD_HHmmss
+        // Try to parse the date from either format:
+        // Legacy: transcript_YYYYMMDD_HHmmss.json → fileName = "transcript_YYYYMMDD_HHmmss"
+        // New:    YYYYMMDD_HHmmss/transcript.json → fileName = "transcript", date in parent dir name
+        DateTime? date = null;
+
         if (fileName.Length >= 25 &&
             DateTime.TryParseExact(
                 fileName.Substring(11, 15),
                 "yyyyMMdd_HHmmss",
                 System.Globalization.CultureInfo.InvariantCulture,
                 System.Globalization.DateTimeStyles.None,
-                out var date))
+                out var legacyDate))
         {
-            ParsedDate = date;
-            DateDisplay = date.ToString("MMM dd, yyyy HH:mm");
-            GroupKey = date.ToString("yyyy-MM-dd");
-            GroupDisplayName = date.ToString("MMMM dd, yyyy").ToUpperInvariant();
+            date = legacyDate;
         }
         else
         {
-            DateDisplay = fileName;
-            GroupKey = "unknown";
-            GroupDisplayName = "OTHER";
+            // New format: try parsing the session directory name (parent folder)
+            var parentDir = Path.GetFileName(Path.GetDirectoryName(filePath));
+            if (parentDir is not null &&
+                DateTime.TryParseExact(
+                    parentDir,
+                    "yyyyMMdd_HHmmss",
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.None,
+                    out var sessionDate))
+            {
+                date = sessionDate;
+            }
         }
 
-        // Read a brief preview from the file if possible
+        // Read transcript data from the file
         try
         {
             var json = File.ReadAllText(filePath);
@@ -1542,10 +1600,14 @@ internal sealed class TranscriptListItem
 
             if (transcript is not null)
             {
+                // If we still don't have a date, use RecordingStartedUtc from the transcript
+                date ??= transcript.RecordingStartedUtc.LocalDateTime;
+
                 Name = !string.IsNullOrEmpty(transcript.Name)
                     ? transcript.Name
                     : $"Call {transcript.RecordingStartedUtc.LocalDateTime:yyyy-MM-dd HH:mm}";
 
+                ParsedDuration = transcript.Duration;
                 DurationDisplay = $"{transcript.Duration:hh\\:mm\\:ss}";
                 var firstSegment = transcript.Segments.FirstOrDefault();
                 PreviewText = firstSegment?.Text ?? "(empty)";
@@ -1558,6 +1620,21 @@ internal sealed class TranscriptListItem
             DurationDisplay = "";
             PreviewText = "(unable to read)";
         }
+
+        // Set date-derived properties
+        if (date.HasValue)
+        {
+            ParsedDate = date.Value;
+            DateDisplay = date.Value.ToString("MMM dd, yyyy HH:mm");
+            GroupKey = date.Value.ToString("yyyy-MM-dd");
+            GroupDisplayName = date.Value.ToString("MMMM dd, yyyy").ToUpperInvariant();
+        }
+        else
+        {
+            DateDisplay = fileName;
+            GroupKey = "unknown";
+            GroupDisplayName = "OTHER";
+        }
     }
 
     public string FilePath { get; }
@@ -1567,6 +1644,7 @@ internal sealed class TranscriptListItem
     public string DurationDisplay { get; } = "";
     public string PreviewText { get; } = "";
     public DateTime? ParsedDate { get; }
+    public TimeSpan ParsedDuration { get; }
     public string GroupKey { get; }
     public string GroupDisplayName { get; }
 }

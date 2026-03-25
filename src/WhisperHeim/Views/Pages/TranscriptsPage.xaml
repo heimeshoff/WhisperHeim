@@ -157,20 +157,29 @@
                 </Button>
             </Grid>
 
-            <!-- Table header -->
+            <!-- Table header (clickable for sorting) -->
             <Grid Grid.Row="2" Margin="16,0,16,4">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="160" />
                     <ColumnDefinition Width="120" />
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="TITLE"
-                           Style="{StaticResource SectionLabel}" />
-                <TextBlock Grid.Column="1" Text="DURATION"
-                           Style="{StaticResource SectionLabel}" />
-                <TextBlock Grid.Column="2" Text="DATE"
-                           Style="{StaticResource SectionLabel}"
-                           HorizontalAlignment="Right" />
+                <Button Grid.Column="0" Tag="Title" Click="ColumnHeader_Click"
+                        Background="Transparent" BorderThickness="0" Padding="0" Cursor="Hand">
+                    <TextBlock x:Name="TitleSortHeader" Text="TITLE"
+                               Style="{StaticResource SectionLabel}" />
+                </Button>
+                <Button Grid.Column="1" Tag="Duration" Click="ColumnHeader_Click"
+                        Background="Transparent" BorderThickness="0" Padding="0" Cursor="Hand">
+                    <TextBlock x:Name="DurationSortHeader" Text="DURATION"
+                               Style="{StaticResource SectionLabel}" />
+                </Button>
+                <Button Grid.Column="2" Tag="Date" Click="ColumnHeader_Click"
+                        Background="Transparent" BorderThickness="0" Padding="0" Cursor="Hand"
+                        HorizontalAlignment="Right">
+                    <TextBlock x:Name="DateSortHeader" Text="DATE &#x2193;"
+                               Style="{StaticResource SectionLabel}" />
+                </Button>
             </Grid>
 
             <!-- Compact list with groups -->
