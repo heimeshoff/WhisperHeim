@@ -2,6 +2,41 @@
 
 ---
 
+## 2026-03-25 19:15 -- Task Completed: 081 - Fix Library Voices Combo Box
+
+**Type:** Task Completion
+**Task:** 081 - Fix Library Voices Combo Box
+**Summary:** Replaced hardcoded CustomVoicesDir with DataPathService.VoicesPath and fixed LibraryVoice_Click ID comparison to use "custom:{name}" format.
+**Files changed:** 4 files
+
+---
+
+## 2026-03-25 19:15 -- Task Completed: 080 - Drawer No Overlay Crossfade
+
+**Type:** Task Completion
+**Task:** 080 - Drawer No Overlay Crossfade
+**Summary:** Removed dark overlay from drawer, added crossfade animation when switching recordings while drawer is open, close only via close button or Escape.
+**Files changed:** 3 files
+
+---
+
+## 2026-03-25 19:00 -- Batch Started: [080, 081]
+
+**Type:** Batch Start
+**Tasks:** 080 - Drawer No Overlay Crossfade, 081 - Fix Library Voices Combo Box
+**Mode:** Parallel (batch of 2)
+
+---
+
+## 2026-03-25 18:45 -- Idea Captured: Fix Library Voices Not Showing in TTS Combo Box
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/081-fix-library-voices-combo-box.md
+**Summary:** Path mismatch bug -- custom data path causes TTS service to scan a different voices directory than where the page saves/lists cloned voices. Secondary bug: library voice card click uses wrong ID format for combo box lookup.
+
+---
+
 ## 2026-03-25 18:30 -- Idea Captured: Drawer -- Remove Overlay, Crossfade Between Recordings
 
 **Type:** Idea Capture
