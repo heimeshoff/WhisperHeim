@@ -389,13 +389,6 @@
                        Visibility="Collapsed" />
         </Grid>
 
-        <!-- Drawer overlay -->
-        <Border x:Name="DrawerOverlay"
-                Grid.RowSpan="2"
-                Background="#33000000"
-                Visibility="Collapsed"
-                MouseLeftButtonDown="DrawerOverlay_Click" />
-
         <!-- Detail Drawer -->
         <Border x:Name="DrawerPanel"
                 Grid.RowSpan="2"

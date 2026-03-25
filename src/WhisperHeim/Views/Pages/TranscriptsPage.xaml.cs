@@ -102,6 +102,12 @@ public partial class TranscriptsPage : UserControl
                 Dispatcher.BeginInvoke(LoadPendingSessions);
             }
         };
+
+        // Also refresh when items are added/removed from the queue
+        _queueService.Items.CollectionChanged += (_, _) =>
+        {
+            Dispatcher.BeginInvoke(LoadPendingSessions);
+        };
     }
 
     /// <summary>
@@ -274,7 +280,6 @@ public partial class TranscriptsPage : UserControl
 
         UpdateActiveRecordingDuration();
 
-        DrawerOverlay.Visibility = Visibility.Visible;
         DrawerPanel.Visibility = Visibility.Visible;
         AnimateDrawer(open: true);
     }
@@ -600,16 +605,46 @@ public partial class TranscriptsPage : UserControl
                 return;
             }
 
+            var drawerAlreadyOpen = DrawerPanel.Visibility == Visibility.Visible;
+
             _isActiveRecordingDrawerOpen = false;
             ActiveRecordingDrawerContent.Visibility = Visibility.Collapsed;
             TranscriptDrawerContent.Visibility = Visibility.Visible;
 
-            _selectedTranscript = transcript;
-            _selectedListItem = item;
-            DisplayTranscript(transcript);
-            DrawerOverlay.Visibility = Visibility.Visible;
-            DrawerPanel.Visibility = Visibility.Visible;
-            AnimateDrawer(open: true);
+            if (drawerAlreadyOpen)
+            {
+                // Crossfade: fade out, swap content, fade in
+                var fadeOut = new DoubleAnimation
+                {
+                    To = 0,
+                    Duration = TimeSpan.FromMilliseconds(150),
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn },
+                };
+                fadeOut.Completed += (_, _) =>
+                {
+                    StopPlayback();
+                    _selectedTranscript = transcript;
+                    _selectedListItem = item;
+                    DisplayTranscript(transcript);
+
+                    var fadeIn = new DoubleAnimation
+                    {
+                        To = 1,
+                        Duration = TimeSpan.FromMilliseconds(150),
+                        EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
+                    };
+                    TranscriptDrawerContent.BeginAnimation(OpacityProperty, fadeIn);
+                };
+                TranscriptDrawerContent.BeginAnimation(OpacityProperty, fadeOut);
+            }
+            else
+            {
+                _selectedTranscript = transcript;
+                _selectedListItem = item;
+                DisplayTranscript(transcript);
+                DrawerPanel.Visibility = Visibility.Visible;
+                AnimateDrawer(open: true);
+            }
         }
         catch (Exception ex)
         {
@@ -632,7 +667,6 @@ public partial class TranscriptsPage : UserControl
         {
             anim.Completed += (_, _) =>
             {
-                DrawerOverlay.Visibility = Visibility.Collapsed;
                 DrawerPanel.Visibility = Visibility.Collapsed;
             };
         }
@@ -681,10 +715,6 @@ public partial class TranscriptsPage : UserControl
         CloseDrawer();
     }
 
-    private void DrawerOverlay_Click(object sender, MouseButtonEventArgs e)
-    {
-        CloseDrawer();
-    }
 
     // --- Transcript display ---
 
