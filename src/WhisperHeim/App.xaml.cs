@@ -188,6 +188,7 @@ public partial class App : Application
         // Create transcription queue service (replaces TranscriptionBusyService)
         var transcriptionQueueService = new TranscriptionQueueService(
             callTranscriptionPipeline,
+            fileTranscriptionService,
             transcriptStorageService,
             () => _settingsService!.Current.General.DefaultSpeakerName);
 

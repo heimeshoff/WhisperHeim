@@ -36,7 +36,8 @@ internal static class SilenceChunker
 
     /// <summary>
     /// Splits audio samples into chunks at silence boundaries.
-    /// If the audio is shorter than MaxChunkSeconds, returns a single chunk.
+    /// Always splits at silence boundaries to avoid ASR models stopping
+    /// at silence gaps mid-audio (Parakeet TDT treats silence as end-of-utterance).
     /// </summary>
     /// <param name="samples">Float32 PCM samples.</param>
     /// <param name="sampleRate">Sample rate in Hz.</param>
@@ -45,8 +46,8 @@ internal static class SilenceChunker
     {
         double totalDuration = (double)samples.Length / sampleRate;
 
-        // No need to chunk short audio
-        if (totalDuration <= MaxChunkSeconds)
+        // Very short audio (< 2s) doesn't need chunking
+        if (totalDuration <= 2.0)
         {
             return [samples];
         }
@@ -116,12 +117,15 @@ internal static class SilenceChunker
     }
 
     /// <summary>
-    /// Selects the best split points from silence regions, targeting chunks of MaxChunkSeconds.
+    /// Selects split points from silence regions. Splits at every silence region
+    /// to ensure each chunk contains continuous speech (Parakeet TDT treats
+    /// silence as end-of-utterance and stops transcribing).
+    /// Enforces MaxChunkSeconds as an upper bound per chunk.
     /// </summary>
     private static List<int> SelectSplitPoints(
         List<(int Start, int End)> silenceRegions, int totalSamples, int sampleRate)
     {
-        int maxChunkSamples = (int)(MaxChunkSeconds * sampleRate);
+        int minChunkSamples = (int)(MinChunkSeconds * sampleRate);
         var splitPoints = new List<int>();
         int lastSplit = 0;
 
@@ -130,7 +134,8 @@ internal static class SilenceChunker
             int midpoint = (start + end) / 2;
             int chunkLength = midpoint - lastSplit;
 
-            if (chunkLength >= maxChunkSamples)
+            // Only split if the resulting chunk is at least MinChunkSeconds
+            if (chunkLength >= minChunkSamples)
             {
                 splitPoints.Add(midpoint);
                 lastSplit = midpoint;

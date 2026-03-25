@@ -2,6 +2,15 @@
 
 ---
 
+## 2026-03-25 18:30 -- Idea Captured: Drawer -- Remove Overlay, Crossfade Between Recordings
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/080-drawer-no-overlay-crossfade.md
+**Summary:** Remove the dark overlay behind the detail drawer (drop shadow is sufficient), enable clicking other recordings to crossfade drawer content in-place, close only via close button or Escape key.
+
+---
+
 ## 2026-03-25 16:45 -- Task Completed: 079 - Fix Speaker Assignment UI
 
 **Type:** Task Completion

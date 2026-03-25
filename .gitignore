@@ -15,6 +15,7 @@ x64/
 x86/
 [Bb]uild/
 bld/
+publish/
 
 ## NuGet
 **/[Pp]ackages/*

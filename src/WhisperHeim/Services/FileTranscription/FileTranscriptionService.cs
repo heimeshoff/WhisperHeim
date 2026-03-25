@@ -70,8 +70,14 @@ public sealed class FileTranscriptionService : IFileTranscriptionService
 
         // Decode audio to 16kHz mono float32 PCM
         cancellationToken.ThrowIfCancellationRequested();
+        Trace.TraceInformation(
+            "[FileTranscriptionService] Decoding audio file '{0}'...",
+            Path.GetFileName(filePath));
         var (samples, sampleRate) = await Task.Run(
-            () => AudioFileDecoder.Decode(filePath), cancellationToken);
+            () => AudioFileDecoder.Decode(filePath, cancellationToken), cancellationToken);
+        Trace.TraceInformation(
+            "[FileTranscriptionService] Decoded '{0}': {1} samples",
+            Path.GetFileName(filePath), samples.Length);
 
         if (samples.Length == 0)
         {

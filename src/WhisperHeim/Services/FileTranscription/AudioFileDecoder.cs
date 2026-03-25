@@ -24,7 +24,7 @@ internal static class AudioFileDecoder
     /// <param name="filePath">Path to the audio file.</param>
     /// <returns>Tuple of (samples, sampleRate).</returns>
     /// <exception cref="InvalidOperationException">If the file cannot be decoded.</exception>
-    public static (float[] Samples, int SampleRate) Decode(string filePath)
+    public static (float[] Samples, int SampleRate) Decode(string filePath, CancellationToken cancellationToken = default)
     {
         var extension = Path.GetExtension(filePath).ToLowerInvariant();
 
@@ -35,7 +35,7 @@ internal static class AudioFileDecoder
                 ".wav" => DecodeWav(filePath),
                 ".mp3" => DecodeWithMediaFoundation(filePath),
                 ".m4a" => DecodeWithMediaFoundation(filePath),
-                ".ogg" => DecodeOgg(filePath),
+                ".ogg" => DecodeOgg(filePath, cancellationToken),
                 _ => throw new NotSupportedException(
                     $"Audio format '{extension}' is not supported. Supported formats: .wav, .mp3, .m4a, .ogg")
             };
@@ -68,26 +68,122 @@ internal static class AudioFileDecoder
         }
     }
 
-    private static (float[] Samples, int SampleRate) DecodeOgg(string filePath)
+    private static (float[] Samples, int SampleRate) DecodeOgg(string filePath, CancellationToken cancellationToken = default)
     {
-        // Use Concentus managed Opus decoder — works without any Windows codec packs.
+        // Try ffmpeg first (most reliable for OGG/Opus), fall back to Concentus
+        try
+        {
+            var result = DecodeOggWithFfmpeg(filePath, cancellationToken);
+            if (result.Samples.Length > 0)
+                return result;
+        }
+        catch (Exception ex)
+        {
+            Trace.TraceWarning("[AudioFileDecoder] ffmpeg OGG decode failed, falling back to Concentus: {0}", ex.Message);
+        }
+
+        return DecodeOggWithConcentus(filePath, cancellationToken);
+    }
+
+    private static (float[] Samples, int SampleRate) DecodeOggWithFfmpeg(string filePath, CancellationToken cancellationToken)
+    {
+        // Decode to 16kHz mono 16-bit PCM via ffmpeg
+        var tempFile = Path.GetTempFileName();
+        try
+        {
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "ffmpeg",
+                Arguments = $"-i \"{filePath}\" -ar {TargetSampleRate} -ac {TargetChannels} -f s16le -y \"{tempFile}\"",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardError = true,
+            };
+
+            using var process = System.Diagnostics.Process.Start(psi)
+                ?? throw new InvalidOperationException("Failed to start ffmpeg");
+
+            // Register cancellation to kill the process
+            using var reg = cancellationToken.Register(() =>
+            {
+                try { process.Kill(); } catch { /* ignore */ }
+            });
+
+            process.WaitForExit(60_000); // 60 second timeout
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (!process.HasExited)
+            {
+                process.Kill();
+                throw new TimeoutException("ffmpeg timed out decoding OGG file");
+            }
+
+            if (process.ExitCode != 0)
+            {
+                var stderr = process.StandardError.ReadToEnd();
+                throw new InvalidOperationException($"ffmpeg exited with code {process.ExitCode}: {stderr}");
+            }
+
+            // Read raw PCM bytes and convert to float32
+            var rawBytes = File.ReadAllBytes(tempFile);
+            int sampleCount = rawBytes.Length / 2;
+            var samples = new float[sampleCount];
+            for (int i = 0; i < sampleCount; i++)
+            {
+                short sample = BitConverter.ToInt16(rawBytes, i * 2);
+                samples[i] = sample / 32768f;
+            }
+
+            Trace.TraceInformation(
+                "[AudioFileDecoder] Decoded OGG/Opus via ffmpeg: {0} samples ({1:F2}s) at {2}Hz",
+                samples.Length, (double)samples.Length / TargetSampleRate, TargetSampleRate);
+
+            return (samples, TargetSampleRate);
+        }
+        finally
+        {
+            try { File.Delete(tempFile); } catch { /* ignore */ }
+        }
+    }
+
+    private static (float[] Samples, int SampleRate) DecodeOggWithConcentus(string filePath, CancellationToken cancellationToken)
+    {
+        // Fallback: Concentus managed Opus decoder
         using var fileStream = File.OpenRead(filePath);
-        var decoder = OpusCodecFactory.CreateDecoder(48000, 1); // Opus standard: 48kHz
+        var fileLength = fileStream.Length;
+        var decoder = OpusCodecFactory.CreateDecoder(48000, 1);
         var oggReader = new OpusOggReadStream(decoder, fileStream);
 
         var allSamples = new List<short>();
+        int consecutiveNulls = 0;
         while (oggReader.HasNextPacket)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             var packet = oggReader.DecodeNextPacket();
-            if (packet != null)
+            if (packet != null && packet.Length > 0)
+            {
                 allSamples.AddRange(packet);
+                consecutiveNulls = 0;
+            }
+            else
+            {
+                consecutiveNulls++;
+                // Concentus bug: HasNextPacket returns true forever after EOF
+                if (consecutiveNulls >= 100 && fileStream.Position >= fileLength)
+                {
+                    Trace.TraceInformation(
+                        "[AudioFileDecoder] OGG stream ended (EOF + null packets). Total: {0} samples.",
+                        allSamples.Count);
+                    break;
+                }
+            }
         }
 
         if (allSamples.Count == 0)
             return (Array.Empty<float>(), TargetSampleRate);
 
-        // Downsample from 48kHz to 16kHz (factor of 3) and convert to float32
-        int ratio = 48000 / TargetSampleRate; // 3
+        int ratio = 48000 / TargetSampleRate;
         int outputLength = allSamples.Count / ratio;
         var samples = new float[outputLength];
         for (int i = 0; i < outputLength; i++)
@@ -96,10 +192,8 @@ internal static class AudioFileDecoder
         }
 
         Trace.TraceInformation(
-            "[AudioFileDecoder] Decoded OGG/Opus: {0} samples ({1:F2}s) at {2}Hz",
-            samples.Length,
-            (double)samples.Length / TargetSampleRate,
-            TargetSampleRate);
+            "[AudioFileDecoder] Decoded OGG/Opus via Concentus: {0} samples ({1:F2}s) at {2}Hz",
+            samples.Length, (double)samples.Length / TargetSampleRate, TargetSampleRate);
 
         return (samples, TargetSampleRate);
     }

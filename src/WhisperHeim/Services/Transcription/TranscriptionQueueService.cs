@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using WhisperHeim.Services.CallTranscription;
+using WhisperHeim.Services.FileTranscription;
 using WhisperHeim.Services.Recording;
 
 namespace WhisperHeim.Services.Transcription;
@@ -23,6 +24,15 @@ public enum QueueItemStage
 }
 
 /// <summary>
+/// Whether the queue item is a call recording or a file transcription.
+/// </summary>
+public enum QueueItemType
+{
+    Recording,
+    File,
+}
+
+/// <summary>
 /// A single item in the transcription queue.
 /// </summary>
 public sealed class TranscriptionQueueItem : INotifyPropertyChanged
@@ -33,6 +43,7 @@ public sealed class TranscriptionQueueItem : INotifyPropertyChanged
     private string _stageDescription = string.Empty;
     private string? _errorMessage;
     private DateTimeOffset? _completedAt;
+    private string _resultText = string.Empty;
 
     public TranscriptionQueueItem(
         string title,
@@ -40,13 +51,27 @@ public sealed class TranscriptionQueueItem : INotifyPropertyChanged
     {
         Id = Guid.NewGuid();
         Title = title;
+        ItemType = QueueItemType.Recording;
         Session = session;
+        EnqueuedAt = DateTimeOffset.Now;
+    }
+
+    public TranscriptionQueueItem(
+        string title,
+        string filePath)
+    {
+        Id = Guid.NewGuid();
+        Title = title;
+        ItemType = QueueItemType.File;
+        FilePath = filePath;
         EnqueuedAt = DateTimeOffset.Now;
     }
 
     public Guid Id { get; }
     public string Title { get; }
-    public CallRecordingSession Session { get; }
+    public QueueItemType ItemType { get; }
+    public CallRecordingSession? Session { get; }
+    public string? FilePath { get; }
     public DateTimeOffset EnqueuedAt { get; }
 
     public QueueItemStage Stage
@@ -85,6 +110,15 @@ public sealed class TranscriptionQueueItem : INotifyPropertyChanged
         set { if (_completedAt != value) { _completedAt = value; OnPropertyChanged(); } }
     }
 
+    /// <summary>
+    /// For file transcriptions: the resulting text after transcription completes.
+    /// </summary>
+    public string ResultText
+    {
+        get => _resultText;
+        set { if (_resultText != value) { _resultText = value; OnPropertyChanged(); } }
+    }
+
     public event PropertyChangedEventHandler? PropertyChanged;
 
     private void OnPropertyChanged([CallerMemberName] string? name = null)
@@ -99,13 +133,14 @@ public sealed class TranscriptionQueueItem : INotifyPropertyChanged
 public sealed class TranscriptionQueueService : INotifyPropertyChanged
 {
     private readonly ICallTranscriptionPipeline _pipeline;
+    private readonly IFileTranscriptionService _fileTranscriptionService;
     private readonly ITranscriptStorageService _transcriptStorage;
     private readonly Func<string> _getLocalSpeakerName;
     private TranscriptionQueueItem? _activeItem;
     private bool _isProcessing;
     private CancellationTokenSource? _activeCts;
 
-    // External acquire/release for non-queue callers (e.g. file transcription page)
+    // External acquire/release for non-queue callers
     private bool _externalBusy;
     private string _externalBusySource = string.Empty;
 
@@ -218,10 +253,12 @@ public sealed class TranscriptionQueueService : INotifyPropertyChanged
 
     public TranscriptionQueueService(
         ICallTranscriptionPipeline pipeline,
+        IFileTranscriptionService fileTranscriptionService,
         ITranscriptStorageService transcriptStorage,
         Func<string> getLocalSpeakerName)
     {
         _pipeline = pipeline;
+        _fileTranscriptionService = fileTranscriptionService;
         _transcriptStorage = transcriptStorage;
         _getLocalSpeakerName = getLocalSpeakerName;
     }
@@ -244,6 +281,28 @@ public sealed class TranscriptionQueueService : INotifyPropertyChanged
             title, Items.Count);
 
         ProcessNext();
+    }
+
+    /// <summary>
+    /// Enqueues an audio file for transcription.
+    /// Returns the queue item so the caller can track its progress.
+    /// </summary>
+    public TranscriptionQueueItem EnqueueFile(string filePath)
+    {
+        var title = System.IO.Path.GetFileName(filePath);
+        var item = new TranscriptionQueueItem(title, filePath);
+        DispatcherInvoke(() =>
+        {
+            Items.Add(item);
+            OnPropertyChanged(nameof(StatusText));
+        });
+
+        Trace.TraceInformation(
+            "[TranscriptionQueue] Enqueued file '{0}'. Queue depth: {1}",
+            title, Items.Count);
+
+        ProcessNext();
+        return item;
     }
 
     /// <summary>
@@ -289,7 +348,10 @@ public sealed class TranscriptionQueueService : INotifyPropertyChanged
         DispatcherInvoke(() => Items.Remove(item));
 
         // Create a fresh item for the retry
-        Enqueue(item.Title, item.Session);
+        if (item.ItemType == QueueItemType.File && item.FilePath is not null)
+            EnqueueFile(item.FilePath);
+        else if (item.Session is not null)
+            Enqueue(item.Title, item.Session);
         Trace.TraceInformation("[TranscriptionQueue] Retrying '{0}'.", item.Title);
     }
 
@@ -310,12 +372,23 @@ public sealed class TranscriptionQueueService : INotifyPropertyChanged
 
     private async void ProcessNext()
     {
-        if (_isProcessing)
-            return;
+        lock (this)
+        {
+            if (_isProcessing)
+            {
+                Trace.TraceInformation("[TranscriptionQueue] ProcessNext skipped: already processing.");
+                return;
+            }
 
-        // Don't start queue processing if an external caller has the lock
-        if (_externalBusy)
-            return;
+            // Don't start queue processing if an external caller has the lock
+            if (_externalBusy)
+            {
+                Trace.TraceInformation("[TranscriptionQueue] ProcessNext skipped: external busy ({0}).", _externalBusySource);
+                return;
+            }
+
+            _isProcessing = true;
+        }
 
         // Find the next queued item
         TranscriptionQueueItem? next = null;
@@ -332,9 +405,11 @@ public sealed class TranscriptionQueueService : INotifyPropertyChanged
         });
 
         if (next is null)
+        {
+            _isProcessing = false;
             return;
+        }
 
-        _isProcessing = true;
         ActiveItem = next;
 
         while (next is not null)
@@ -365,19 +440,7 @@ public sealed class TranscriptionQueueService : INotifyPropertyChanged
     {
         _activeCts = new CancellationTokenSource();
 
-        var progress = new Progress<TranscriptionPipelineProgress>(p =>
-        {
-            DispatcherInvoke(() =>
-            {
-                item.Stage = MapStage(p.Stage);
-                item.StagePercent = p.StagePercent;
-                item.OverallPercent = p.OverallPercent;
-                item.StageDescription = p.Description;
-                OnPropertyChanged(nameof(StatusText));
-            });
-        });
-
-        Trace.TraceInformation("[TranscriptionQueue] Processing '{0}'.", item.Title);
+        Trace.TraceInformation("[TranscriptionQueue] Processing '{0}' (type={1}).", item.Title, item.ItemType);
 
         try
         {
@@ -387,20 +450,23 @@ public sealed class TranscriptionQueueService : INotifyPropertyChanged
                 item.StageDescription = "Starting...";
             });
 
-            var localSpeakerName = _getLocalSpeakerName();
-            var remoteSpeakerNames = item.Session.RemoteSpeakerNames;
+            if (item.ItemType == QueueItemType.File)
+            {
+                await ProcessFileItem(item);
+            }
+            else
+            {
+                await ProcessRecordingItem(item);
+            }
 
-            await Task.Run(async () =>
-                await _pipeline.ProcessAsync(
-                    item.Session, remoteSpeakerNames, localSpeakerName,
-                    progress, _activeCts.Token));
-
+            Trace.TraceInformation("[TranscriptionQueue] Setting stage to Completed for '{0}'.", item.Title);
             DispatcherInvoke(() =>
             {
                 item.Stage = QueueItemStage.Completed;
                 item.OverallPercent = 100;
                 item.StageDescription = "Complete";
                 item.CompletedAt = DateTimeOffset.Now;
+                Trace.TraceInformation("[TranscriptionQueue] Stage set to Completed on UI thread for '{0}'. Stage={1}", item.Title, item.Stage);
             });
 
             Trace.TraceInformation("[TranscriptionQueue] Completed '{0}'.", item.Title);
@@ -437,6 +503,69 @@ public sealed class TranscriptionQueueService : INotifyPropertyChanged
             _activeCts.Dispose();
             _activeCts = null;
         }
+    }
+
+    private async Task ProcessRecordingItem(TranscriptionQueueItem item)
+    {
+        var progress = new Progress<TranscriptionPipelineProgress>(p =>
+        {
+            DispatcherInvoke(() =>
+            {
+                if (item.Stage is QueueItemStage.Completed or QueueItemStage.Failed)
+                    return;
+                item.Stage = MapStage(p.Stage);
+                item.StagePercent = p.StagePercent;
+                item.OverallPercent = p.OverallPercent;
+                item.StageDescription = p.Description;
+                OnPropertyChanged(nameof(StatusText));
+            });
+        });
+
+        var localSpeakerName = _getLocalSpeakerName();
+        var remoteSpeakerNames = item.Session!.RemoteSpeakerNames;
+
+        await Task.Run(async () =>
+            await _pipeline.ProcessAsync(
+                item.Session, remoteSpeakerNames, localSpeakerName,
+                progress, _activeCts!.Token));
+    }
+
+    private async Task ProcessFileItem(TranscriptionQueueItem item)
+    {
+        Trace.TraceInformation("[TranscriptionQueue] ProcessFileItem starting for '{0}'.", item.FilePath);
+
+        var token = _activeCts!.Token;
+        var result = await Task.Run(async () =>
+        {
+            // Progress callback that marshals to UI thread (non-blocking).
+            // Guard: don't overwrite terminal stages (Completed/Failed) with stale progress.
+            var progress = new Progress<double>(p =>
+            {
+                Application.Current?.Dispatcher?.BeginInvoke(() =>
+                {
+                    if (item.Stage is QueueItemStage.Completed or QueueItemStage.Failed)
+                        return;
+                    item.Stage = QueueItemStage.Transcribing;
+                    item.StagePercent = p * 100;
+                    item.OverallPercent = p * 100;
+                    item.StageDescription = $"Transcribing ({(int)(p * 100)}%)";
+                    OnPropertyChanged(nameof(StatusText));
+                });
+            });
+
+            return await _fileTranscriptionService.TranscribeFileAsync(
+                item.FilePath!, progress, token);
+        }, token);
+
+        Trace.TraceInformation("[TranscriptionQueue] ProcessFileItem completed for '{0}': {1} chars.",
+            item.FilePath, result.Text?.Length ?? 0);
+
+        DispatcherInvoke(() =>
+        {
+            item.ResultText = string.IsNullOrWhiteSpace(result.Text)
+                ? "(No speech detected)"
+                : result.Text;
+        });
     }
 
     private static QueueItemStage MapStage(PipelineStage stage) => stage switch

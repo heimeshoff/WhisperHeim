@@ -20,7 +20,6 @@ public partial class TranscribeFilesPage : UserControl
     private readonly IFileTranscriptionService _fileTranscriptionService;
     private readonly TranscriptionQueueService _busyService;
     private readonly TranscribeFilesViewModel _viewModel = new();
-    private CancellationTokenSource? _cts;
     private bool _isDragOver;
 
     public TranscribeFilesPage(
@@ -32,33 +31,8 @@ public partial class TranscribeFilesPage : UserControl
         DataContext = _viewModel;
         InitializeComponent();
 
-        // Bind to busy service changes to update UI
-        _busyService.PropertyChanged += (_, args) =>
-        {
-            if (args.PropertyName == nameof(TranscriptionQueueService.ActiveItem))
-            {
-                Dispatcher.BeginInvoke(UpdateBusyState);
-            }
-        };
-    }
-
-    /// <summary>
-    /// Updates the drop zone and pick button to reflect the engine busy state.
-    /// </summary>
-    private void UpdateBusyState()
-    {
-        bool isBusy = _busyService.IsBusy;
-        PickFilesButton.IsEnabled = !isBusy;
-        AllowDrop = !isBusy;
-
-        if (isBusy)
-        {
-            BusyOverlay.Visibility = Visibility.Visible;
-        }
-        else
-        {
-            BusyOverlay.Visibility = Visibility.Collapsed;
-        }
+        // Hide the busy overlay — files now go through the queue
+        BusyOverlay.Visibility = Visibility.Collapsed;
     }
 
     /// <summary>
@@ -182,21 +156,7 @@ public partial class TranscribeFilesPage : UserControl
         }
     }
 
-    private async void ProcessFiles(string[] filePaths)
-    {
-        try
-        {
-            await ProcessFilesCore(filePaths);
-        }
-        catch (Exception ex)
-        {
-            // Safety net: prevent any exception from escaping async void
-            // and reaching the global DispatcherUnhandledException handler.
-            Trace.TraceError("[TranscribeFilesPage] Unexpected error in ProcessFiles: {0}", ex);
-        }
-    }
-
-    private async Task ProcessFilesCore(string[] filePaths)
+    private void ProcessFiles(string[] filePaths)
     {
         // Filter to supported files
         var supportedFiles = filePaths
@@ -204,95 +164,71 @@ public partial class TranscribeFilesPage : UserControl
             .ToList();
 
         if (supportedFiles.Count == 0)
-        {
             return;
-        }
 
-        // Check engine availability before starting
-        if (_busyService.IsBusy)
-        {
-            Trace.TraceWarning(
-                "[TranscribeFilesPage] Engine busy ('{0}'), cannot start file transcription.",
-                _busyService.BusySource);
-            return;
-        }
-
-        // Create view models for each file
-        var newItems = new List<TranscriptionItemViewModel>();
+        // Enqueue each file into the transcription queue
         foreach (var filePath in supportedFiles)
         {
-            var item = new TranscriptionItemViewModel(filePath);
-            _viewModel.Items.Add(item);
-            newItems.Add(item);
-        }
+            var viewModel = new TranscriptionItemViewModel(filePath);
+            _viewModel.Items.Add(viewModel);
 
-        // Cancel any previous batch
-        _cts?.Cancel();
-        _cts = new CancellationTokenSource();
-        var token = _cts.Token;
+            var queueItem = _busyService.EnqueueFile(filePath);
 
-        // Acquire the engine for the entire batch
-        if (!_busyService.TryAcquire("File transcription"))
-        {
-            foreach (var item in newItems)
+            // Track queue item progress → update the page view model
+            queueItem.PropertyChanged += (_, args) =>
             {
-                item.StatusText = "Engine busy";
-                item.ErrorText = "The transcription engine is currently in use. Please try again when the active transcription completes.";
-                item.HasError = true;
-            }
-            return;
-        }
-
-        try
-        {
-            // Transcribe sequentially
-            foreach (var item in newItems)
-            {
-                if (token.IsCancellationRequested) break;
-
-                item.StatusText = "Transcribing...";
-                item.IsTranscribing = true;
-
-                var progress = new Progress<double>(p =>
+                Dispatcher.BeginInvoke(() =>
                 {
-                    item.Progress = p * 100;
+                    switch (args.PropertyName)
+                    {
+                        case nameof(TranscriptionQueueItem.Stage):
+                            viewModel.IsTranscribing = queueItem.Stage is QueueItemStage.Loading
+                                or QueueItemStage.Transcribing
+                                or QueueItemStage.Diarizing
+                                or QueueItemStage.Assembling;
+                            viewModel.StatusText = queueItem.Stage switch
+                            {
+                                QueueItemStage.Queued => "Queued",
+                                QueueItemStage.Loading => "Loading...",
+                                QueueItemStage.Transcribing => "Transcribing...",
+                                QueueItemStage.Completed => "Done",
+                                QueueItemStage.Failed => "Error",
+                                _ => queueItem.Stage.ToString(),
+                            };
+                            if (queueItem.Stage == QueueItemStage.Completed)
+                            {
+                                viewModel.IsTranscribing = false;
+                                viewModel.Progress = 100;
+                                // Pick up result text if not already set
+                                if (!viewModel.HasResult && !string.IsNullOrEmpty(queueItem.ResultText))
+                                {
+                                    viewModel.TranscriptText = queueItem.ResultText;
+                                    viewModel.HasResult = true;
+                                }
+                            }
+                            else if (queueItem.Stage == QueueItemStage.Failed)
+                            {
+                                viewModel.ErrorText = queueItem.ErrorMessage ?? "Transcription failed";
+                                viewModel.HasError = true;
+                                viewModel.IsTranscribing = false;
+                                viewModel.Progress = 0;
+                            }
+                            break;
+
+                        case nameof(TranscriptionQueueItem.OverallPercent):
+                            viewModel.Progress = queueItem.OverallPercent;
+                            break;
+
+                        case nameof(TranscriptionQueueItem.ResultText):
+                            if (!string.IsNullOrEmpty(queueItem.ResultText))
+                            {
+                                viewModel.TranscriptText = queueItem.ResultText;
+                                viewModel.HasResult = true;
+                            }
+                            break;
+                    }
                 });
-
-                try
-                {
-                    var result = await _fileTranscriptionService.TranscribeFileAsync(
-                        item.FilePath, progress, token);
-
-                    item.TranscriptText = string.IsNullOrWhiteSpace(result.Text)
-                        ? "(No speech detected)"
-                        : result.Text;
-                    item.DurationText = $"Audio: {result.AudioDuration:mm\\:ss} | Transcribed in {result.TranscriptionDuration:mm\\:ss}";
-                    item.StatusText = "Done";
-                    item.HasResult = true;
-                }
-                catch (OperationCanceledException)
-                {
-                    item.StatusText = "Cancelled";
-                    break;
-                }
-                catch (Exception ex)
-                {
-                    item.ErrorText = ex.Message;
-                    item.HasError = true;
-                    item.StatusText = "Error";
-                    Trace.TraceError("[TranscribeFilesPage] Transcription failed for '{0}': {1}",
-                        item.FileName, ex);
-                }
-                finally
-                {
-                    item.IsTranscribing = false;
-                    item.Progress = 0;
-                }
-            }
-        }
-        finally
-        {
-            _busyService.Release();
+            };
         }
     }
 }

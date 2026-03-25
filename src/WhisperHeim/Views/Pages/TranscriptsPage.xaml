@@ -229,6 +229,46 @@
                         </Grid>
                     </Border>
 
+                    <!-- Transcribing section (only visible when queue is actively processing) -->
+                    <StackPanel x:Name="TranscribingSection" Visibility="Collapsed">
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,4">
+                            <TextBlock Text="TRANSCRIBING" Style="{StaticResource SectionLabel}" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <ItemsControl x:Name="TranscribingList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Padding="12,10" Margin="0,1,0,1"
+                                            CornerRadius="6"
+                                            Background="#1825abfe">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="160" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                                <Ellipse Width="8" Height="8" Fill="#FF25abfe"
+                                                         VerticalAlignment="Center" Margin="0,0,8,0" />
+                                                <TextBlock Text="{Binding Name}"
+                                                           FontWeight="SemiBold"
+                                                           FontSize="13"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           TextWrapping="NoWrap"
+                                                           VerticalAlignment="Center"
+                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding Detail}"
+                                                       FontSize="11"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="#FF25abfe" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
                     <!-- Pending recordings section -->
                     <StackPanel x:Name="PendingSection" Visibility="Collapsed">
                         <ToggleButton IsChecked="True"
@@ -256,21 +296,14 @@
                                                 <ColumnDefinition Width="160" />
                                                 <ColumnDefinition Width="120" />
                                             </Grid.ColumnDefinitions>
-                                            <StackPanel Grid.Column="0" Orientation="Horizontal">
-                                                <TextBlock Text="{Binding Name}"
-                                                           FontWeight="SemiBold"
-                                                           FontSize="13"
-                                                           TextTrimming="CharacterEllipsis"
-                                                           TextWrapping="NoWrap"
-                                                           VerticalAlignment="Center"
-                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                                                <Border CornerRadius="4" Padding="6,2" Margin="8,0,0,0"
-                                                        Background="#33FF8C00" VerticalAlignment="Center">
-                                                    <TextBlock Text="PENDING"
-                                                               FontSize="8" FontWeight="Bold"
-                                                               Foreground="#FFFF8C00" />
-                                                </Border>
-                                            </StackPanel>
+                                            <TextBlock Grid.Column="0"
+                                                       Text="{Binding Name}"
+                                                       FontWeight="SemiBold"
+                                                       FontSize="13"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       TextWrapping="NoWrap"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                                             <TextBlock Grid.Column="1"
                                                        Text="{Binding Detail}"
                                                        FontSize="11"

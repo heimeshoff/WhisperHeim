@@ -351,17 +351,28 @@ public partial class TranscriptsPage : UserControl
         if (_storageService is not TranscriptStorageService concreteStorage)
         {
             PendingSection.Visibility = Visibility.Collapsed;
+            TranscribingSection.Visibility = Visibility.Collapsed;
             return;
         }
 
         var pendingDirs = concreteStorage.ListPendingSessions();
-        if (pendingDirs.Count == 0)
+
+        // Separate currently-transcribing items from truly pending ones
+        var transcribingItems = new List<PendingRecordingItem>();
+        var pendingItems = new List<PendingRecordingItem>();
+
+        // Also check queued items in the queue service
+        var queuedSessionDirs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var qItem in _queueService.Items)
         {
-            PendingSection.Visibility = Visibility.Collapsed;
-            return;
+            if (qItem.Session is not null)
+            {
+                var sessionDir = Path.GetDirectoryName(qItem.Session.MicWavFilePath);
+                if (sessionDir is not null)
+                    queuedSessionDirs.Add(Path.GetFullPath(sessionDir));
+            }
         }
 
-        var items = new List<PendingRecordingItem>();
         foreach (var dir in pendingDirs)
         {
             var dirName = Path.GetFileName(dir);
@@ -369,6 +380,7 @@ public partial class TranscriptsPage : UserControl
                 string.Equals(Path.GetFullPath(dir),
                     Path.GetFullPath(_currentlyTranscribingSessionDir),
                     StringComparison.OrdinalIgnoreCase);
+            var isQueued = queuedSessionDirs.Contains(Path.GetFullPath(dir));
 
             string name;
             if (dirName.Length >= 15 &&
@@ -386,20 +398,49 @@ public partial class TranscriptsPage : UserControl
                 name = dirName;
             }
 
-            var wavFiles = Directory.GetFiles(dir, "*.wav");
-            bool isEngineBusy = _queueService.IsBusy && !isCurrentlyTranscribing;
-            var detail = isCurrentlyTranscribing
-                ? "Transcribing..."
-                : isEngineBusy
-                    ? "Engine busy"
-                    : $"{wavFiles.Length} audio file{(wavFiles.Length != 1 ? "s" : "")}";
-
-            items.Add(new PendingRecordingItem(dir, name, detail, isCurrentlyTranscribing || isEngineBusy));
+            if (isCurrentlyTranscribing)
+            {
+                var activeItem = _queueService.ActiveItem;
+                var stageText = activeItem is not null
+                    ? $"{activeItem.Stage} ({activeItem.OverallPercent}%)"
+                    : "Transcribing...";
+                transcribingItems.Add(new PendingRecordingItem(dir, name, stageText, true));
+            }
+            else if (isQueued)
+            {
+                // Already in queue — show as "Queued" but don't allow re-clicking
+                transcribingItems.Add(new PendingRecordingItem(dir, name, "Queued", true));
+            }
+            else
+            {
+                var wavFiles = Directory.GetFiles(dir, "*.wav");
+                var detail = $"{wavFiles.Length} audio file{(wavFiles.Length != 1 ? "s" : "")}";
+                pendingItems.Add(new PendingRecordingItem(dir, name, detail, false));
+            }
         }
 
-        PendingList.ItemsSource = items;
-        PendingCountText.Text = $"({items.Count})";
-        PendingSection.Visibility = Visibility.Visible;
+        // Transcribing section
+        if (transcribingItems.Count > 0)
+        {
+            TranscribingList.ItemsSource = transcribingItems;
+            TranscribingSection.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            TranscribingSection.Visibility = Visibility.Collapsed;
+        }
+
+        // Pending section
+        if (pendingItems.Count > 0)
+        {
+            PendingList.ItemsSource = pendingItems;
+            PendingCountText.Text = $"({pendingItems.Count})";
+            PendingSection.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            PendingSection.Visibility = Visibility.Collapsed;
+        }
     }
 
     private void ApplyFilter()
@@ -480,6 +521,7 @@ public partial class TranscriptsPage : UserControl
         if (sender is not FrameworkElement { DataContext: PendingRecordingItem item })
             return;
 
+        // Already transcribing or queued — don't re-enqueue
         if (item.IsTranscribing)
             return;
 
@@ -518,6 +560,9 @@ public partial class TranscriptsPage : UserControl
         session.EndTimestamp = new DateTimeOffset(lastWrite, TimeSpan.Zero);
 
         TranscriptionRequested?.Invoke(this, session);
+
+        // Refresh immediately so the item moves from Pending to Transcribing/Queued
+        LoadPendingSessions();
         e.Handled = true;
     }
 
