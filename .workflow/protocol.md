@@ -2,6 +2,15 @@
 
 ---
 
+## 2026-03-25 16:45 -- Task Completed: 079 - Fix Speaker Assignment UI
+
+**Type:** Task Completion
+**Task:** 079 - Fix Speaker Assignment UI
+**Summary:** Fixed ComboBox click event bubbling to audio playback handler. Added per-segment speaker reassignment with "Apply to all" bulk update prompt. Speaker name header editing propagates renames to all matching segments.
+**Files changed:** 2 files
+
+---
+
 ## 2026-03-25 16:30 -- Task Completed: 078 - Fix Temporal Ordering (clock drift)
 
 **Type:** Task Completion
