@@ -2,6 +2,45 @@
 
 ---
 
+## 2026-03-26 -- Task Completed: 086 - Transcripts column redesign
+
+**Type:** Task Completion
+**Task:** 086 - Transcripts list column redesign
+**Summary:** Renamed Duration→Time (HH:mm – Xh Ym format), Date→Speakers (comma-separated remote speaker names). Default sort now by start time. Search includes speaker names. Build and all 32 tests pass.
+**Files changed:** 2 files
+
+---
+
+## 2026-03-26 -- Task Started: 086 - Transcripts column redesign
+
+**Type:** Task Start
+**Task:** 086 - Transcripts list column redesign
+**Milestone:** --
+
+---
+
+## 2026-03-26 -- Idea Captured: Transcripts column redesign
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/086-transcripts-column-redesign.md
+**Summary:** Redesign transcripts list columns: rename Duration→Time (show start time + compact duration), rename Date→Speakers (show remote speaker names). Keep date grouping, sort by start time.
+
+---
+
+## 2026-03-26 -- Research: Legal Risks of Commercial Release
+
+**Type:** Research
+**Topic:** Legal liability for recording capability, voice cloning/TTS, and German/EU business requirements
+**File:** research/legal-risks-commercial-release.md
+**Key findings:**
+- Recording: developer NOT liable under Sony Betamax doctrine — user bears responsibility. Add consent disclaimers.
+- Voice cloning: EU AI Act requires machine-readable watermarking by August 2, 2026. German court (LG Berlin 2025) ruled AI voice clones violate personality rights. Tennessee ELVIS Act targets tool makers.
+- Form UG (haftungsbeschraenkt) before release — Product Liability Directive 2024/2853 makes software subject to strict liability from December 2026, "as-is" disclaimers void in Germany
+- Get IT-Haftpflichtversicherung (~300-600 EUR/year), use merchant of record for EU VAT
+
+---
+
 ## 2026-03-26 14:20 -- Task Completed: 085 - Template Grouping with Collapsible Sections
 
 **Type:** Task Completion

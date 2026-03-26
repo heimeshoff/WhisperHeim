@@ -32,9 +32,13 @@
 
 | 2026-03-25 | Transcription Engine Overhaul | [transcription-engine-overhaul.md](transcription-engine-overhaul.md) | For dual-stream calls, replace diarization with VAD-only per stream (mic="You", loopback="Remote"); fixes over-segmentation, ordering, and stability. Add transcription queue with bottom-bar UI. Apply linear drift correction for long recordings. |
 
+## Legal Risks of Commercial Release (2026-03-26)
+
+| 2026-03-26 | Legal Risks of Commercial Release | [legal-risks-commercial-release.md](legal-risks-commercial-release.md) | Recording: user liable, not developer (Sony Betamax); Voice cloning: EU AI Act requires watermarking by Aug 2026, German court ruled AI voice clones violate personality rights; Form UG before release; "as-is" void in Germany; Product Liability Directive covers software from Dec 2026 |
+
 ## Monetization & Marketing (2026-03-26)
 
-| 2026-03-26 | Monetization & Marketing | [monetization-and-marketing.md](monetization-and-marketing.md) | All dependencies allow commercial use; best model is freemium + one-time purchase (Open Core) like MacWhisper (~300K copies); privacy-as-architecture is the #1 differentiator; apply to NLNet grants; launch via Show HN + r/selfhosted + Product Hunt |
+| 2026-03-26 | Monetization & Marketing | [monetization-and-marketing.md](monetization-and-marketing.md) | Freemium + one-time purchase (proprietary); 2-3 month launch window; 6-phase sequence: relicense → license keys → landing page → content → feature split → launch (Show HN → PH → Reddit); all dependencies allow commercial use; privacy-as-architecture is #1 differentiator |
 
 ## UI Framework (2026-03-21)
 

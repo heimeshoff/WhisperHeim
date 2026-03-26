@@ -248,15 +248,15 @@
                     <TextBlock x:Name="TitleSortHeader" Text="TITLE"
                                Style="{StaticResource SectionLabel}" />
                 </Button>
-                <Button Grid.Column="1" Tag="Duration" Click="ColumnHeader_Click"
+                <Button Grid.Column="1" Tag="Time" Click="ColumnHeader_Click"
                         Background="Transparent" BorderThickness="0" Padding="0" Cursor="Hand">
-                    <TextBlock x:Name="DurationSortHeader" Text="DURATION"
+                    <TextBlock x:Name="TimeSortHeader" Text="TIME &#x2193;"
                                Style="{StaticResource SectionLabel}" />
                 </Button>
-                <Button Grid.Column="2" Tag="Date" Click="ColumnHeader_Click"
+                <Button Grid.Column="2" Tag="Speakers" Click="ColumnHeader_Click"
                         Background="Transparent" BorderThickness="0" Padding="0" Cursor="Hand"
                         HorizontalAlignment="Right">
-                    <TextBlock x:Name="DateSortHeader" Text="DATE &#x2193;"
+                    <TextBlock x:Name="SpeakersSortHeader" Text="SPEAKERS"
                                Style="{StaticResource SectionLabel}" />
                 </Button>
             </Grid>
@@ -444,15 +444,17 @@
                                                                    VerticalAlignment="Center"
                                                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                                                         <TextBlock Grid.Column="1"
-                                                                   Text="{Binding DurationDisplay}"
+                                                                   Text="{Binding TimeDisplay}"
                                                                    FontSize="11"
                                                                    VerticalAlignment="Center"
                                                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                                                         <TextBlock Grid.Column="2"
-                                                                   Text="{Binding DateDisplay}"
+                                                                   Text="{Binding SpeakersDisplay}"
                                                                    FontSize="11"
                                                                    HorizontalAlignment="Right"
                                                                    VerticalAlignment="Center"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   TextWrapping="NoWrap"
                                                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                                                     </Grid>
                                                 </Button>
@@ -753,6 +755,7 @@
                                                  FontSize="12"
                                                  Padding="6,3"
                                                  BorderThickness="1"
+                                                 KeyDown="SpeakerNameList_KeyDown"
                                                  LostFocus="SpeakerName_LostFocus" />
                                     </DockPanel>
                                 </DataTemplate>

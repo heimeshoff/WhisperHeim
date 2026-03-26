@@ -43,8 +43,8 @@ public partial class TranscriptsPage : UserControl
     private string? _externalAudioPath; // Set when audio format isn't playable inline
 
     // Column sorting state
-    private string _sortColumn = "Date";
-    private bool _sortAscending = false; // Default: Date descending (newest first)
+    private string _sortColumn = "Time";
+    private bool _sortAscending = false; // Default: Time descending (newest first)
 
     // Active recording state
     private bool _isActiveRecordingDrawerOpen;
@@ -603,7 +603,8 @@ public partial class TranscriptsPage : UserControl
         {
             filtered = _allItems.Where(i =>
                 i.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
-                i.DateDisplay.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                i.SpeakersDisplay.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                i.TimeDisplay.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
                 i.PreviewText.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
                 i.FileName.Contains(searchText, StringComparison.OrdinalIgnoreCase));
         }
@@ -644,10 +645,10 @@ public partial class TranscriptsPage : UserControl
             "Title" => _sortAscending
                 ? items.OrderBy(i => i.Name, StringComparer.OrdinalIgnoreCase)
                 : items.OrderByDescending(i => i.Name, StringComparer.OrdinalIgnoreCase),
-            "Duration" => _sortAscending
-                ? items.OrderBy(i => i.ParsedDuration)
-                : items.OrderByDescending(i => i.ParsedDuration),
-            _ => _sortAscending // "Date"
+            "Speakers" => _sortAscending
+                ? items.OrderBy(i => i.SpeakersDisplay, StringComparer.OrdinalIgnoreCase)
+                : items.OrderByDescending(i => i.SpeakersDisplay, StringComparer.OrdinalIgnoreCase),
+            _ => _sortAscending // "Time" — sort by start time
                 ? items.OrderBy(i => i.ParsedDate ?? DateTime.MinValue)
                 : items.OrderByDescending(i => i.ParsedDate ?? DateTime.MinValue),
         };
@@ -676,8 +677,8 @@ public partial class TranscriptsPage : UserControl
     {
         var arrow = _sortAscending ? " \u2191" : " \u2193"; // ↑ or ↓
         TitleSortHeader.Text = "TITLE" + (_sortColumn == "Title" ? arrow : "");
-        DurationSortHeader.Text = "DURATION" + (_sortColumn == "Duration" ? arrow : "");
-        DateSortHeader.Text = "DATE" + (_sortColumn == "Date" ? arrow : "");
+        TimeSortHeader.Text = "TIME" + (_sortColumn == "Time" ? arrow : "");
+        SpeakersSortHeader.Text = "SPEAKERS" + (_sortColumn == "Speakers" ? arrow : "");
     }
 
     // --- Search ---
@@ -1042,7 +1043,7 @@ public partial class TranscriptsPage : UserControl
 
     private void DeleteTranscriptItem(TranscriptListItem item)
     {
-        var displayName = !string.IsNullOrEmpty(item.Name) ? item.Name : item.DateDisplay;
+        var displayName = !string.IsNullOrEmpty(item.Name) ? item.Name : item.FileName;
         var dialog = new WhisperHeim.Views.DeleteConfirmationDialog(displayName)
         {
             Owner = Window.GetWindow(this)
@@ -1410,7 +1411,7 @@ public partial class TranscriptsPage : UserControl
             return;
         }
 
-        _speakerNameItems = _selectedTranscript.RemoteSpeakerNames
+        _speakerNameItems = (_selectedTranscript.RemoteSpeakerNames ?? new List<string>())
             .Select(n => new SpeakerNameItem { Name = n })
             .ToList();
 
@@ -1436,6 +1437,19 @@ public partial class TranscriptsPage : UserControl
         SpeakerNamesList.ItemsSource = null;
         SpeakerNamesList.ItemsSource = _speakerNameItems;
         SaveSpeakerNames();
+    }
+
+    private void SpeakerNameList_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == System.Windows.Input.Key.Enter && sender is TextBox tb)
+        {
+            // Force the binding to update, then move focus away to trigger save
+            var binding = tb.GetBindingExpression(TextBox.TextProperty);
+            binding?.UpdateSource();
+            SaveSpeakerNames();
+            System.Windows.Input.Keyboard.ClearFocus();
+            e.Handled = true;
+        }
     }
 
     private void SpeakerName_LostFocus(object sender, RoutedEventArgs e)
@@ -1517,7 +1531,8 @@ public partial class TranscriptsPage : UserControl
         if (_selectedTranscript is null) return new();
 
         var names = new List<string>();
-        names.AddRange(_selectedTranscript.RemoteSpeakerNames.Where(n => !string.IsNullOrWhiteSpace(n)));
+        if (_selectedTranscript.RemoteSpeakerNames is not null)
+            names.AddRange(_selectedTranscript.RemoteSpeakerNames.Where(n => !string.IsNullOrWhiteSpace(n)));
 
         foreach (var mapped in _selectedTranscript.SpeakerNameMap.Values)
         {
@@ -1532,8 +1547,11 @@ public partial class TranscriptsPage : UserControl
     {
         if (_selectedTranscript is null) return;
 
-        var transcriptDir = _selectedTranscript.FilePath is not null
-            ? Path.GetDirectoryName(_selectedTranscript.FilePath)
+        // Capture transcript before CloseDrawer() nulls _selectedTranscript
+        var transcript = _selectedTranscript;
+
+        var transcriptDir = transcript.FilePath is not null
+            ? Path.GetDirectoryName(transcript.FilePath)
             : null;
 
         if (transcriptDir is null) return;
@@ -1559,11 +1577,11 @@ public partial class TranscriptsPage : UserControl
         // Delete existing transcript
         try
         {
-            if (_selectedTranscript.FilePath is not null && File.Exists(_selectedTranscript.FilePath))
+            if (transcript.FilePath is not null && File.Exists(transcript.FilePath))
             {
-                File.Delete(_selectedTranscript.FilePath);
+                File.Delete(transcript.FilePath);
                 Trace.TraceInformation("[TranscriptsPage] Deleted existing transcript for re-transcription: {0}",
-                    _selectedTranscript.FilePath);
+                    transcript.FilePath);
             }
         }
         catch (Exception ex)
@@ -1577,7 +1595,7 @@ public partial class TranscriptsPage : UserControl
         {
             // Re-transcribe an imported file
             // If multiple speakers are defined, use the call pipeline with diarization
-            var speakerNames = _selectedTranscript.RemoteSpeakerNames
+            var speakerNames = (transcript.RemoteSpeakerNames ?? new List<string>())
                 .Where(n => !string.IsNullOrWhiteSpace(n))
                 .ToList();
 
@@ -1587,8 +1605,8 @@ public partial class TranscriptsPage : UserControl
                 var session = new CallRecordingSession(
                     importedAudioFile, // mic = same file (no separate mic)
                     importedAudioFile, // system = the imported file
-                    _selectedTranscript.RecordingStartedUtc);
-                session.EndTimestamp = _selectedTranscript.RecordingEndedUtc;
+                    transcript.RecordingStartedUtc);
+                session.EndTimestamp = transcript.RecordingEndedUtc;
                 session.RemoteSpeakerNames = speakerNames;
 
                 ReTranscriptionRequested?.Invoke(this, session);
@@ -1597,7 +1615,7 @@ public partial class TranscriptsPage : UserControl
             {
                 // Single speaker: re-transcribe with flat pipeline
                 _queueService.EnqueueFileImport(
-                    _selectedTranscript.Name,
+                    transcript.Name,
                     importedAudioFile,
                     transcriptDir);
             }
@@ -1608,9 +1626,9 @@ public partial class TranscriptsPage : UserControl
             var session = new CallRecordingSession(
                 micPath,
                 File.Exists(systemPath) ? systemPath : micPath,
-                _selectedTranscript.RecordingStartedUtc);
-            session.EndTimestamp = _selectedTranscript.RecordingEndedUtc;
-            session.RemoteSpeakerNames = _selectedTranscript.RemoteSpeakerNames.ToList();
+                transcript.RecordingStartedUtc);
+            session.EndTimestamp = transcript.RecordingEndedUtc;
+            session.RemoteSpeakerNames = transcript.RemoteSpeakerNames?.ToList() ?? new List<string>();
 
             ReTranscriptionRequested?.Invoke(this, session);
         }
@@ -1872,7 +1890,24 @@ internal sealed class TranscriptListItem
                     : $"Call {transcript.RecordingStartedUtc.LocalDateTime:yyyy-MM-dd HH:mm}";
 
                 ParsedDuration = transcript.Duration;
-                DurationDisplay = $"{transcript.Duration:hh\\:mm\\:ss}";
+
+                // Build compact duration string: "1h 12m" or "45m" or "0m"
+                var totalMinutes = (int)transcript.Duration.TotalMinutes;
+                var hours = totalMinutes / 60;
+                var minutes = totalMinutes % 60;
+                var compactDuration = hours > 0 ? $"{hours}h {minutes}m" : $"{minutes}m";
+
+                // TimeDisplay: "HH:mm \u2013 Xh Ym" using the start time of day
+                if (date.HasValue)
+                    TimeDisplay = $"{date.Value:HH:mm} \u2013 {compactDuration}";
+                else
+                    TimeDisplay = compactDuration;
+
+                // SpeakersDisplay: comma-separated remote speaker names
+                SpeakersDisplay = transcript.RemoteSpeakerNames is not null
+                    ? string.Join(", ", transcript.RemoteSpeakerNames.Where(n => !string.IsNullOrWhiteSpace(n)))
+                    : "";
+
                 var firstSegment = transcript.Segments.FirstOrDefault();
                 PreviewText = firstSegment?.Text ?? "(empty)";
                 if (PreviewText.Length > 50)
@@ -1881,7 +1916,8 @@ internal sealed class TranscriptListItem
         }
         catch
         {
-            DurationDisplay = "";
+            TimeDisplay = "";
+            SpeakersDisplay = "";
             PreviewText = "(unable to read)";
         }
 
@@ -1889,13 +1925,11 @@ internal sealed class TranscriptListItem
         if (date.HasValue)
         {
             ParsedDate = date.Value;
-            DateDisplay = date.Value.ToString("MMM dd, yyyy HH:mm");
             GroupKey = date.Value.ToString("yyyy-MM-dd");
             GroupDisplayName = date.Value.ToString("MMMM dd, yyyy").ToUpperInvariant();
         }
         else
         {
-            DateDisplay = fileName;
             GroupKey = "unknown";
             GroupDisplayName = "OTHER";
         }
@@ -1904,8 +1938,8 @@ internal sealed class TranscriptListItem
     public string FilePath { get; }
     public string FileName { get; }
     public string Name { get; set; } = "";
-    public string DateDisplay { get; }
-    public string DurationDisplay { get; } = "";
+    public string TimeDisplay { get; } = "";
+    public string SpeakersDisplay { get; } = "";
     public string PreviewText { get; } = "";
     public DateTime? ParsedDate { get; }
     public TimeSpan ParsedDuration { get; }

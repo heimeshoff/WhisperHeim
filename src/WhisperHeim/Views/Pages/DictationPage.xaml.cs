@@ -1,5 +1,8 @@
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
@@ -23,6 +26,13 @@ public partial class DictationPage : UserControl
     private TemplateItem? _selectedTemplate;
     private int _selectedTemplateIndex = -1;
     private bool _isNewTemplateMode;
+    private string? _newTemplateTargetGroup;
+    private readonly List<TemplateGroupDisplayModel> _templateGroups = new();
+    private bool _allExpanded = true;
+
+    // Drag-and-drop state
+    private Point _dragStartPoint;
+    private object? _dragSource;
 
     /// <summary>
     /// Minimum width (in pixels) before switching to narrow/stacked layout.
@@ -42,6 +52,7 @@ public partial class DictationPage : UserControl
         _settingsService = settingsService;
         _audioCaptureService = audioCaptureService;
         _templateService = templateService;
+        _templateService.EnsureDefaults();
 
         InitializeComponent();
         PopulateMicrophoneList();
@@ -272,29 +283,64 @@ public partial class DictationPage : UserControl
     }
 
     // ────────────────────────────────────────────────
-    //  Templates
+    //  Templates (grouped)
     // ────────────────────────────────────────────────
 
     private void RefreshTemplateList()
     {
-        var templates = GetFilteredTemplates();
-        TemplateList.ItemsSource = null;
-        TemplateList.ItemsSource = templates;
-        TemplateEmptyState.Visibility = templates.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        var searchText = SearchBox?.Text?.Trim() ?? string.Empty;
+        var hasSearch = !string.IsNullOrEmpty(searchText);
+
+        var allTemplates = _templateService.GetTemplates();
+        var groups = _templateService.GetGroups();
+
+        _templateGroups.Clear();
+
+        foreach (var group in groups)
+        {
+            var groupName = group.Name;
+            var isUngrouped = groupName == TemplateService.UngroupedName;
+
+            var templates = allTemplates
+                .Select((t, i) => (Template: t, Index: i))
+                .Where(x => isUngrouped
+                    ? string.IsNullOrEmpty(x.Template.Group)
+                    : string.Equals(x.Template.Group, groupName, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            if (hasSearch)
+            {
+                templates = templates
+                    .Where(x => x.Template.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase)
+                        || x.Template.Text.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+                if (templates.Count == 0 && !groupName.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+                    continue;
+            }
+
+            var items = templates.Select(x => new TemplateDisplayItem(x.Template, x.Index)).ToList();
+            var isExpanded = hasSearch ? true : group.IsExpanded;
+
+            _templateGroups.Add(new TemplateGroupDisplayModel(
+                groupName, items, isExpanded, isUngrouped));
+        }
+
+        TemplateGroupList.ItemsSource = null;
+        TemplateGroupList.ItemsSource = _templateGroups;
+
+        var totalTemplates = _templateGroups.Sum(g => g.Items.Count);
+        TemplateEmptyState.Visibility = totalTemplates == 0 && !hasSearch
+            ? Visibility.Visible : Visibility.Collapsed;
+
+        UpdateExpandCollapseIcon();
     }
 
-    private IReadOnlyList<TemplateItem> GetFilteredTemplates()
+    private void UpdateExpandCollapseIcon()
     {
-        var searchText = SearchBox?.Text?.Trim() ?? string.Empty;
-        var templates = _templateService.GetTemplates();
-
-        if (string.IsNullOrEmpty(searchText))
-            return templates;
-
-        return templates
-            .Where(t => t.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase)
-                || t.Text.Contains(searchText, StringComparison.OrdinalIgnoreCase))
-            .ToList();
+        _allExpanded = _templateGroups.All(g => g.IsExpanded);
+        if (ExpandCollapseAllButton?.ToolTip is not null)
+            ExpandCollapseAllButton.ToolTip = _allExpanded ? "Collapse All" : "Expand All";
     }
 
     private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -302,33 +348,233 @@ public partial class DictationPage : UserControl
         RefreshTemplateList();
     }
 
-    private void TemplateRow_Click(object sender, RoutedEventArgs e)
+    // --- Expand/Collapse All ---
+
+    private void ExpandCollapseAll_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is not FrameworkElement element || element.DataContext is not TemplateItem item)
-            return;
-
-        var templates = _templateService.GetTemplates();
-        _selectedTemplateIndex = -1;
-        for (var i = 0; i < templates.Count; i++)
+        var newState = !_allExpanded;
+        foreach (var group in _templateGroups)
         {
-            if (ReferenceEquals(templates[i], item))
-            {
-                _selectedTemplateIndex = i;
-                break;
-            }
+            group.IsExpanded = newState;
+            _templateService.SetGroupExpanded(group.GroupName, newState);
         }
-
-        _selectedTemplate = item;
-        _isNewTemplateMode = false;
-        OpenDrawer(item.Name, item.Text, isNew: false);
+        _allExpanded = newState;
+        UpdateExpandCollapseIcon();
     }
 
-    private void AddNewButton_Click(object sender, RoutedEventArgs e)
+    // --- Group toggle ---
+
+    private void TemplateGroupToggle_Click(object sender, RoutedEventArgs e)
     {
+        if (sender is FrameworkElement { DataContext: TemplateGroupDisplayModel group })
+        {
+            group.OnPropertyChanged(nameof(TemplateGroupDisplayModel.ChevronText));
+            _templateService.SetGroupExpanded(group.GroupName, group.IsExpanded);
+            UpdateExpandCollapseIcon();
+        }
+    }
+
+    // --- Add Group ---
+
+    private void AddGroupButton_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new InputDialog("New Group", "Enter group name:")
+        {
+            Owner = Window.GetWindow(this)
+        };
+        dialog.ShowDialog();
+
+        if (!dialog.Confirmed || string.IsNullOrWhiteSpace(dialog.InputText))
+            return;
+
+        _templateService.AddGroup(dialog.InputText.Trim());
+        RefreshTemplateList();
+    }
+
+    // --- Delete Group ---
+
+    private void DeleteGroup_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { DataContext: TemplateGroupDisplayModel group })
+            return;
+
+        if (group.IsUngrouped) return;
+
+        var deleted = _templateService.RemoveGroup(group.GroupName);
+        if (deleted)
+            RefreshTemplateList();
+    }
+
+    // --- Add Template to Group ---
+
+    private void AddTemplateToGroup_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { DataContext: TemplateGroupDisplayModel group })
+            return;
+
         _selectedTemplate = null;
         _selectedTemplateIndex = -1;
         _isNewTemplateMode = true;
+        _newTemplateTargetGroup = group.IsUngrouped ? null : group.GroupName;
         OpenDrawer("", "", isNew: true);
+    }
+
+    // --- Inline rename (double-click group name) ---
+
+    private void GroupName_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ClickCount != 2) return;
+
+        if (sender is not FrameworkElement element || element.DataContext is not TemplateGroupDisplayModel group)
+            return;
+
+        if (group.IsUngrouped) return;
+
+        var dialog = new InputDialog("Rename Group", "Enter new group name:", group.GroupName)
+        {
+            Owner = Window.GetWindow(this)
+        };
+        dialog.ShowDialog();
+
+        if (!dialog.Confirmed || string.IsNullOrWhiteSpace(dialog.InputText))
+            return;
+
+        _templateService.RenameGroup(group.GroupName, dialog.InputText.Trim());
+        RefreshTemplateList();
+        e.Handled = true;
+    }
+
+    // --- Template row click ---
+
+    private void TemplateRow_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement element || element.DataContext is not TemplateDisplayItem displayItem)
+            return;
+
+        _selectedTemplateIndex = displayItem.OriginalIndex;
+        _selectedTemplate = displayItem.Template;
+        _isNewTemplateMode = false;
+        _newTemplateTargetGroup = null;
+        OpenDrawer(displayItem.Template.Name, displayItem.Template.Text, isNew: false);
+    }
+
+    // --- Drag-and-drop: Templates between groups ---
+
+    private void TemplateRow_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        _dragStartPoint = e.GetPosition(null);
+        _dragSource = sender;
+    }
+
+    private void TemplateRow_PreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        if (e.LeftButton != MouseButtonState.Pressed || _dragSource != sender)
+            return;
+
+        var pos = e.GetPosition(null);
+        var diff = _dragStartPoint - pos;
+
+        if (Math.Abs(diff.X) < SystemParameters.MinimumHorizontalDragDistance &&
+            Math.Abs(diff.Y) < SystemParameters.MinimumVerticalDragDistance)
+            return;
+
+        if (sender is not FrameworkElement element || element.DataContext is not TemplateDisplayItem item)
+            return;
+
+        var data = new DataObject("TemplateDisplayItem", item);
+        DragDrop.DoDragDrop(element, data, DragDropEffects.Move);
+        _dragSource = null;
+    }
+
+    private void GroupDrop_Handler(object sender, DragEventArgs e)
+    {
+        if (!e.Data.GetDataPresent("TemplateDisplayItem") && !e.Data.GetDataPresent("TemplateGroupDrag"))
+            return;
+
+        if (e.Data.GetDataPresent("TemplateDisplayItem"))
+        {
+            if (sender is not FrameworkElement element) return;
+            var targetGroup = FindGroupFromElement(element);
+            if (targetGroup is null) return;
+
+            var item = e.Data.GetData("TemplateDisplayItem") as TemplateDisplayItem;
+            if (item is null) return;
+
+            var targetGroupName = targetGroup.IsUngrouped ? null : targetGroup.GroupName;
+            _templateService.MoveTemplateToGroup(item.OriginalIndex, targetGroupName);
+            RefreshTemplateList();
+            e.Handled = true;
+        }
+        else if (e.Data.GetDataPresent("TemplateGroupDrag"))
+        {
+            var sourceGroup = e.Data.GetData("TemplateGroupDrag") as TemplateGroupDisplayModel;
+            if (sourceGroup is null || sourceGroup.IsUngrouped) return;
+
+            if (sender is not FrameworkElement element) return;
+            var targetGroup = FindGroupFromElement(element);
+            if (targetGroup is null || targetGroup.IsUngrouped) return;
+
+            var names = _templateGroups.Where(g => !g.IsUngrouped).Select(g => g.GroupName).ToList();
+            var sourceIdx = names.IndexOf(sourceGroup.GroupName);
+            var targetIdx = names.IndexOf(targetGroup.GroupName);
+            if (sourceIdx < 0 || targetIdx < 0 || sourceIdx == targetIdx) return;
+
+            names.RemoveAt(sourceIdx);
+            names.Insert(targetIdx, sourceGroup.GroupName);
+            _templateService.ReorderGroups(names);
+            RefreshTemplateList();
+            e.Handled = true;
+        }
+    }
+
+    private void GroupDragOver_Handler(object sender, DragEventArgs e)
+    {
+        if (e.Data.GetDataPresent("TemplateDisplayItem") || e.Data.GetDataPresent("TemplateGroupDrag"))
+            e.Effects = DragDropEffects.Move;
+        else
+            e.Effects = DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    // --- Drag-and-drop: Group reordering ---
+
+    private void GroupHeader_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        _dragStartPoint = e.GetPosition(null);
+        _dragSource = sender;
+    }
+
+    private void GroupHeader_PreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        if (e.LeftButton != MouseButtonState.Pressed || _dragSource != sender)
+            return;
+
+        var pos = e.GetPosition(null);
+        var diff = _dragStartPoint - pos;
+
+        if (Math.Abs(diff.X) < SystemParameters.MinimumHorizontalDragDistance &&
+            Math.Abs(diff.Y) < SystemParameters.MinimumVerticalDragDistance)
+            return;
+
+        if (sender is not FrameworkElement element || element.DataContext is not TemplateGroupDisplayModel group)
+            return;
+
+        if (group.IsUngrouped) return;
+
+        var data = new DataObject("TemplateGroupDrag", group);
+        DragDrop.DoDragDrop(element, data, DragDropEffects.Move);
+        _dragSource = null;
+    }
+
+    private TemplateGroupDisplayModel? FindGroupFromElement(DependencyObject? element)
+    {
+        while (element is not null)
+        {
+            if (element is FrameworkElement fe && fe.DataContext is TemplateGroupDisplayModel group)
+                return group;
+            element = VisualTreeHelper.GetParent(element);
+        }
+        return null;
     }
 
     private void OpenDrawer(string name, string text, bool isNew)
@@ -372,6 +618,7 @@ public partial class DictationPage : UserControl
         _selectedTemplate = null;
         _selectedTemplateIndex = -1;
         _isNewTemplateMode = false;
+        _newTemplateTargetGroup = null;
         AnimateDrawer(open: false);
     }
 
@@ -395,7 +642,7 @@ public partial class DictationPage : UserControl
 
         if (_isNewTemplateMode)
         {
-            _templateService.AddTemplate(name, text);
+            _templateService.AddTemplate(name, text, _newTemplateTargetGroup);
         }
         else if (_selectedTemplateIndex >= 0)
         {
@@ -424,4 +671,74 @@ public partial class DictationPage : UserControl
         CloseDrawer();
         RefreshTemplateList();
     }
+}
+
+/// <summary>
+/// Display model for a template group in the list.
+/// </summary>
+internal sealed class TemplateGroupDisplayModel : INotifyPropertyChanged
+{
+    private bool _isExpanded;
+
+    public TemplateGroupDisplayModel(string groupName, List<TemplateDisplayItem> items, bool isExpanded, bool isUngrouped)
+    {
+        GroupName = groupName;
+        Items = items;
+        _isExpanded = isExpanded;
+        IsUngrouped = isUngrouped;
+    }
+
+    public string GroupName { get; }
+    public List<TemplateDisplayItem> Items { get; }
+    public bool IsUngrouped { get; }
+    public string CountDisplay => $"({Items.Count})";
+
+    /// <summary>Show delete icon only for custom (non-Ungrouped) empty groups.</summary>
+    public bool ShowDeleteIcon => !IsUngrouped && Items.Count == 0;
+
+    /// <summary>Show IBeam cursor for renameable groups.</summary>
+    public Cursor RenameCursor => IsUngrouped ? Cursors.Arrow : Cursors.Hand;
+
+    public bool IsExpanded
+    {
+        get => _isExpanded;
+        set
+        {
+            if (_isExpanded != value)
+            {
+                _isExpanded = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(ChevronText));
+            }
+        }
+    }
+
+    /// <summary>Down chevron when expanded, right chevron when collapsed.</summary>
+    public string ChevronText => IsExpanded ? "\uE70D" : "\uE70E";
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    public void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+}
+
+/// <summary>
+/// Wraps a TemplateItem with its original index in the settings list.
+/// </summary>
+internal sealed class TemplateDisplayItem
+{
+    public TemplateDisplayItem(TemplateItem template, int originalIndex)
+    {
+        Template = template;
+        OriginalIndex = originalIndex;
+    }
+
+    public TemplateItem Template { get; }
+    public int OriginalIndex { get; }
+
+    // Convenience binding properties
+    public string Name => Template.Name;
+    public string Text => Template.Text;
 }
