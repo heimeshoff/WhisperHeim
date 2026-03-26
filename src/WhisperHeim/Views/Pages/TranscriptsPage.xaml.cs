@@ -1262,6 +1262,12 @@ public partial class TranscriptsPage : UserControl
         }
     }
 
+    /// <summary>
+    /// Set when SelectionChanged commits a speaker edit, so that the subsequent
+    /// LostFocus handler knows not to commit again (or cancel).
+    /// </summary>
+    private bool _speakerSelectionCommitted;
+
     private async void SpeakerComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (sender is not ComboBox { DataContext: SegmentViewModel vm } comboBox)
@@ -1279,6 +1285,7 @@ public partial class TranscriptsPage : UserControl
             return;
 
         vm.EditingSpeakerName = selectedName;
+        _speakerSelectionCommitted = true;
         await CommitSpeakerEditAsync(vm);
     }
 
@@ -1296,12 +1303,25 @@ public partial class TranscriptsPage : UserControl
         }
     }
 
-    private async void SpeakerEditBox_LostFocus(object sender, RoutedEventArgs e)
+    private void SpeakerEditBox_LostFocus(object sender, RoutedEventArgs e)
     {
-        if (sender is not FrameworkElement { DataContext: SegmentViewModel vm })
+        if (sender is not FrameworkElement { DataContext: SegmentViewModel vm } element)
             return;
 
-        await CommitSpeakerEditAsync(vm);
+        // Defer the commit so that SelectionChanged (which fires after LostFocus
+        // when the user clicks a dropdown item) has a chance to process first.
+        // If SelectionChanged already committed, the flag prevents a duplicate commit.
+        element.Dispatcher.BeginInvoke(async () =>
+        {
+            if (_speakerSelectionCommitted)
+            {
+                _speakerSelectionCommitted = false;
+                Trace.TraceInformation("[TranscriptsPage] LostFocus skipped – selection already committed");
+                return;
+            }
+
+            await CommitSpeakerEditAsync(vm);
+        }, DispatcherPriority.Background);
     }
 
     private async void SpeakerEditBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
