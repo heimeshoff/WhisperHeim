@@ -683,12 +683,17 @@
                                    VerticalAlignment="Center" />
                         <ui:Button x:Name="OpenExternalButton"
                                    Grid.Column="0" Grid.ColumnSpan="4"
-                                   Content="&#xE768;  Open in Player"
                                    Click="OpenExternal_Click"
                                    Padding="10,5"
                                    FontSize="12"
                                    HorizontalAlignment="Left"
-                                   Visibility="Collapsed" />
+                                   Visibility="Collapsed">
+                            <StackPanel Orientation="Horizontal">
+                                <ui:SymbolIcon Symbol="Open24" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,6,0" FontSize="14" />
+                                <TextBlock Text="Open in Player" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           FontSize="12" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </ui:Button>
                     </Grid>
                 </Border>
 
