@@ -27,6 +27,10 @@ public sealed class AppSettings
     [JsonPropertyName("tts")]
     public TtsSettings Tts { get; set; } = new();
 
+    /// <summary>Ollama / LLM analysis settings.</summary>
+    [JsonPropertyName("ollama")]
+    public OllamaSettings Ollama { get; set; } = new();
+
     /// <summary>Window size and position persistence.</summary>
     [JsonPropertyName("window")]
     public WindowSettings Window { get; set; } = new();
@@ -182,4 +186,22 @@ public sealed class TtsSettings
     /// </summary>
     [JsonPropertyName("playbackDeviceId")]
     public string? PlaybackDeviceId { get; set; }
+}
+
+/// <summary>
+/// Settings for Ollama-based local LLM transcript analysis.
+/// </summary>
+public sealed class OllamaSettings
+{
+    /// <summary>Ollama API endpoint URL.</summary>
+    [JsonPropertyName("endpoint")]
+    public string Endpoint { get; set; } = "http://localhost:11434";
+
+    /// <summary>Selected model name (e.g. "qwen2.5:14b").</summary>
+    [JsonPropertyName("model")]
+    public string? Model { get; set; }
+
+    /// <summary>User-defined and built-in analysis prompt templates.</summary>
+    [JsonPropertyName("analysisTemplates")]
+    public List<AnalysisPromptTemplate> AnalysisTemplates { get; set; } = [];
 }

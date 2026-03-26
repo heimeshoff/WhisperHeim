@@ -12,6 +12,8 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using Microsoft.Win32;
+using WhisperHeim.Models;
+using WhisperHeim.Services.Analysis;
 using WhisperHeim.Services.Audio;
 using WhisperHeim.Services.CallTranscription;
 using WhisperHeim.Services.FileTranscription;
@@ -30,6 +32,7 @@ public partial class TranscriptsPage : UserControl
     private readonly TranscriptionQueueService _queueService;
     private readonly ICallRecordingService _recordingService;
     private readonly IFileTranscriptionService _fileTranscriptionService;
+    private readonly OllamaService _ollamaService;
     private readonly List<TranscriptListItem> _allItems = new();
     private readonly TranscriptAudioPlayer _audioPlayer = new();
     private readonly DispatcherTimer _copiedIndicatorTimer;
@@ -52,16 +55,22 @@ public partial class TranscriptsPage : UserControl
     private string _activeRecordingTitle = "";
     private int _activeRecordingSpeakerCount;
 
+    // Analysis state
+    private CancellationTokenSource? _analysisCts;
+    private bool _isAnalysisVisible;
+
     public TranscriptsPage(
         ITranscriptStorageService storageService,
         TranscriptionQueueService queueService,
         ICallRecordingService recordingService,
-        IFileTranscriptionService fileTranscriptionService)
+        IFileTranscriptionService fileTranscriptionService,
+        OllamaService ollamaService)
     {
         _storageService = storageService;
         _queueService = queueService;
         _recordingService = recordingService;
         _fileTranscriptionService = fileTranscriptionService;
+        _ollamaService = ollamaService;
         InitializeComponent();
 
         _audioPlayer.PositionChanged += OnAudioPositionChanged;
@@ -1804,6 +1813,185 @@ public partial class TranscriptsPage : UserControl
             WriteIndented = true,
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });
+    }
+
+    // --- AI Analysis ---
+
+    private void AnalyzeButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedTranscript is null) return;
+
+        var templates = _ollamaService.GetTemplates();
+        if (templates.Count == 0) return;
+
+        // Build a context menu with available templates
+        var menu = new ContextMenu();
+
+        foreach (var template in templates)
+        {
+            var item = new MenuItem { Header = template.Title, Tag = template };
+            item.Click += AnalysisTemplate_Click;
+            menu.Items.Add(item);
+        }
+
+        menu.Items.Add(new Separator());
+
+        var customItem = new MenuItem { Header = "Custom Prompt..." };
+        customItem.Click += CustomAnalysisPrompt_Click;
+        menu.Items.Add(customItem);
+
+        if (sender is FrameworkElement fe)
+        {
+            menu.PlacementTarget = fe;
+            menu.IsOpen = true;
+        }
+    }
+
+    private async void AnalysisTemplate_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem { Tag: AnalysisPromptTemplate template }) return;
+        await RunAnalysisAsync(template);
+    }
+
+    private async void CustomAnalysisPrompt_Click(object sender, RoutedEventArgs e)
+    {
+        // Show a simple input dialog for custom prompt
+        var dialog = new Window
+        {
+            Title = "Custom Analysis Prompt",
+            Width = 500,
+            Height = 300,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            Owner = Window.GetWindow(this),
+            Background = (Brush)FindResource("ApplicationBackgroundBrush"),
+            ResizeMode = ResizeMode.NoResize
+        };
+
+        var panel = new StackPanel { Margin = new Thickness(20) };
+        var label = new TextBlock
+        {
+            Text = "Enter your analysis prompt. Use {transcript} to insert the transcript text.",
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 0, 0, 12),
+            Foreground = (Brush)FindResource("TextFillColorPrimaryBrush")
+        };
+        var textBox = new System.Windows.Controls.TextBox
+        {
+            Height = 150,
+            AcceptsReturn = true,
+            TextWrapping = TextWrapping.Wrap,
+            Text = "Analyze this transcript and provide insights:\n\n{transcript}"
+        };
+        var buttonPanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Margin = new Thickness(0, 12, 0, 0)
+        };
+        var okButton = new System.Windows.Controls.Button { Content = "Analyze", Padding = new Thickness(16, 8, 16, 8) };
+        var cancelButton = new System.Windows.Controls.Button { Content = "Cancel", Padding = new Thickness(16, 8, 16, 8), Margin = new Thickness(8, 0, 0, 0) };
+
+        okButton.Click += (_, _) => { dialog.DialogResult = true; dialog.Close(); };
+        cancelButton.Click += (_, _) => { dialog.DialogResult = false; dialog.Close(); };
+
+        buttonPanel.Children.Add(okButton);
+        buttonPanel.Children.Add(cancelButton);
+        panel.Children.Add(label);
+        panel.Children.Add(textBox);
+        panel.Children.Add(buttonPanel);
+        dialog.Content = panel;
+
+        if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(textBox.Text))
+        {
+            var template = new AnalysisPromptTemplate
+            {
+                Title = "Custom Analysis",
+                Prompt = textBox.Text
+            };
+            await RunAnalysisAsync(template);
+        }
+    }
+
+    private async Task RunAnalysisAsync(AnalysisPromptTemplate template)
+    {
+        if (_selectedTranscript is null) return;
+
+        // Cancel any existing analysis
+        _analysisCts?.Cancel();
+        _analysisCts = new CancellationTokenSource();
+        var ct = _analysisCts.Token;
+
+        // Show analysis panel
+        AnalysisPanel.Visibility = Visibility.Visible;
+        AnalysisTitleText.Text = template.Title;
+        AnalysisResultText.Text = "";
+        AnalysisStatusText.Text = "Analyzing...";
+        AnalysisStatusText.Visibility = Visibility.Visible;
+        StopAnalysisButton.Visibility = Visibility.Visible;
+        CopyAnalysisButton.Visibility = Visibility.Collapsed;
+        _isAnalysisVisible = true;
+
+        var transcriptMarkdown = FormatAsMarkdown(_selectedTranscript);
+
+        try
+        {
+            var result = await _ollamaService.AnalyzeAsync(
+                template,
+                transcriptMarkdown,
+                token => Dispatcher.Invoke(() =>
+                {
+                    AnalysisResultText.Text += token;
+                    AnalysisStatusText.Text = "Streaming...";
+                    // Auto-scroll to bottom
+                    AnalysisScrollViewer.ScrollToEnd();
+                }),
+                ct);
+
+            if (!ct.IsCancellationRequested)
+            {
+                AnalysisStatusText.Visibility = Visibility.Collapsed;
+                StopAnalysisButton.Visibility = Visibility.Collapsed;
+                CopyAnalysisButton.Visibility = Visibility.Visible;
+                Trace.TraceInformation("[TranscriptsPage] Analysis complete: {0} ({1} chars)", template.Title, result.Length);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            AnalysisStatusText.Text = "Cancelled";
+            StopAnalysisButton.Visibility = Visibility.Collapsed;
+            Trace.TraceInformation("[TranscriptsPage] Analysis cancelled");
+        }
+        catch (Exception ex)
+        {
+            AnalysisStatusText.Text = $"Error: {ex.Message}";
+            AnalysisStatusText.Foreground = new SolidColorBrush(
+                (Color)ColorConverter.ConvertFromString("#FFE74856"));
+            StopAnalysisButton.Visibility = Visibility.Collapsed;
+            Trace.TraceWarning("[TranscriptsPage] Analysis failed: {0}", ex.Message);
+        }
+    }
+
+    private void StopAnalysis_Click(object sender, RoutedEventArgs e)
+    {
+        _analysisCts?.Cancel();
+    }
+
+    private void CopyAnalysis_Click(object sender, RoutedEventArgs e)
+    {
+        if (!string.IsNullOrEmpty(AnalysisResultText.Text))
+        {
+            System.Windows.Clipboard.SetText(AnalysisResultText.Text);
+            CopiedIndicator.Visibility = Visibility.Visible;
+            _copiedIndicatorTimer.Stop();
+            _copiedIndicatorTimer.Start();
+        }
+    }
+
+    private void CloseAnalysis_Click(object sender, RoutedEventArgs e)
+    {
+        _analysisCts?.Cancel();
+        AnalysisPanel.Visibility = Visibility.Collapsed;
+        _isAnalysisVisible = false;
     }
 }
 

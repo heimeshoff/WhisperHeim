@@ -16,6 +16,7 @@
   <ItemGroup>
     <PackageReference Include="Concentus" Version="2.*" />
     <PackageReference Include="Concentus.Oggfile" Version="1.*" />
+    <PackageReference Include="OllamaSharp" Version="5.4.25" />
     <PackageReference Include="WPF-UI" Version="3.*" />
     <PackageReference Include="WPF-UI.Tray" Version="3.*" />
     <PackageReference Include="NAudio" Version="2.*" />

@@ -23,6 +23,7 @@ using WhisperHeim.Services.Settings;
 using WhisperHeim.Services.Templates;
 using WhisperHeim.Services.SelectedText;
 using WhisperHeim.Services.TextToSpeech;
+using WhisperHeim.Services.Analysis;
 using WhisperHeim.Converters;
 using WhisperHeim.Views;
 using WhisperHeim.Views.Pages;
@@ -72,6 +73,9 @@ public partial class MainWindow : FluentWindow
     // Transcription queue — replaces the old TranscriptionBusyService
     private readonly TranscriptionQueueService _transcriptionQueueService;
 
+    // Ollama LLM analysis service
+    private readonly OllamaService _ollamaService;
+
     // Hotkey and orchestration
     private readonly GlobalHotkeyService _hotkeyService = new();
     private DictationOrchestrator? _orchestrator;
@@ -111,7 +115,8 @@ public partial class MainWindow : FluentWindow
         ITextToSpeechService textToSpeechService,
         DataPathService dataPathService,
         ReadAloudHotkeyService readAloudHotkeyService,
-        TranscriptionQueueService transcriptionQueueService)
+        TranscriptionQueueService transcriptionQueueService,
+        OllamaService ollamaService)
     {
         _settingsService = settingsService;
         _audioCaptureService = audioCaptureService;
@@ -130,6 +135,7 @@ public partial class MainWindow : FluentWindow
         _dataPathService = dataPathService;
         _readAloudHotkeyService = readAloudHotkeyService;
         _transcriptionQueueService = transcriptionQueueService;
+        _ollamaService = ollamaService;
 
         InitializeComponent();
 
@@ -455,7 +461,7 @@ public partial class MainWindow : FluentWindow
         if (_pageCache.TryGetValue("Recordings", out var cached) && cached is TranscriptsPage page)
             return page;
 
-        page = new TranscriptsPage(_transcriptStorageService, _transcriptionQueueService, _callRecordingService, _fileTranscriptionService);
+        page = new TranscriptsPage(_transcriptStorageService, _transcriptionQueueService, _callRecordingService, _fileTranscriptionService, _ollamaService);
         page.TranscriptionRequested += OnPendingTranscriptionRequested;
         page.ReTranscriptionRequested += OnPendingTranscriptionRequested;
         _pageCache["Recordings"] = page;
@@ -760,7 +766,7 @@ public partial class MainWindow : FluentWindow
                     _highQualityLoopbackService,
                     _settingsService,
                     _dataPathService),
-                "Settings" => new GeneralPage(_settingsService),
+                "Settings" => new GeneralPage(_settingsService, _ollamaService),
                 "About" => new AboutPage(_modelManager),
                 _ => null
             };
