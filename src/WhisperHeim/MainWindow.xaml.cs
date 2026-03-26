@@ -779,7 +779,7 @@ public partial class MainWindow : FluentWindow
 
     // ── Sidebar collapse/expand ────────────────────────────────────────
 
-    private void SidebarToggle_Click(object sender, RoutedEventArgs e)
+    private void BrandingHeader_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
         ApplySidebarCollapsedState(!_isSidebarCollapsed, animate: true);
 
@@ -797,12 +797,6 @@ public partial class MainWindow : FluentWindow
 
         var targetWidth = collapsed ? SidebarCollapsedWidth : SidebarExpandedWidth;
         var labelVisibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
-
-        // Update toggle chevron appearance
-        SidebarToggleIcon.Symbol = collapsed
-            ? Wpf.Ui.Controls.SymbolRegular.ChevronRight24
-            : Wpf.Ui.Controls.SymbolRegular.ChevronLeft24;
-        SidebarToggleButton.ToolTip = collapsed ? "Expand sidebar" : "Collapse sidebar";
 
         // Show/hide text labels and adjust branding layout
         BrandingTitle.Visibility = labelVisibility;

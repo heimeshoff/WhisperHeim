@@ -101,7 +101,9 @@
                 </Grid.RowDefinitions>
 
                 <!-- Branding header -->
-                <StackPanel x:Name="BrandingHeader" Grid.Row="0" Margin="16,12,16,24">
+                <StackPanel x:Name="BrandingHeader" Grid.Row="0" Margin="16,12,16,24"
+                            Cursor="Hand"
+                            MouseLeftButtonDown="BrandingHeader_MouseLeftButtonDown">
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                         <!-- Logo icon (no background box, just the two-tone mic) -->
                         <Viewbox x:Name="BrandingLogo" Width="28" Height="28"
@@ -174,48 +176,6 @@
                     </ListBoxItem>
                 </ListBox>
             </Grid>
-
-            <!-- Sidebar collapse/expand chevron on right edge -->
-            <Button x:Name="SidebarToggleButton"
-                    Grid.Column="0"
-                    Click="SidebarToggle_Click"
-                    Background="{DynamicResource SubtleFillColorSecondaryBrush}"
-                    BorderThickness="0"
-                    Cursor="Hand"
-                    Width="16" Height="36"
-                    Padding="0"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Center"
-                    ToolTip="Collapse sidebar"
-                    Opacity="0.5">
-                <Button.Style>
-                    <Style TargetType="Button">
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="Button">
-                                    <Border x:Name="ChevronBd"
-                                            Background="{DynamicResource SubtleFillColorSecondaryBrush}"
-                                            CornerRadius="0,4,4,0"
-                                            Padding="0"
-                                            Width="{TemplateBinding Width}"
-                                            Height="{TemplateBinding Height}">
-                                        <ContentPresenter HorizontalAlignment="Center"
-                                                          VerticalAlignment="Center" />
-                                    </Border>
-                                    <ControlTemplate.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="ChevronBd" Property="Background"
-                                                    Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
-                                            <Setter Property="Opacity" Value="1.0" />
-                                        </Trigger>
-                                    </ControlTemplate.Triggers>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                    </Style>
-                </Button.Style>
-                <ui:SymbolIcon x:Name="SidebarToggleIcon" Symbol="ChevronLeft24" FontSize="12" />
-            </Button>
 
             <!-- Page content area -->
             <ContentPresenter x:Name="PageContent"
