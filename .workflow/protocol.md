@@ -2,6 +2,68 @@
 
 ---
 
+## 2026-03-26 -- Task Completed: 088 - System Templates — WhisperHeim Group
+
+**Type:** Task Completion
+**Task:** 088 - System Templates — WhisperHeim Group with "Repeat" Command
+**Summary:** Added SystemTemplate model, WhisperHeim group with reduced-contrast non-interactive UI, fuzzy matching integration with precedence over user templates, and "Repeat" command that re-types last normal dictation.
+**Files changed:** 6 files
+
+---
+
+## 2026-03-26 -- Task Completed: 087 - Branding Header as Sidebar Toggle
+
+**Type:** Task Completion
+**Task:** 087 - Branding Header as Sidebar Toggle
+**Summary:** Removed SidebarToggleButton, wired BrandingHeader as collapse/expand toggle via MouseLeftButtonDown with Hand cursor. Cleaned up chevron icon swapping and tooltip logic.
+**Files changed:** 2 files
+
+---
+
+## 2026-03-26 14:00 -- Idea Captured: Fix speaker dropdown selection
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/089-fix-speaker-dropdown-selection.md
+**Summary:** Speaker name ComboBox selection reverts to original label due to LostFocus/SelectionChanged race condition
+
+---
+
+## 2026-03-26 14:00 -- Idea Captured: Open in Player icon
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/090-open-in-player-icon.md
+**Summary:** Replace raw Unicode glyph with proper Wpf.Ui SymbolIcon on the "Open in Player" button
+
+---
+
+## 2026-03-26 -- Batch Started: [087, 088]
+
+**Type:** Batch Start
+**Tasks:** 087 - Branding Header as Sidebar Toggle, 088 - System Templates — WhisperHeim Group
+**Mode:** Parallel (batch of 2)
+
+---
+
+## 2026-03-26 -- Idea Captured: System Templates — WhisperHeim Group
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/088-system-templates-whisperhiem-group.md
+**Summary:** Add an immutable "WhisperHeim" group at the bottom of the templates list for built-in command templates. First command: "Repeat" re-types the last normally-dictated text. System templates are non-editable, non-deletable, non-draggable, displayed with reduced contrast, and not clickable.
+
+---
+
+## 2026-03-26 -- Idea Captured: Branding Header as Sidebar Toggle
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/087-branding-header-sidebar-toggle.md
+**Summary:** Remove the dedicated sidebar collapse chevron button and make the branding header (microphone logo + title) the click target for toggling sidebar collapse/expand. Pointer cursor is the only hover affordance.
+
+---
+
 ## 2026-03-26 -- Task Completed: 086 - Transcripts column redesign
 
 **Type:** Task Completion
