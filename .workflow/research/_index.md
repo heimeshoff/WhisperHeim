@@ -32,6 +32,10 @@
 
 | 2026-03-25 | Transcription Engine Overhaul | [transcription-engine-overhaul.md](transcription-engine-overhaul.md) | For dual-stream calls, replace diarization with VAD-only per stream (mic="You", loopback="Remote"); fixes over-segmentation, ordering, and stability. Add transcription queue with bottom-bar UI. Apply linear drift correction for long recordings. |
 
+## Monetization & Marketing (2026-03-26)
+
+| 2026-03-26 | Monetization & Marketing | [monetization-and-marketing.md](monetization-and-marketing.md) | All dependencies allow commercial use; best model is freemium + one-time purchase (Open Core) like MacWhisper (~300K copies); privacy-as-architecture is the #1 differentiator; apply to NLNet grants; launch via Show HN + r/selfhosted + Product Hunt |
+
 ## UI Framework (2026-03-21)
 
 - **WPF + WPF UI (lepoco/wpfui)**: Mica, Fluent controls, tray icon via WPF-UI.Tray. Best fit for Windows 11 tray app.

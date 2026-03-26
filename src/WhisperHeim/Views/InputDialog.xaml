@@ -1,0 +1,58 @@
+<Window x:Class="WhisperHeim.Views.InputDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        Title="Input"
+        Width="420" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None"
+        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False">
+
+    <StackPanel Margin="32">
+        <!-- Title -->
+        <TextBlock x:Name="TitleText"
+                   FontSize="16" FontWeight="Bold"
+                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                   Margin="0,0,0,8" />
+        <TextBlock x:Name="PromptText"
+                   FontSize="13"
+                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                   Margin="0,0,0,16" />
+
+        <!-- Input field -->
+        <ui:TextBox x:Name="InputTextBox"
+                    PlaceholderText="Enter value..."
+                    Margin="0,0,0,24"
+                    KeyDown="InputTextBox_KeyDown" />
+
+        <!-- Buttons -->
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Cancel" Padding="20,10"
+                    Background="Transparent" BorderThickness="0"
+                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontWeight="Medium"
+                    Cursor="Hand" FontSize="13"
+                    Click="Cancel_Click" />
+            <Button Padding="20,10" Cursor="Hand" FontSize="13"
+                    Foreground="White" FontWeight="SemiBold"
+                    BorderThickness="0"
+                    Click="Ok_Click">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border CornerRadius="10" Padding="{TemplateBinding Padding}">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#FF005FAA" Offset="0" />
+                                    <GradientStop Color="#FF0078D4" Offset="1" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Button.Template>
+                OK
+            </Button>
+        </StackPanel>
+    </StackPanel>
+</Window>

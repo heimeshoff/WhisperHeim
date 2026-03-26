@@ -40,6 +40,7 @@ public partial class TranscriptsPage : UserControl
     private List<SegmentViewModel>? _currentSegmentViewModels;
     private string? _currentlyTranscribingSessionDir;
     private readonly List<TranscriptGroupViewModel> _groups = new();
+    private string? _externalAudioPath; // Set when audio format isn't playable inline
 
     // Column sorting state
     private string _sortColumn = "Date";
@@ -790,6 +791,16 @@ public partial class TranscriptsPage : UserControl
         }
     }
 
+    private void ExpandCollapseAll_Click(object sender, RoutedEventArgs e)
+    {
+        var allExpanded = _groups.All(g => g.IsExpanded);
+        var newState = !allExpanded;
+        foreach (var group in _groups)
+        {
+            group.IsExpanded = newState;
+        }
+    }
+
     // --- Drawer ---
 
     private async void OpenTranscriptDrawer(TranscriptListItem item)
@@ -938,19 +949,30 @@ public partial class TranscriptsPage : UserControl
         ShowSpeakerNamesPanel();
 
         var audioPath = transcript.ResolvedAudioFilePath;
+        _externalAudioPath = null;
         if (audioPath is not null)
         {
             try
             {
                 _audioPlayer.Open(audioPath);
                 PlaybackPanel.Visibility = Visibility.Visible;
+                PlayPauseButton.Content = "Play";
+                PlayPauseButton.Visibility = Visibility.Visible;
+                StopButton.Visibility = Visibility.Visible;
+                PlaybackPositionText.Visibility = Visibility.Visible;
+                OpenExternalButton.Visibility = Visibility.Collapsed;
                 UpdatePlaybackPositionText();
-                Trace.TraceInformation("[TranscriptsPage] Audio available for playback: {0}", audioPath);
+                Trace.TraceInformation("[TranscriptsPage] Audio available for inline playback: {0}", audioPath);
             }
             catch (Exception ex)
             {
-                Trace.TraceWarning("[TranscriptsPage] Failed to open audio: {0}", ex.Message);
-                PlaybackPanel.Visibility = Visibility.Collapsed;
+                Trace.TraceInformation("[TranscriptsPage] Inline playback not supported for '{0}', using external: {1}", audioPath, ex.Message);
+                _externalAudioPath = audioPath;
+                PlaybackPanel.Visibility = Visibility.Visible;
+                PlayPauseButton.Visibility = Visibility.Collapsed;
+                StopButton.Visibility = Visibility.Collapsed;
+                PlaybackPositionText.Visibility = Visibility.Collapsed;
+                OpenExternalButton.Visibility = Visibility.Visible;
             }
         }
         else
@@ -1084,14 +1106,22 @@ public partial class TranscriptsPage : UserControl
 
     private void Segment_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (!_audioPlayer.IsLoaded)
-            return;
-
         if (e.Handled)
             return;
 
         // Don't trigger audio playback when clicking on interactive controls (ComboBox, TextBox, etc.)
         if (e.OriginalSource is DependencyObject source && IsInsideInteractiveControl(source))
+            return;
+
+        // External playback mode: open with default OS player
+        if (_externalAudioPath is not null)
+        {
+            OpenAudioExternally();
+            e.Handled = true;
+            return;
+        }
+
+        if (!_audioPlayer.IsLoaded)
             return;
 
         if (sender is FrameworkElement { DataContext: SegmentViewModel vm })
@@ -1141,6 +1171,27 @@ public partial class TranscriptsPage : UserControl
         UpdatePlayPauseButton();
         ClearSegmentHighlights();
         UpdatePlaybackPositionText();
+    }
+
+    private void OpenExternal_Click(object sender, RoutedEventArgs e)
+    {
+        OpenAudioExternally();
+    }
+
+    private void OpenAudioExternally()
+    {
+        if (_externalAudioPath is null || !File.Exists(_externalAudioPath))
+            return;
+
+        try
+        {
+            Process.Start(new ProcessStartInfo(_externalAudioPath) { UseShellExecute = true });
+            Trace.TraceInformation("[TranscriptsPage] Opened audio externally: {0}", _externalAudioPath);
+        }
+        catch (Exception ex)
+        {
+            Trace.TraceWarning("[TranscriptsPage] Failed to open audio externally: {0}", ex.Message);
+        }
     }
 
     private void UpdatePlayPauseButton()

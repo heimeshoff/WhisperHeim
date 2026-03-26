@@ -69,6 +69,52 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <!-- Group header toggle button -->
+        <Style x:Key="GroupToggleButton" TargetType="ToggleButton">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Padding" Value="8,6" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Bd" Padding="{TemplateBinding Padding}" CornerRadius="6"
+                                Background="Transparent">
+                            <ContentPresenter HorizontalAlignment="Stretch" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- Small icon button style for group header actions -->
+        <Style x:Key="GroupActionButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="4" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" CornerRadius="4" Padding="{TemplateBinding Padding}"
+                                Background="Transparent">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
 
     <Grid>
@@ -91,20 +137,45 @@
                            Style="{StaticResource SubtleText}" />
             </StackPanel>
 
-            <!-- Search + Add button -->
+            <!-- Search + Expand/Collapse All + Add Group button -->
             <Grid Grid.Row="1" Margin="0,0,0,16">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="12" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="8" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <ui:TextBox x:Name="SearchBox"
                             Grid.Column="0"
                             PlaceholderText="Search templates..."
                             TextChanged="SearchBox_TextChanged" />
-                <Button x:Name="AddNewButton"
+                <!-- Expand/Collapse All toggle -->
+                <Button x:Name="ExpandCollapseAllButton"
                         Grid.Column="2"
-                        Click="AddNewButton_Click"
+                        Click="ExpandCollapseAll_Click"
+                        ToolTip="Expand/Collapse All"
+                        Padding="10,10" Cursor="Hand"
+                        BorderThickness="0">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd" CornerRadius="12" Padding="{TemplateBinding Padding}"
+                                    Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}">
+                                <ui:SymbolIcon x:Name="ExpandCollapseIcon" Symbol="TextCollapse24"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="16" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+                <!-- Add Group button (repurposed from Add New) -->
+                <Button x:Name="AddGroupButton"
+                        Grid.Column="4"
+                        Click="AddGroupButton_Click"
                         Padding="16,10" Cursor="Hand"
                         BorderThickness="0">
                     <Button.Template>
@@ -118,7 +189,7 @@
                                 </Border.Background>
                                 <StackPanel Orientation="Horizontal">
                                     <ui:SymbolIcon Symbol="Add24" Foreground="White" Margin="0,0,6,0" FontSize="14" />
-                                    <TextBlock Text="ADD NEW" FontSize="10" FontWeight="Bold"
+                                    <TextBlock Text="NEW GROUP" FontSize="10" FontWeight="Bold"
                                                Foreground="White" VerticalAlignment="Center" />
                                 </StackPanel>
                             </Border>
@@ -144,35 +215,88 @@
                            Style="{StaticResource SectionLabel}" />
             </Grid>
 
-            <!-- Compact list -->
+            <!-- Grouped template list -->
             <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
-                <ItemsControl x:Name="TemplateList">
+                <ItemsControl x:Name="TemplateGroupList">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Button Style="{StaticResource CompactRowButton}"
-                                    Click="TemplateRow_Click">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="180" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0"
-                                               Text="{Binding Name}"
-                                               FontWeight="SemiBold"
-                                               FontSize="13"
-                                               TextTrimming="CharacterEllipsis"
-                                               TextWrapping="NoWrap"
-                                               VerticalAlignment="Center"
-                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                                    <TextBlock Grid.Column="1"
-                                               Text="{Binding Text}"
-                                               FontSize="12"
-                                               TextTrimming="CharacterEllipsis"
-                                               TextWrapping="NoWrap"
-                                               VerticalAlignment="Center"
-                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                                </Grid>
-                            </Button>
+                            <StackPanel Margin="0,4,0,0"
+                                      AllowDrop="True"
+                                      Drop="GroupDrop_Handler"
+                                      DragOver="GroupDragOver_Handler">
+                                <!-- Group header row -->
+                                <DockPanel PreviewMouseLeftButtonDown="GroupHeader_PreviewMouseLeftButtonDown"
+                                           PreviewMouseMove="GroupHeader_PreviewMouseMove">
+                                    <ToggleButton IsChecked="{Binding IsExpanded, Mode=TwoWay}"
+                                                  Style="{StaticResource GroupToggleButton}"
+                                                  Click="TemplateGroupToggle_Click"
+                                                  DockPanel.Dock="Left"
+                                                  HorizontalAlignment="Stretch">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding ChevronText}"
+                                                       FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                       VerticalAlignment="Center" Margin="0,0,8,0" />
+                                            <TextBlock Text="{Binding GroupName}" Style="{StaticResource SectionLabel}" VerticalAlignment="Center"
+                                                       MouseLeftButtonDown="GroupName_MouseLeftButtonDown"
+                                                       Cursor="{Binding RenameCursor}" />
+                                            <TextBlock Text="{Binding CountDisplay}" Style="{StaticResource SectionLabel}"
+                                                       VerticalAlignment="Center" Margin="6,0,0,0" />
+                                        </StackPanel>
+                                    </ToggleButton>
+                                    <!-- Add template to group button -->
+                                    <Button Style="{StaticResource GroupActionButton}"
+                                            Click="AddTemplateToGroup_Click"
+                                            ToolTip="Add template to this group"
+                                            DockPanel.Dock="Right" Margin="4,0,0,0">
+                                        <ui:SymbolIcon Symbol="Add24" FontSize="12"
+                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    </Button>
+                                    <!-- Delete empty group button (only for custom groups) -->
+                                    <Button Style="{StaticResource GroupActionButton}"
+                                            Click="DeleteGroup_Click"
+                                            ToolTip="Delete empty group"
+                                            DockPanel.Dock="Right" Margin="4,0,0,0"
+                                            Visibility="{Binding ShowDeleteIcon, Converter={StaticResource BoolToVisibility}}">
+                                        <ui:SymbolIcon Symbol="Delete24" FontSize="12"
+                                                       Foreground="#FFE74856" />
+                                    </Button>
+                                </DockPanel>
+                                <!-- Templates within the group -->
+                                <ItemsControl ItemsSource="{Binding Items}"
+                                              Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibility}}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Style="{StaticResource CompactRowButton}"
+                                                    Click="TemplateRow_Click"
+                                                    PreviewMouseLeftButtonDown="TemplateRow_PreviewMouseLeftButtonDown"
+                                                    PreviewMouseMove="TemplateRow_PreviewMouseMove">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="180" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="0"
+                                                               Text="{Binding Name}"
+                                                               FontWeight="SemiBold"
+                                                               FontSize="13"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               TextWrapping="NoWrap"
+                                                               VerticalAlignment="Center"
+                                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                                    <TextBlock Grid.Column="1"
+                                                               Text="{Binding Text}"
+                                                               FontSize="12"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               TextWrapping="NoWrap"
+                                                               VerticalAlignment="Center"
+                                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                </Grid>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
@@ -181,7 +305,7 @@
             <!-- Empty state -->
             <TextBlock x:Name="EmptyState"
                        Grid.Row="3"
-                       Text="No templates yet. Click Add New to create one."
+                       Text="No templates yet. Click the + on a group header to create one."
                        HorizontalAlignment="Center"
                        VerticalAlignment="Center"
                        Foreground="{DynamicResource TextFillColorTertiaryBrush}"

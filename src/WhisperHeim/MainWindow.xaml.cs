@@ -752,8 +752,7 @@ public partial class MainWindow : FluentWindow
         {
             page = pageName switch
             {
-                "Dictation" => new DictationPage(_settingsService, _audioCaptureService),
-                "Templates" => new TemplatesPage(_templateService),
+                "Dictation" => new DictationPage(_settingsService, _audioCaptureService, _templateService),
                 "Recordings" => GetOrCreateTranscriptsPage(),
                 "TextToSpeech" => new TextToSpeechPage(
                     _textToSpeechService,
@@ -811,7 +810,6 @@ public partial class MainWindow : FluentWindow
         BrandingHeader.Margin = collapsed ? new Thickness(4, 12, 4, 24) : new Thickness(16, 12, 16, 24);
         BrandingHeader.HorizontalAlignment = collapsed ? HorizontalAlignment.Center : HorizontalAlignment.Left;
         NavLabelDictation.Visibility = labelVisibility;
-        NavLabelTemplates.Visibility = labelVisibility;
         NavLabelRecordings.Visibility = labelVisibility;
         NavLabelTextToSpeech.Visibility = labelVisibility;
         NavLabelSettings.Visibility = labelVisibility;

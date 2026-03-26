@@ -51,19 +51,7 @@ public sealed class AudioCaptureService : IAudioCaptureService
     public AudioRingBuffer RingBuffer => _ringBuffer;
 
     /// <inheritdoc />
-    public IReadOnlyList<AudioDeviceInfo> GetAvailableDevices()
-    {
-        int count = WaveInEvent.DeviceCount;
-        var devices = new List<AudioDeviceInfo>(count);
-
-        for (int i = 0; i < count; i++)
-        {
-            var caps = WaveInEvent.GetCapabilities(i);
-            devices.Add(new AudioDeviceInfo(i, caps.ProductName, caps.Channels));
-        }
-
-        return devices;
-    }
+    public IReadOnlyList<AudioDeviceInfo> GetAvailableDevices() => AudioDeviceResolver.EnumerateInputDevices();
 
     /// <inheritdoc />
     public void StartCapture(int deviceIndex = -1)

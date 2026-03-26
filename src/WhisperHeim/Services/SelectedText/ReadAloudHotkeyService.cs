@@ -8,17 +8,17 @@ namespace WhisperHeim.Services.SelectedText;
 /// <summary>
 /// Registers a global hotkey that captures selected text from any application,
 /// then signals the main window to navigate to the TTS page and paste the text.
-/// Default hotkey: Ctrl + Win + Ä (user-configurable via TTS settings).
+/// Default hotkey: Ctrl + Win + T (user-configurable via TTS settings).
 /// </summary>
 public sealed class ReadAloudHotkeyService : IDisposable
 {
     /// <summary>
-    /// Default read-aloud hotkey: Ctrl + Win + ^.
+    /// Default read-aloud hotkey: Ctrl + Win + T.
     /// Avoids Ctrl+Alt which triggers AltGr on German keyboards.
     /// </summary>
     public static readonly HotkeyRegistration DefaultHotkey = new(
         ModifierKeys.Control | ModifierKeys.Win,
-        VirtualKey: 0xDC // VK_OEM_5 — ^ key on German keyboard (left of 1)
+        VirtualKey: 0x54 // VK_T — T key
     );
 
     private readonly ISelectedTextService _selectedTextService;

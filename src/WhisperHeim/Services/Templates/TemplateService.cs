@@ -55,6 +55,9 @@ public sealed class TemplateService : ITemplateService
         return new TemplateMatchResult(matchedName, expandedText, score);
     }
 
+    /// <summary>The sentinel name for the default ungrouped group.</summary>
+    public const string UngroupedName = "Ungrouped";
+
     /// <inheritdoc />
     public IReadOnlyList<TemplateItem> GetTemplates()
     {
@@ -62,12 +65,13 @@ public sealed class TemplateService : ITemplateService
     }
 
     /// <inheritdoc />
-    public void AddTemplate(string name, string text)
+    public void AddTemplate(string name, string text, string? group = null)
     {
         _settingsService.Current.Templates.Items.Add(new TemplateItem
         {
             Name = name,
-            Text = text
+            Text = text,
+            Group = string.IsNullOrWhiteSpace(group) || group == UngroupedName ? null : group
         });
         _settingsService.Save();
     }
@@ -79,7 +83,8 @@ public sealed class TemplateService : ITemplateService
         if (index < 0 || index >= items.Count)
             return;
 
-        items[index] = new TemplateItem { Name = name, Text = text };
+        var existing = items[index];
+        items[index] = new TemplateItem { Name = name, Text = text, Group = existing.Group };
         _settingsService.Save();
     }
 
@@ -92,5 +97,126 @@ public sealed class TemplateService : ITemplateService
 
         items.RemoveAt(index);
         _settingsService.Save();
+    }
+
+    /// <inheritdoc />
+    public void MoveTemplateToGroup(int templateIndex, string? groupName)
+    {
+        var items = _settingsService.Current.Templates.Items;
+        if (templateIndex < 0 || templateIndex >= items.Count)
+            return;
+
+        items[templateIndex].Group =
+            string.IsNullOrWhiteSpace(groupName) || groupName == UngroupedName ? null : groupName;
+        _settingsService.Save();
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<TemplateGroup> GetGroups()
+    {
+        EnsureDefaults();
+        return _settingsService.Current.Templates.Groups
+            .OrderBy(g => g.Name == UngroupedName ? 0 : 1)
+            .ThenBy(g => g.Order)
+            .ThenBy(g => g.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList()
+            .AsReadOnly();
+    }
+
+    /// <inheritdoc />
+    public void AddGroup(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return;
+        var groups = _settingsService.Current.Templates.Groups;
+
+        // No duplicates
+        if (groups.Any(g => string.Equals(g.Name, name, StringComparison.OrdinalIgnoreCase)))
+            return;
+
+        var maxOrder = groups.Count > 0 ? groups.Max(g => g.Order) : 0;
+        groups.Add(new TemplateGroup { Name = name, IsExpanded = true, Order = maxOrder + 1 });
+        _settingsService.Save();
+    }
+
+    /// <inheritdoc />
+    public void RenameGroup(string oldName, string newName)
+    {
+        if (string.Equals(oldName, UngroupedName, StringComparison.OrdinalIgnoreCase)) return;
+        if (string.IsNullOrWhiteSpace(newName)) return;
+
+        var groups = _settingsService.Current.Templates.Groups;
+        var group = groups.FirstOrDefault(g => string.Equals(g.Name, oldName, StringComparison.OrdinalIgnoreCase));
+        if (group is null) return;
+
+        // Update template references
+        foreach (var item in _settingsService.Current.Templates.Items)
+        {
+            if (string.Equals(item.Group, oldName, StringComparison.OrdinalIgnoreCase))
+                item.Group = newName;
+        }
+
+        group.Name = newName;
+        _settingsService.Save();
+    }
+
+    /// <inheritdoc />
+    public bool RemoveGroup(string name)
+    {
+        if (string.Equals(name, UngroupedName, StringComparison.OrdinalIgnoreCase)) return false;
+
+        var templates = _settingsService.Current.Templates.Items;
+        var hasTemplates = templates.Any(t =>
+            string.Equals(t.Group, name, StringComparison.OrdinalIgnoreCase));
+        if (hasTemplates) return false;
+
+        var groups = _settingsService.Current.Templates.Groups;
+        var removed = groups.RemoveAll(g =>
+            string.Equals(g.Name, name, StringComparison.OrdinalIgnoreCase));
+        if (removed > 0)
+            _settingsService.Save();
+        return removed > 0;
+    }
+
+    /// <inheritdoc />
+    public void ReorderGroups(IReadOnlyList<string> groupNamesInOrder)
+    {
+        var groups = _settingsService.Current.Templates.Groups;
+        for (var i = 0; i < groupNamesInOrder.Count; i++)
+        {
+            var g = groups.FirstOrDefault(x =>
+                string.Equals(x.Name, groupNamesInOrder[i], StringComparison.OrdinalIgnoreCase));
+            if (g is not null)
+                g.Order = g.Name == UngroupedName ? 0 : i + 1;
+        }
+        _settingsService.Save();
+    }
+
+    /// <inheritdoc />
+    public void SetGroupExpanded(string groupName, bool isExpanded)
+    {
+        var groups = _settingsService.Current.Templates.Groups;
+        var group = groups.FirstOrDefault(g =>
+            string.Equals(g.Name, groupName, StringComparison.OrdinalIgnoreCase));
+        if (group is not null)
+        {
+            group.IsExpanded = isExpanded;
+            _settingsService.Save();
+        }
+    }
+
+    /// <inheritdoc />
+    public void EnsureDefaults()
+    {
+        var settings = _settingsService.Current.Templates;
+        var groups = settings.Groups;
+
+        // Ensure "Ungrouped" group always exists
+        if (!groups.Any(g => string.Equals(g.Name, UngroupedName, StringComparison.OrdinalIgnoreCase)))
+        {
+            groups.Insert(0, new TemplateGroup { Name = UngroupedName, IsExpanded = true, Order = 0 });
+        }
+
+        // Migrate existing templates: any with null/empty group → Ungrouped (stored as null)
+        // No action needed since null group is interpreted as Ungrouped
     }
 }

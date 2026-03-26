@@ -71,6 +71,10 @@ public sealed class TemplateSettings
     /// <summary>User-defined text templates as name/text pairs.</summary>
     [JsonPropertyName("items")]
     public List<TemplateItem> Items { get; set; } = [];
+
+    /// <summary>User-defined template groups for organizing templates.</summary>
+    [JsonPropertyName("groups")]
+    public List<TemplateGroup> Groups { get; set; } = [];
 }
 
 /// <summary>
@@ -83,6 +87,30 @@ public sealed class TemplateItem
 
     [JsonPropertyName("text")]
     public string Text { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The group this template belongs to. Null or empty means "Ungrouped".
+    /// </summary>
+    [JsonPropertyName("group")]
+    public string? Group { get; set; }
+}
+
+/// <summary>
+/// A named group for organizing templates.
+/// </summary>
+public sealed class TemplateGroup
+{
+    /// <summary>Display name of the group.</summary>
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>Whether the group is expanded in the UI.</summary>
+    [JsonPropertyName("isExpanded")]
+    public bool IsExpanded { get; set; } = true;
+
+    /// <summary>Display order (lower = higher in list).</summary>
+    [JsonPropertyName("order")]
+    public int Order { get; set; }
 }
 
 /// <summary>
@@ -143,8 +171,8 @@ public sealed class TtsSettings
     public string? DefaultVoiceId { get; set; }
 
     /// <summary>
-    /// Read-aloud hotkey combination as a string like "Ctrl+Win+^".
-    /// Null means use the default (Ctrl+Win+^).
+    /// Read-aloud hotkey combination as a string like "Ctrl+Win+T".
+    /// Null means use the default (Ctrl+Win+T).
     /// </summary>
     [JsonPropertyName("readAloudHotkey")]
     public string? ReadAloudHotkey { get; set; }

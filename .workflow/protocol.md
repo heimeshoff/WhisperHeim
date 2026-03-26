@@ -2,6 +2,46 @@
 
 ---
 
+## 2026-03-26 14:20 -- Task Completed: 085 - Template Grouping with Collapsible Sections
+
+**Type:** Task Completion
+**Task:** 085 - Template Grouping with Collapsible Sections
+**Summary:** Implemented template grouping with collapsible sections, drag-and-drop reordering/moving, group CRUD, expand/collapse-all on both Templates and Transcripts pages, and migration for existing ungrouped templates. All 32 tests pass.
+**Files changed:** 9 files
+
+---
+
+## 2026-03-26 14:10 -- Task Started: 085 - Template Grouping with Collapsible Sections
+
+**Type:** Task Start
+**Task:** 085 - Template Grouping with Collapsible Sections
+**Milestone:** N/A
+
+---
+
+## 2026-03-26 14:00 -- Idea Captured: Template Grouping
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/085-template-grouping.md
+**Summary:** User-defined collapsible template groups with drag-and-drop reordering, inline renaming, per-group add buttons, and persistent collapse state. Also includes collapse/expand-all toggle for both Templates and Transcripts pages.
+
+---
+
+## 2026-03-26 -- Research: Monetization, Licensing & Marketing
+
+**Type:** Research
+**Topic:** Commercial viability — dependency licenses, monetization models, go-to-market strategy
+**File:** research/monetization-and-marketing.md
+**Key findings:**
+- All dependencies (Parakeet CC-BY-4.0, sherpa-onnx Apache-2.0, rest MIT) allow commercial use — no blockers
+- Freemium + one-time purchase (Open Core) is the best-fit model; MacWhisper sold ~300K copies at $35-79 with this exact approach
+- Privacy-as-architecture ("your data physically cannot leave your machine") is the #1 differentiator vs cloud competitors
+- NLNet/NGI grants (EUR 5K-50K) are an excellent fit for the project's privacy + accessibility profile
+- Launch sequence: pre-launch email list → Show HN → Product Hunt → Reddit (r/selfhosted, r/privacy) → Microsoft Store
+
+---
+
 ## 2026-03-25 23:15 -- Task Completed: 083 - Unify Recordings & File Transcription
 
 **Type:** Task Completion

@@ -7,7 +7,7 @@ A local-first, privacy-focused voice toolkit for Windows. Dictate text, record a
 - **Voice Dictation** -- speak and have text typed into any application (Ctrl+Win)
 - **Call Recording & Transcription** -- record system audio with speaker diarization (Ctrl+Win+R)
 - **Text-to-Speech** -- synthesize speech with built-in or cloned voices
-- **Read Aloud** -- select text in any app and have it read back to you (Ctrl+Win+^)
+- **Read Aloud** -- select text in any app and have it read back to you (Ctrl+Win+T)
 - **Templates** -- reusable text snippets triggered by voice (Ctrl+Win+Alt)
 - **Cloud Sync** -- optionally store your data in a synced folder (Google Drive, OneDrive, Dropbox)
 

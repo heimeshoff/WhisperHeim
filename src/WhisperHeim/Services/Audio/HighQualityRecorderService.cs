@@ -46,19 +46,7 @@ public sealed class HighQualityRecorderService : IHighQualityRecorderService
     public event EventHandler<RecordingStoppedEventArgs>? RecordingStopped;
 
     /// <inheritdoc />
-    public IReadOnlyList<AudioDeviceInfo> GetAvailableDevices()
-    {
-        int count = WaveInEvent.DeviceCount;
-        var devices = new List<AudioDeviceInfo>(count);
-
-        for (int i = 0; i < count; i++)
-        {
-            var caps = WaveInEvent.GetCapabilities(i);
-            devices.Add(new AudioDeviceInfo(i, caps.ProductName, caps.Channels));
-        }
-
-        return devices;
-    }
+    public IReadOnlyList<AudioDeviceInfo> GetAvailableDevices() => AudioDeviceResolver.EnumerateInputDevices();
 
     /// <inheritdoc />
     public void StartRecording(int deviceIndex = -1)

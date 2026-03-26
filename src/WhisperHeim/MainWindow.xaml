@@ -135,17 +135,10 @@
                                        FontSize="11" FontWeight="Medium" />
                         </StackPanel>
                     </ListBoxItem>
-                    <ListBoxItem Tag="Templates" Style="{StaticResource NavPillItem}">
+<ListBoxItem Tag="Recordings" Style="{StaticResource NavPillItem}">
                         <StackPanel Orientation="Horizontal">
-                            <ui:SymbolIcon Symbol="Document24" Margin="0,0,10,0" FontSize="18" />
-                            <TextBlock x:Name="NavLabelTemplates" Text="TEMPLATES" VerticalAlignment="Center"
-                                       FontSize="11" FontWeight="Medium" />
-                        </StackPanel>
-                    </ListBoxItem>
-                    <ListBoxItem Tag="Recordings" Style="{StaticResource NavPillItem}">
-                        <StackPanel Orientation="Horizontal">
-                            <ui:SymbolIcon Symbol="DocumentText24" Margin="0,0,10,0" FontSize="18" />
-                            <TextBlock x:Name="NavLabelRecordings" Text="RECORDINGS" VerticalAlignment="Center"
+                            <ui:SymbolIcon Symbol="ChatMultiple24" Margin="0,0,10,0" FontSize="18" />
+                            <TextBlock x:Name="NavLabelRecordings" Text="CONVERSATIONS" VerticalAlignment="Center"
                                        FontSize="11" FontWeight="Medium" />
                         </StackPanel>
                     </ListBoxItem>
