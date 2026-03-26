@@ -24,14 +24,27 @@ public sealed class TemplateService : ITemplateService
             return null;
 
         var templates = _settingsService.Current.Templates.Items;
-        if (templates.Count == 0)
+        var systemTemplates = SystemTemplateDefinitions.All;
+
+        // Build candidate list: system templates first (take precedence), then user templates
+        var allCandidates = new List<(string Name, bool IsSystem, string? ActionId)>();
+
+        foreach (var st in systemTemplates)
+        {
+            if (!string.IsNullOrWhiteSpace(st.Name))
+                allCandidates.Add((st.Name, true, st.ActionId));
+        }
+
+        foreach (var t in templates)
+        {
+            if (!string.IsNullOrWhiteSpace(t.Name))
+                allCandidates.Add((t.Name, false, null));
+        }
+
+        if (allCandidates.Count == 0)
             return null;
 
-        var candidateNames = templates
-            .Where(t => !string.IsNullOrWhiteSpace(t.Name))
-            .Select(t => t.Name)
-            .ToList();
-
+        var candidateNames = allCandidates.Select(c => c.Name).ToList();
         var matchedName = FuzzyMatcher.FindBestMatch(spokenText, candidateNames);
         if (matchedName is null)
         {
@@ -40,13 +53,28 @@ public sealed class TemplateService : ITemplateService
             return null;
         }
 
+        var score = FuzzyMatcher.ComputeSimilarity(
+            spokenText.Trim().ToLowerInvariant(),
+            matchedName.Trim().ToLowerInvariant());
+
+        // Check if the match is a system template
+        var matchedCandidate = allCandidates.First(c =>
+            string.Equals(c.Name, matchedName, StringComparison.OrdinalIgnoreCase));
+
+        if (matchedCandidate.IsSystem)
+        {
+            Trace.TraceInformation(
+                "[TemplateService] Matched \"{0}\" -> system template \"{1}\" (score={2:F2}, action={3})",
+                spokenText, matchedName, score, matchedCandidate.ActionId);
+
+            return new TemplateMatchResult(matchedName, string.Empty, score,
+                IsSystemTemplate: true, SystemActionId: matchedCandidate.ActionId);
+        }
+
         var template = templates.First(t =>
             string.Equals(t.Name, matchedName, StringComparison.OrdinalIgnoreCase));
 
         var expandedText = TemplatePlaceholderExpander.Expand(template.Text);
-        var score = FuzzyMatcher.ComputeSimilarity(
-            spokenText.Trim().ToLowerInvariant(),
-            matchedName.Trim().ToLowerInvariant());
 
         Trace.TraceInformation(
             "[TemplateService] Matched \"{0}\" -> template \"{1}\" (score={2:F2})",
@@ -116,7 +144,9 @@ public sealed class TemplateService : ITemplateService
     {
         EnsureDefaults();
         return _settingsService.Current.Templates.Groups
-            .OrderBy(g => g.Name == UngroupedName ? 0 : 1)
+            .OrderBy(g => g.Name == UngroupedName ? 0
+                : string.Equals(g.Name, SystemTemplateDefinitions.SystemGroupName, StringComparison.OrdinalIgnoreCase) ? 2
+                : 1)
             .ThenBy(g => g.Order)
             .ThenBy(g => g.Name, StringComparer.OrdinalIgnoreCase)
             .ToList()
@@ -142,6 +172,7 @@ public sealed class TemplateService : ITemplateService
     public void RenameGroup(string oldName, string newName)
     {
         if (string.Equals(oldName, UngroupedName, StringComparison.OrdinalIgnoreCase)) return;
+        if (string.Equals(oldName, SystemTemplateDefinitions.SystemGroupName, StringComparison.OrdinalIgnoreCase)) return;
         if (string.IsNullOrWhiteSpace(newName)) return;
 
         var groups = _settingsService.Current.Templates.Groups;
@@ -163,6 +194,7 @@ public sealed class TemplateService : ITemplateService
     public bool RemoveGroup(string name)
     {
         if (string.Equals(name, UngroupedName, StringComparison.OrdinalIgnoreCase)) return false;
+        if (string.Equals(name, SystemTemplateDefinitions.SystemGroupName, StringComparison.OrdinalIgnoreCase)) return false;
 
         var templates = _settingsService.Current.Templates.Items;
         var hasTemplates = templates.Any(t =>
@@ -186,7 +218,9 @@ public sealed class TemplateService : ITemplateService
             var g = groups.FirstOrDefault(x =>
                 string.Equals(x.Name, groupNamesInOrder[i], StringComparison.OrdinalIgnoreCase));
             if (g is not null)
-                g.Order = g.Name == UngroupedName ? 0 : i + 1;
+                g.Order = g.Name == UngroupedName ? 0
+                    : string.Equals(g.Name, SystemTemplateDefinitions.SystemGroupName, StringComparison.OrdinalIgnoreCase) ? int.MaxValue
+                    : i + 1;
         }
         _settingsService.Save();
     }
@@ -202,6 +236,12 @@ public sealed class TemplateService : ITemplateService
             group.IsExpanded = isExpanded;
             _settingsService.Save();
         }
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<SystemTemplate> GetSystemTemplates()
+    {
+        return SystemTemplateDefinitions.All;
     }
 
     /// <inheritdoc />

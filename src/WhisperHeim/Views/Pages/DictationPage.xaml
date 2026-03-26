@@ -428,12 +428,13 @@
                                                        VerticalAlignment="Center" Margin="6,0,0,0" />
                                         </StackPanel>
                                     </ToggleButton>
-                                    <!-- Add template to group button -->
+                                    <!-- Add template to group button (hidden for system groups) -->
                                     <Button Click="AddTemplateToGroup_Click"
                                             ToolTip="Add template to this group"
                                             DockPanel.Dock="Right" Margin="4,0,0,0"
                                             Background="Transparent" BorderThickness="0"
-                                            Padding="4" Cursor="Hand" VerticalAlignment="Center">
+                                            Padding="4" Cursor="Hand" VerticalAlignment="Center"
+                                            Visibility="{Binding ShowAddButton, Converter={StaticResource BoolToVisibility}}">
                                         <Button.Template>
                                             <ControlTemplate TargetType="Button">
                                                 <Border x:Name="Bd" CornerRadius="4" Padding="{TemplateBinding Padding}"
@@ -481,10 +482,20 @@
                                         <DataTemplate>
                                             <Button Click="TemplateRow_Click"
                                                     Background="Transparent" BorderThickness="0"
-                                                    Padding="0" Cursor="Hand"
+                                                    Padding="0"
                                                     HorizontalContentAlignment="Stretch"
                                                     PreviewMouseLeftButtonDown="TemplateRow_PreviewMouseLeftButtonDown"
                                                     PreviewMouseMove="TemplateRow_PreviewMouseMove">
+                                                <Button.Style>
+                                                    <Style TargetType="Button">
+                                                        <Setter Property="Cursor" Value="Hand" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsSystem}" Value="True">
+                                                                <Setter Property="Cursor" Value="Arrow" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
                                                 <Button.Template>
                                                     <ControlTemplate TargetType="Button">
                                                         <Border x:Name="Bd" Padding="16,10" CornerRadius="8"
@@ -503,7 +514,7 @@
                                                         <ColumnDefinition Width="180" />
                                                         <ColumnDefinition Width="*" />
                                                     </Grid.ColumnDefinitions>
-                                                    <TextBlock Grid.Column="0"
+                                                    <TextBlock x:Name="NameText" Grid.Column="0"
                                                                Text="{Binding Name}"
                                                                FontWeight="SemiBold"
                                                                FontSize="13"
@@ -511,7 +522,7 @@
                                                                TextWrapping="NoWrap"
                                                                VerticalAlignment="Center"
                                                                Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                                                    <TextBlock Grid.Column="1"
+                                                    <TextBlock x:Name="DescText" Grid.Column="1"
                                                                Text="{Binding Text}"
                                                                FontSize="12"
                                                                TextTrimming="CharacterEllipsis"
@@ -520,6 +531,14 @@
                                                                Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                                                 </Grid>
                                             </Button>
+                                            <DataTemplate.Triggers>
+                                                <!-- System templates: reduced contrast -->
+                                                <DataTrigger Binding="{Binding IsSystem}" Value="True">
+                                                    <Setter TargetName="NameText" Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+                                                    <Setter TargetName="NameText" Property="FontWeight" Value="Normal" />
+                                                    <Setter TargetName="DescText" Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>

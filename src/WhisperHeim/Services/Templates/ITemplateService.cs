@@ -8,7 +8,9 @@ namespace WhisperHeim.Services.Templates;
 public sealed record TemplateMatchResult(
     string TemplateName,
     string ExpandedText,
-    double MatchScore);
+    double MatchScore,
+    bool IsSystemTemplate = false,
+    string? SystemActionId = null);
 
 /// <summary>
 /// Manages templates and matches spoken names to template text.
@@ -84,4 +86,9 @@ public interface ITemplateService
     /// and the "Ungrouped" group always exists.
     /// </summary>
     void EnsureDefaults();
+
+    /// <summary>
+    /// Gets the list of built-in system templates.
+    /// </summary>
+    IReadOnlyList<SystemTemplate> GetSystemTemplates();
 }

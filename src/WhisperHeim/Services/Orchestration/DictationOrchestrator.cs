@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Windows;
+using WhisperHeim.Models;
 using WhisperHeim.Services.Audio;
 using WhisperHeim.Services.Hotkey;
 using WhisperHeim.Services.Input;
@@ -35,6 +36,7 @@ public sealed class DictationOrchestrator : IDisposable
     private bool _isRecording;
     private bool _isTemplateMode;
     private bool _disposed;
+    private string? _lastNormalDictation;
 
     private const int MinSamples = 8000; // 0.5s at 16kHz
     private const int SampleRate = 16000;
@@ -245,6 +247,15 @@ public sealed class DictationOrchestrator : IDisposable
                 var match = _templateService.MatchAndExpand(text);
                 if (match is not null)
                 {
+                    if (match.IsSystemTemplate)
+                    {
+                        Trace.TraceInformation(
+                            "[DictationOrchestrator] System template matched: \"{0}\" (score={1:F2}, action={2}).",
+                            match.TemplateName, match.MatchScore, match.SystemActionId);
+                        await HandleSystemAction(match.SystemActionId);
+                        return;
+                    }
+
                     Trace.TraceInformation(
                         "[DictationOrchestrator] Template matched: \"{0}\" (score={1:F2}), typing expanded text.",
                         match.TemplateName, match.MatchScore);
@@ -258,12 +269,37 @@ public sealed class DictationOrchestrator : IDisposable
                 return;
             }
 
+            // Store last normal dictation for the Repeat command
+            _lastNormalDictation = text;
             await TypeTextSafe(text);
         }
         catch (Exception ex)
         {
             Trace.TraceError("[DictationOrchestrator] Final transcription error: {0}", ex.Message);
             PipelineError?.Invoke(ex);
+        }
+    }
+
+    private async Task HandleSystemAction(string? actionId)
+    {
+        switch (actionId)
+        {
+            case SystemTemplateDefinitions.RepeatActionId:
+                if (string.IsNullOrEmpty(_lastNormalDictation))
+                {
+                    Trace.TraceInformation("[DictationOrchestrator] Repeat: no previous dictation to repeat.");
+                    return;
+                }
+
+                Trace.TraceInformation(
+                    "[DictationOrchestrator] Repeat: re-typing last dictation ({0} chars).",
+                    _lastNormalDictation.Length);
+                await TypeTextSafe(_lastNormalDictation);
+                break;
+
+            default:
+                Trace.TraceWarning("[DictationOrchestrator] Unknown system action: {0}", actionId);
+                break;
         }
     }
 

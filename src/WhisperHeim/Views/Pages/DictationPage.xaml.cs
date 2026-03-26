@@ -299,6 +299,11 @@ public partial class DictationPage : UserControl
         foreach (var group in groups)
         {
             var groupName = group.Name;
+
+            // Skip the WhisperHeim system group here; it's added separately below
+            if (string.Equals(groupName, SystemTemplateDefinitions.SystemGroupName, StringComparison.OrdinalIgnoreCase))
+                continue;
+
             var isUngrouped = groupName == TemplateService.UngroupedName;
 
             var templates = allTemplates
@@ -324,6 +329,30 @@ public partial class DictationPage : UserControl
 
             _templateGroups.Add(new TemplateGroupDisplayModel(
                 groupName, items, isExpanded, isUngrouped));
+        }
+
+        // Add WhisperHeim system group at the bottom
+        var systemTemplates = _templateService.GetSystemTemplates();
+        if (systemTemplates.Count > 0)
+        {
+            var systemItems = systemTemplates
+                .Where(st => !hasSearch || st.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase)
+                    || st.Description.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+                .Select(st => new TemplateDisplayItem(st))
+                .ToList();
+
+            if (!hasSearch || systemItems.Count > 0)
+            {
+                // Persist expand/collapse state via settings (reuse group expand infrastructure)
+                var systemGroupState = _templateService.GetGroups()
+                    .FirstOrDefault(g => string.Equals(g.Name, SystemTemplateDefinitions.SystemGroupName,
+                        StringComparison.OrdinalIgnoreCase));
+                var systemExpanded = hasSearch || (systemGroupState?.IsExpanded ?? true);
+
+                _templateGroups.Add(new TemplateGroupDisplayModel(
+                    SystemTemplateDefinitions.SystemGroupName, systemItems, systemExpanded,
+                    isUngrouped: false, isSystem: true));
+            }
         }
 
         TemplateGroupList.ItemsSource = null;
@@ -369,8 +398,28 @@ public partial class DictationPage : UserControl
         if (sender is FrameworkElement { DataContext: TemplateGroupDisplayModel group })
         {
             group.OnPropertyChanged(nameof(TemplateGroupDisplayModel.ChevronText));
+
+            // For the system group, ensure it exists in settings before persisting state
+            if (group.IsSystem)
+            {
+                EnsureSystemGroupExists();
+            }
+
             _templateService.SetGroupExpanded(group.GroupName, group.IsExpanded);
             UpdateExpandCollapseIcon();
+        }
+    }
+
+    /// <summary>
+    /// Ensures the WhisperHeim system group entry exists in settings for expand/collapse persistence.
+    /// </summary>
+    private void EnsureSystemGroupExists()
+    {
+        var groups = _templateService.GetGroups();
+        if (!groups.Any(g => string.Equals(g.Name, SystemTemplateDefinitions.SystemGroupName,
+                StringComparison.OrdinalIgnoreCase)))
+        {
+            _templateService.AddGroup(SystemTemplateDefinitions.SystemGroupName);
         }
     }
 
@@ -398,7 +447,7 @@ public partial class DictationPage : UserControl
         if (sender is not FrameworkElement { DataContext: TemplateGroupDisplayModel group })
             return;
 
-        if (group.IsUngrouped) return;
+        if (group.IsUngrouped || group.IsSystem) return;
 
         var deleted = _templateService.RemoveGroup(group.GroupName);
         if (deleted)
@@ -411,6 +460,8 @@ public partial class DictationPage : UserControl
     {
         if (sender is not FrameworkElement { DataContext: TemplateGroupDisplayModel group })
             return;
+
+        if (group.IsSystem) return;
 
         _selectedTemplate = null;
         _selectedTemplateIndex = -1;
@@ -428,7 +479,7 @@ public partial class DictationPage : UserControl
         if (sender is not FrameworkElement element || element.DataContext is not TemplateGroupDisplayModel group)
             return;
 
-        if (group.IsUngrouped) return;
+        if (group.IsUngrouped || group.IsSystem) return;
 
         var dialog = new InputDialog("Rename Group", "Enter new group name:", group.GroupName)
         {
@@ -451,6 +502,10 @@ public partial class DictationPage : UserControl
         if (sender is not FrameworkElement element || element.DataContext is not TemplateDisplayItem displayItem)
             return;
 
+        // System templates are not clickable/editable
+        if (displayItem.IsSystem)
+            return;
+
         _selectedTemplateIndex = displayItem.OriginalIndex;
         _selectedTemplate = displayItem.Template;
         _isNewTemplateMode = false;
@@ -462,6 +517,10 @@ public partial class DictationPage : UserControl
 
     private void TemplateRow_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
+        // Suppress drag for system templates
+        if (sender is FrameworkElement { DataContext: TemplateDisplayItem item } && item.IsSystem)
+            return;
+
         _dragStartPoint = e.GetPosition(null);
         _dragSource = sender;
     }
@@ -481,6 +540,10 @@ public partial class DictationPage : UserControl
         if (sender is not FrameworkElement element || element.DataContext is not TemplateDisplayItem item)
             return;
 
+        // Suppress drag for system templates
+        if (item.IsSystem)
+            return;
+
         var data = new DataObject("TemplateDisplayItem", item);
         DragDrop.DoDragDrop(element, data, DragDropEffects.Move);
         _dragSource = null;
@@ -495,7 +558,7 @@ public partial class DictationPage : UserControl
         {
             if (sender is not FrameworkElement element) return;
             var targetGroup = FindGroupFromElement(element);
-            if (targetGroup is null) return;
+            if (targetGroup is null || targetGroup.IsSystem) return;
 
             var item = e.Data.GetData("TemplateDisplayItem") as TemplateDisplayItem;
             if (item is null) return;
@@ -508,11 +571,11 @@ public partial class DictationPage : UserControl
         else if (e.Data.GetDataPresent("TemplateGroupDrag"))
         {
             var sourceGroup = e.Data.GetData("TemplateGroupDrag") as TemplateGroupDisplayModel;
-            if (sourceGroup is null || sourceGroup.IsUngrouped) return;
+            if (sourceGroup is null || sourceGroup.IsUngrouped || sourceGroup.IsSystem) return;
 
             if (sender is not FrameworkElement element) return;
             var targetGroup = FindGroupFromElement(element);
-            if (targetGroup is null || targetGroup.IsUngrouped) return;
+            if (targetGroup is null || targetGroup.IsUngrouped || targetGroup.IsSystem) return;
 
             var names = _templateGroups.Where(g => !g.IsUngrouped).Select(g => g.GroupName).ToList();
             var sourceIdx = names.IndexOf(sourceGroup.GroupName);
@@ -559,7 +622,7 @@ public partial class DictationPage : UserControl
         if (sender is not FrameworkElement element || element.DataContext is not TemplateGroupDisplayModel group)
             return;
 
-        if (group.IsUngrouped) return;
+        if (group.IsUngrouped || group.IsSystem) return;
 
         var data = new DataObject("TemplateGroupDrag", group);
         DragDrop.DoDragDrop(element, data, DragDropEffects.Move);
@@ -680,24 +743,32 @@ internal sealed class TemplateGroupDisplayModel : INotifyPropertyChanged
 {
     private bool _isExpanded;
 
-    public TemplateGroupDisplayModel(string groupName, List<TemplateDisplayItem> items, bool isExpanded, bool isUngrouped)
+    public TemplateGroupDisplayModel(string groupName, List<TemplateDisplayItem> items, bool isExpanded, bool isUngrouped, bool isSystem = false)
     {
         GroupName = groupName;
         Items = items;
         _isExpanded = isExpanded;
         IsUngrouped = isUngrouped;
+        IsSystem = isSystem;
     }
 
     public string GroupName { get; }
     public List<TemplateDisplayItem> Items { get; }
     public bool IsUngrouped { get; }
+    public bool IsSystem { get; }
     public string CountDisplay => $"({Items.Count})";
 
-    /// <summary>Show delete icon only for custom (non-Ungrouped) empty groups.</summary>
-    public bool ShowDeleteIcon => !IsUngrouped && Items.Count == 0;
+    /// <summary>Show delete icon only for custom (non-Ungrouped, non-System) empty groups.</summary>
+    public bool ShowDeleteIcon => !IsUngrouped && !IsSystem && Items.Count == 0;
+
+    /// <summary>Show add template button only for non-system groups.</summary>
+    public bool ShowAddButton => !IsSystem;
 
     /// <summary>Show IBeam cursor for renameable groups.</summary>
-    public Cursor RenameCursor => IsUngrouped ? Cursors.Arrow : Cursors.Hand;
+    public Cursor RenameCursor => IsUngrouped || IsSystem ? Cursors.Arrow : Cursors.Hand;
+
+    /// <summary>Whether group header can be dragged to reorder.</summary>
+    public bool AllowGroupDrag => !IsUngrouped && !IsSystem;
 
     public bool IsExpanded
     {
@@ -733,12 +804,26 @@ internal sealed class TemplateDisplayItem
     {
         Template = template;
         OriginalIndex = originalIndex;
+        IsSystem = false;
+    }
+
+    /// <summary>
+    /// Creates a display item for a system template (not editable, not clickable).
+    /// </summary>
+    public TemplateDisplayItem(SystemTemplate systemTemplate)
+    {
+        Template = new TemplateItem { Name = systemTemplate.Name, Text = systemTemplate.Description };
+        OriginalIndex = -1;
+        IsSystem = true;
+        Description = systemTemplate.Description;
     }
 
     public TemplateItem Template { get; }
     public int OriginalIndex { get; }
+    public bool IsSystem { get; }
+    public string? Description { get; }
 
     // Convenience binding properties
     public string Name => Template.Name;
-    public string Text => Template.Text;
+    public string Text => IsSystem ? (Description ?? string.Empty) : Template.Text;
 }
