@@ -2,6 +2,24 @@
 
 ---
 
+## 2026-03-26 -- Task Completed: 089 - Fix speaker dropdown selection
+
+**Type:** Task Completion
+**Task:** 089 - Fix speaker dropdown selection not applying
+**Summary:** Fixed LostFocus/SelectionChanged race condition by deferring LostFocus commit via Dispatcher.BeginInvoke and adding a _speakerSelectionCommitted flag to prevent duplicate commits.
+**Files changed:** 1 file
+
+---
+
+## 2026-03-26 -- Task Completed: 090 - Open in Player icon
+
+**Type:** Task Completion
+**Task:** 090 - Add proper play icon to Open in Player button
+**Summary:** Replaced raw Unicode glyph with SymbolIcon Open24 in a StackPanel, matching the pattern of other buttons.
+**Files changed:** 1 file
+
+---
+
 ## 2026-03-26 -- Task Completed: 088 - System Templates — WhisperHeim Group
 
 **Type:** Task Completion
