@@ -2,6 +2,23 @@
 
 ---
 
+## 2026-03-26 -- Task Completed: 069 - Transcript Analysis with Local LLM
+
+**Type:** Task Completion
+**Task:** 069 - Transcript Analysis with Local LLM
+**Summary:** Added OllamaSharp integration with streaming analysis, model auto-detection, 4 built-in prompt templates (Action Items, Key Decisions, Ideas, Meeting Summary), Ollama settings section on GeneralPage, and Analyze button with streaming results panel on TranscriptsPage.
+**Files changed:** 10 files
+
+---
+
+## 2026-03-26 -- Task Started: 069 - Transcript Analysis with Local LLM
+
+**Type:** Task Start
+**Task:** 069 - Transcript Analysis with Local LLM
+**Milestone:** Milestone 2 (Audio Capture + Call Transcription)
+
+---
+
 ## 2026-03-26 -- Task Completed: 089 - Fix speaker dropdown selection
 
 **Type:** Task Completion
