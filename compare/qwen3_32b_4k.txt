@@ -1,0 +1,73 @@
+Thinking...
+Okay, let me try to parse through this conversation. It seems like there are three people involved: You, Xin Yao, and Alberto Brandolini. They're
+discussing organizing workshops or events, possibly related to Domain-Driven Design (DDD) or AI, given the mention of Kandinsky and DDD Europe.
+
+First, they talk about a process where they use an AI (like Claude) to brainstorm and model projects. The user describes a method where they use
+Socratic questions from the AI to guide their thinking, then use research agents and worker agents to build a model before implementing anything.
+This seems to be their workflow for project planning.
+
+Then there's a shift in the conversation where they mention a YouTube video of Bernie Sanders and Claude discussing data privacy, and they touch on
+data privacy topics. But it's a bit fragmented with some jokes about the US government banning certain topics.
+
+The main focus later is on scheduling a meeting with someone named Jabe (possibly Jabe Bloom?), who is involved in workshops at DDD Europe. Xin Yao
+mentions that Jabe's workshop was well-received and wants to have him again. They're trying to coordinate a meeting to discuss having Jabe do a
+workshop or talk at an event, possibly Kandinsky, which is differentiating itself from DDD Europe. They mention sending calendar invites and trying
+to get Jabe's availability, but he's not responding on email or LinkedIn.
+
+The conversation ends with them agreeing to set up a meeting as soon as possible, ideally tomorrow or Wednesday, and they part ways with goodbyes.
+
+I need to make sure I understand the key points: the workflow using AI for project modeling, the event planning involving Jabe, and the urgency to
+schedule a meeting. Also, the context around data privacy and AI ethics comes up briefly. The user is likely looking to organize an event and needs
+to coordinate with Jabe, using the AI tools to plan their projects efficiently. The mention of DDD Europe and Kandinsky suggests these are
+conferences or workshops focused on software development methodologies, possibly Domain-Driven Design. The user's main challenge is getting Jabe's
+availability to confirm his participation in the event, which is crucial for their agenda planning.
+...done thinking.
+
+The conversation revolves around three main themes: **project planning with AI tools**, **organizing technical workshops**, and **coordinating with
+a key speaker (Jabe)** for an upcoming event (likely related to Domain-Driven Design or AI). Here's a structured summary:
+
+---
+
+### **1. AI-Assisted Project Planning**
+- **Workflow**: The user describes a method using AI (e.g., Claude) to brainstorm and model projects. Key steps include:
+  - **Socratic Questioning**: The AI acts as a Socratic guide, asking questions to refine ideas.
+  - **Research Agent**: Conducts parallel research (e.g., blog posts) to inform decisions.
+  - **Modeling**: A conversational process to define technical requirements, target audiences, and error states before implementation.
+  - **Worker Agent**: Handles execution, asking clarifying questions as needed.
+- **Tools**: Voice models for interactive conversations, avoiding convoluted processes (e.g., 100 MD files).
+
+---
+
+### **2. Event Organization (Workshops/Conferences)**
+- **Context**:
+  - **DDD Europe** is mentioned as a competitor with a "mechanistic" agenda, favoring big names.
+  - **Kandinsky** is positioned as a differentiator, potentially focusing on niche topics like **temporal complexity**, **AI ethics**, and
+**phenomenology**.
+- **Key Speaker (Jabe)**:
+  - **Background**: Known for a well-received DDD Europe workshop and podcasts on AI and philosophy.
+  - **Challenges**: Jabe is unresponsive (not on email/LinkedIn), complicating scheduling.
+  - **Goal**: Secure Jabe for a workshop/talk to strengthen Kandinsky's agenda.
+
+---
+
+### **3. Coordination and Urgency**
+- **Scheduling**: The group (You, Xin Yao, Alberto) is trying to finalize a meeting with Jabe:
+  - **Proposed Timelines**: Tomorrow or Wednesday (both parties have busy calendars).
+  - **Alberto’s Role**: Optional but helpful as an organizer; not critical for scheduling decisions.
+  - **Next Steps**: Send calendar invites via WhatsApp/email to Jabe, with urgency to confirm participation for the event planning.
+
+---
+
+### **Key Takeaways**
+- **AI Integration**: The team uses AI for collaborative, iterative project planning, emphasizing clarity and research.
+- **Event Strategy**: Kandinsky aims to stand out by focusing on deep technical/philosophical topics, contrasting with DDD Europe’s approach.
+- **Critical Dependency**: Jabe’s participation is pivotal, but communication barriers (e.g., no LinkedIn/email response) are a hurdle.
+
+---
+
+### **Action Items**
+1. **Follow Up with Jabe**: Resend calendar invites via WhatsApp/email to secure his availability.
+2. **Refine Kandinsky Agenda**: Prioritize topics like AI ethics and temporal complexity to differentiate from DDD Europe.
+3. **AI Workflow Optimization**: Continue leveraging AI tools for project modeling to streamline event logistics and content planning.
+
+Let me know if you need further analysis or assistance!

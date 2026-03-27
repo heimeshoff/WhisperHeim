@@ -1,11 +1,14 @@
 using System.Diagnostics;
 using System.IO;
 using NAudio.Wave;
+using NAudio.Wave.SampleProviders;
 
 namespace WhisperHeim.Services.Audio;
 
 /// <summary>
-/// Plays back audio from a WAV file with seeking support for transcript segment playback.
+/// Plays back audio from WAV files with seeking support for transcript segment playback.
+/// Supports opening two WAV files (mic + system) and mixing them in real-time,
+/// or a single WAV file for backward compatibility.
 /// Uses NAudio WaveOutEvent for playback. Provides current position tracking and
 /// play/pause/stop/seek controls.
 /// </summary>
@@ -13,6 +16,7 @@ public sealed class TranscriptAudioPlayer : IDisposable
 {
     private WaveOutEvent? _waveOut;
     private AudioFileReader? _audioReader;
+    private AudioFileReader? _audioReader2;
     private string? _currentFilePath;
     private readonly object _lock = new();
     private System.Timers.Timer? _positionTimer;
@@ -101,6 +105,66 @@ public sealed class TranscriptAudioPlayer : IDisposable
     }
 
     /// <summary>
+    /// Opens two WAV files (mic + system) and mixes them in real-time for playback.
+    /// If only one file exists, falls back to single-file playback.
+    /// </summary>
+    public void Open(string micFilePath, string systemFilePath)
+    {
+        var micExists = File.Exists(micFilePath);
+        var sysExists = File.Exists(systemFilePath);
+
+        if (!micExists && !sysExists)
+            throw new FileNotFoundException("No audio files found.");
+
+        if (!micExists || !sysExists)
+        {
+            Open(micExists ? micFilePath : systemFilePath);
+            return;
+        }
+
+        lock (_lock)
+        {
+            CloseInternal();
+
+            _audioReader = new AudioFileReader(micFilePath);
+            _audioReader2 = new AudioFileReader(systemFilePath);
+
+            var micSamples = _audioReader.ToSampleProvider();
+            var sysSamples = _audioReader2.ToSampleProvider();
+
+            // Resample system audio to match mic sample rate if different
+            ISampleProvider sysProvider = sysSamples;
+            if (_audioReader2.WaveFormat.SampleRate != _audioReader.WaveFormat.SampleRate)
+            {
+                sysProvider = new WdlResamplingSampleProvider(
+                    sysSamples, _audioReader.WaveFormat.SampleRate);
+            }
+
+            // Ensure both are mono
+            ISampleProvider micMono = _audioReader.WaveFormat.Channels > 1
+                ? new StereoToMonoSampleProvider(micSamples) : micSamples;
+            ISampleProvider sysMono = _audioReader2.WaveFormat.Channels > 1
+                ? new StereoToMonoSampleProvider(sysProvider) : sysProvider;
+
+            var mixer = new MixingSampleProvider(new[] { micMono, sysMono })
+            {
+                ReadFully = false
+            };
+
+            _waveOut = new WaveOutEvent();
+            _waveOut.Init(mixer);
+            _waveOut.PlaybackStopped += OnPlaybackStopped;
+            _currentFilePath = micFilePath;
+
+            StartPositionTimer();
+
+            Trace.TraceInformation(
+                "[TranscriptAudioPlayer] Opened mixed: {0} + {1} (duration={2:hh\\:mm\\:ss})",
+                micFilePath, systemFilePath, _audioReader.TotalTime);
+        }
+    }
+
+    /// <summary>
     /// Starts or resumes playback from the current position.
     /// </summary>
     public void Play()
@@ -126,6 +190,8 @@ public sealed class TranscriptAudioPlayer : IDisposable
                 return;
 
             _audioReader.CurrentTime = position;
+            if (_audioReader2 is not null)
+                _audioReader2.CurrentTime = position;
             _waveOut.Play();
         }
     }
@@ -147,6 +213,8 @@ public sealed class TranscriptAudioPlayer : IDisposable
                 _waveOut.Stop();
                 if (_audioReader is not null)
                     _audioReader.CurrentTime = TimeSpan.Zero;
+                if (_audioReader2 is not null)
+                    _audioReader2.CurrentTime = TimeSpan.Zero;
             }
         }
     }
@@ -159,6 +227,8 @@ public sealed class TranscriptAudioPlayer : IDisposable
         {
             if (_audioReader is not null)
                 _audioReader.CurrentTime = position;
+            if (_audioReader2 is not null)
+                _audioReader2.CurrentTime = position;
         }
     }
 
@@ -206,6 +276,12 @@ public sealed class TranscriptAudioPlayer : IDisposable
         {
             _audioReader.Dispose();
             _audioReader = null;
+        }
+
+        if (_audioReader2 is not null)
+        {
+            _audioReader2.Dispose();
+            _audioReader2 = null;
         }
 
         _currentFilePath = null;

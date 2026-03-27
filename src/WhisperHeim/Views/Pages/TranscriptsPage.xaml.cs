@@ -958,13 +958,17 @@ public partial class TranscriptsPage : UserControl
 
         ShowSpeakerNamesPanel();
 
-        var audioPath = transcript.ResolvedAudioFilePath;
         _externalAudioPath = null;
+        var (micPath, sysPath) = transcript.ResolvedSourceAudioPaths;
+        var audioPath = micPath ?? sysPath ?? transcript.ResolvedAudioFilePath;
         if (audioPath is not null)
         {
             try
             {
-                _audioPlayer.Open(audioPath);
+                if (micPath is not null && sysPath is not null)
+                    _audioPlayer.Open(micPath, sysPath);
+                else
+                    _audioPlayer.Open(audioPath);
                 PlaybackPanel.Visibility = Visibility.Visible;
                 PlayPauseButton.Content = "Play";
                 PlayPauseButton.Visibility = Visibility.Visible;

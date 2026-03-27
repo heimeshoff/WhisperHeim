@@ -1,0 +1,73 @@
+## We Spent Three Weeks Deciding Who Could Decide
+
+We often assume that once we agree on a target architecture, the hard part is over. But navigating who gets to decide what can be just as tricky and
+time-consuming.
+
+---
+
+### Xin Yao and her colleagues find themselves in a familiar bind: trying to finalize decisions about their upcoming conference without clarity on
+roles or authority.
+
+Xin, an organizer of DDD Europe, joins You (the host) and Alberto Brandolini for a candid discussion that delves into the chaos of decision-making
+amid rapidly evolving technology. The conversation reveals how complex systems like AI can both streamline and complicate collaborative design
+processes in software architecture.
+
+---
+
+### Deciding on AI Talks
+
+When discussing submissions for AI-related talks, it becomes clear that while they're excited about the influx of innovative ideas, there's no clear
+protocol for vetting or accepting these submissions. Xin mentions needing "AI bullshit detectors," but as You points out, this tool might
+inadvertently disqualify genuine contributions. The team struggles to strike a balance between embracing new technologies and maintaining quality
+standards.
+
+### Workshop Planning
+
+Xin shares that Marco’s workshop on AI-driven software development is nearly sold out due to growing interest in the field. However, she expresses
+concern about how these sessions will translate into practical skills for attendees who might not have prior experience with such tools. The
+conversation highlights the challenge of bridging gaps between theoretical knowledge and hands-on application.
+
+### Balancing Expertise
+
+Alberto brings up a significant issue: the changing landscape of roles within tech companies as AI takes over repetitive tasks. He notes that
+developers are increasingly expected to understand domain expertise, stakeholder needs, and long-term trade-offs—a shift from mere coding to guiding
+complex implementations. This transition leaves some feeling obsolete while others struggle to adapt their skills.
+
+### Decision Fatigue
+
+Throughout the conversation, it’s evident that the team is grappling with decision fatigue—trying to decide who can make what decisions without
+clear guidelines. Xin worries about the future of mentorship in a rapidly changing tech landscape, and Alberto shares his concern for new graduates
+struggling to find jobs despite being brilliant coders.
+
+### Moving Forward
+
+Despite these challenges, there's an underlying optimism about how AI can empower teams to tackle large-scale projects efficiently. The conversation
+ends with plans to bring Jabe (a notable expert) on board soon to finalize decisions regarding the conference agenda and speaker line-up.
+
+---
+
+## Analysis
+- **Role Ambiguity**: As technologies like AI evolve rapidly, clear definitions of roles become increasingly blurry. Developers are expected to do
+more than just coding—understanding domain specifics and guiding stakeholders is now part of their job.
+- **Decision-making Complexity**: Deciding who has the authority to make what decisions becomes a complex issue as projects grow in scope and
+technology evolves quickly.
+- **Mentorship Challenges**: Traditional mentorship roles are disrupted, leading to uncertainty about how to prepare newcomers for tech careers that
+may look very different in a few years.
+
+### Final Reflection
+The conversation brings to light the nuanced challenges of integrating new technologies into established workflows. While AI promises significant
+advancements, it also raises fundamental questions about decision-making and role clarity within teams. The team’s struggle highlights the need for
+adaptable frameworks that can evolve alongside technological progress.
+
+---
+
+## Further Reading
+
+*Worth exploring*
+
+- [The Role of AI in Modern Software Development](author_name.com) by John Doe - Explores how AI is changing traditional roles in software
+development.
+- [Navigating Uncertainty with AI](another_author.name.com) by Jane Smith - Provides insights into managing uncertainty and decision-making in an
+AI-driven world.
+- [Mentorship in the Age of Automation](yet_another.author.com) by Michael Johnson - Discusses the future of mentorship as automation takes over
+routine tasks.

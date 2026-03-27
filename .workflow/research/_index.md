@@ -40,6 +40,14 @@
 
 | 2026-03-26 | Monetization & Marketing | [monetization-and-marketing.md](monetization-and-marketing.md) | Freemium + one-time purchase (proprietary); 2-3 month launch window; 6-phase sequence: relicense → license keys → landing page → content → feature split → launch (Show HN → PH → Reddit); all dependencies allow commercial use; privacy-as-architecture is #1 differentiator |
 
+## Auto-Update & Distribution (2026-03-27)
+
+| 2026-03-27 | Auto-Update & Distribution | [auto-update-and-distribution.md](auto-update-and-distribution.md) | Velopack (free, Rust-based, delta updates) is the right framework; MSIX is wrong for tray apps needing system access; code signing blocked for German individuals — ship unsigned, sign after UG registration |
+
+## MacWhisper Growth Playbook (2026-03-27)
+
+| 2026-03-27 | MacWhisper Growth Playbook | [macwhisper-growth-playbook.md](macwhisper-growth-playbook.md) | Zero paid ads; 250K+ downloads in 17 months via Twitter/X audience, Apple featuring, press (iMore App of Year), Product Hunt, and perfect timing on Whisper hype. Ship fast (2-2-2 method), iterate publicly, each feature = launch event. |
+
 ## UI Framework (2026-03-21)
 
 - **WPF + WPF UI (lepoco/wpfui)**: Mica, Fluent controls, tray icon via WPF-UI.Tray. Best fit for Windows 11 tray app.

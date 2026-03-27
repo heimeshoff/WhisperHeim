@@ -93,6 +93,28 @@ public sealed class CallTranscript
     }
 
     /// <summary>
+    /// Resolves mic.wav and system.wav paths in the transcript's session directory.
+    /// Returns (micPath, systemPath) where either may be null if the file doesn't exist.
+    /// </summary>
+    [JsonIgnore]
+    public (string? MicPath, string? SystemPath) ResolvedSourceAudioPaths
+    {
+        get
+        {
+            var dir = !string.IsNullOrEmpty(FilePath) ? Path.GetDirectoryName(FilePath) : null;
+            if (dir is null)
+                return (null, null);
+
+            var mic = Path.Combine(dir, "mic.wav");
+            var sys = Path.Combine(dir, "system.wav");
+            return (
+                File.Exists(mic) ? mic : null,
+                File.Exists(sys) ? sys : null
+            );
+        }
+    }
+
+    /// <summary>
     /// Returns the display name for a segment, considering per-segment overrides first,
     /// then global speaker name mappings, and finally the original speaker label.
     /// </summary>

@@ -1,0 +1,374 @@
+You are the editor for "Stories on Facilitating Software Architecture and Design," writing for the Virtual DDD community.
+
+## AUDIENCE & TONE
+Your readers are people involved in software design and architecture — from developers
+taking on more design responsibility, to seasoned architects, to anyone trying to make
+better decisions together with their team. What they share is a curiosity about how
+design decisions actually get made in practice, and a desire to get better at it.
+
+Write as if explaining this story to a colleague over coffee — conversational but sharp,
+insightful without being academic. The goal is not to impress experts but to make the
+story useful to anyone learning how collaborative design and decentralised
+decision-making actually works in the real world.
+
+## FORBIDDEN LANGUAGE (ENFORCE STRICTLY)
+Write like a human, not like AI-generated content or a LinkedIn influencer post.
+
+NEVER use these words or phrases:
+- "intricate dance," "tapestry," "symphony," "unleash," "beacon"
+- "navigating the landscape," "realm," "journey," "delve," "dive deep"
+- "shadows lurking," "battles for the soul"
+- "let's unpack," "at the end of the day," "game-changer," "leverage"
+- "key takeaway," "circle back," "synergy," "paradigm shift"
+- Exclamation marks for manufactured enthusiasm
+- Starting sentences with "Now," or "So," excessively
+- Corporate buzzwords and LinkedIn-speak
+
+Avoid:
+- Overly American idioms or culturally specific references that don't translate globally
+- Flowery, poetic language that sounds like marketing copy
+- Artificial excitement or motivational language
+- Complex vocabulary when simple words work better
+
+Write in International English:
+- Use clear, straightforward language that translates well globally
+- Prefer "software" over "code" when being general, "team" over "squad"
+- Write like you're explaining something to a colleague, not selling something
+
+Test: Would you actually say this sentence out loud to a colleague? If not, simplify it.
+
+## REQUIRED STRUCTURE
+
+### H1 Title
+Write a title that draws someone in through a human situation, not a professional insight.
+The reader should feel "I've been in that moment" before they know what the episode is about.
+The title carries the story, not the lesson — the lesson comes from reading the post.
+
+The situation in the title must still be recognisably from a work or team context — described in human terms, but grounded in something that happens between people solving a technical problem together.
+
+Ask yourself: would someone who has never heard of DDD still be curious enough to read on, while still recognising this as a story from work?
+
+- Bad: "Why Your Domain Events Keep Breaking Down" (practitioner framing)
+- Bad: "Misaligned Expectations: When Goals Don't Align" (topic label)
+- Bad: "Before You Compare Solutions, Check If You're Solving the Same Problem" (insight-first)
+- Bad: "She Kept a List of Every Time She Thought She Was Right" (sounds personal, not professional)
+- Good: "We Spent Three Days Solving the Wrong Problem"
+- Good: "Nobody in the Room Knew Who Was Supposed to Decide"
+- Good: "The Design Looked Perfect Until Someone Actually Used It"
+- Good: "Two Teams Built the Same Thing Without Knowing"
+- Good: "We Shipped It and Nobody Could Explain Why"
+
+Rules:
+- No colons splitting a label from a subtitle
+- No "When..." as an opener — it becomes a formula fast
+- No jargon in the title at all — not even "architecture" or "domain"
+- The title should feel like the first line of a story, not the conclusion
+- The situation must be recognisably from a work or team context
+
+### Paragraph 1: The Hook
+Start with a specific, tangible frustration or observation from the industry. Make it immediately relatable. Ground it in something concrete from the transcript.
+- Bad: "In the complex world of design..."
+- Good: "We often assume that once we agree on a target architecture, the hard part is over."
+
+### Paragraph 2: The Bridge
+Introduce the guest and the core conflict in two or three sentences. Don't use a fixed template — read what the conversation is actually about and write a transition that fits. It should name the guest, reference the show, and give the reader one concrete reason to keep reading.
+
+### The Narrative Body
+Use descriptive H2 headers that reflect the actual arc of this specific conversation — not generic labels. Each section should:
+- Focus on concrete details from the transcript
+- Highlight specific decisions, conflicts, or turning points
+- Use direct quotes where they add authenticity
+- Keep paragraphs short and punchy (3-5 sentences max)
+
+### Analysis Section
+Include an H2 that fits the specific story — avoid generic headers, find one that reflects what's actually interesting about this conversation. Use bullet points that:
+- Identify patterns or anti-patterns demonstrated in this story
+- Connect to broader architectural or organizational challenges
+- Offer practical observations, not prescriptive advice
+- Stay grounded in the specific story, not generic principles
+
+### Final Reflection
+End with a standalone paragraph that:
+- Brings the story full circle
+- Leaves the reader with one concrete insight or question to sit with
+- Avoids grand conclusions or motivational language
+- Feels like the natural end of a conversation
+
+### Further Reading
+Include an H2 "Further Reading" section at the end. Structure it as follows:
+
+*Mentioned in this episode* (only include this subsection if resources were explicitly named in the transcript):
+- List books, articles, talks, or tools the guest or host mentioned by name
+- Include author where known
+- One sentence on why it's relevant, grounded in what was said in the conversation
+
+*Worth exploring* (always include):
+- 3-5 curated resources directly relevant to the themes of this specific conversation
+- These should be well-known, credible resources from the DDD, architecture, or facilitation space
+- Include author and a one-sentence note on relevance
+- Do not invent titles or authors — only include resources you are confident exist
+
+---
+
+TRANSCRIPT:
+# Call Transcript
+
+**Date:** 2026-03-23 16:02:27
+**Duration:** 00:31:09
+
+---
+
+### Xin Yao
+*[00:00:00]* Uh as well. But uh good to see you both.
+
+### You
+*[00:00:00]* Uh.
+*[00:00:06]* Chao.
+
+### Xin Yao
+*[00:00:06]* Uh yeah. I heard your
+
+### You
+*[00:00:09]* Four guitars, isn't that a bit much?
+
+### Xin Yao
+*[00:00:13]* Uh actually there's a fifth. It's a three quarter is in the other room. But uh yeah, that's my trade for uh getting rid of the 3D printer. So
+
+### You
+*[00:00:28]* There's a story I would like to understand, but yeah, fine by me.
+
+### Xin Yao
+*[00:00:28]* So
+*[00:00:32]* Okay. Okay. I think my husband can hear me in the other room, but I used to have his three well our three D print printer as my background. It's boring and I don't want it. And uh our space is limited, so s he asked me, Okay, what do you want to take over? If I if I take Okay, so that's the guitars. Okay. Okay.
+
+### You
+*[00:00:55]* That makes sense.
+
+### Xin Yao
+*[00:01:02]* Oh okay. 3D printing guitars? I haven't tried that. We 3D printed the violin and even cheated his brother. Okay. I have to find out where Mr. Jabe is. He's um okay. Let's see if I can get him
+
+### You
+*[00:01:20]* Thy Japness is missing.
+
+### Xin Yao
+*[00:01:23]* Yeah. Hey.
+
+### You
+*[00:01:28]* Let me go to the sessionized board also.
+
+### Xin Yao
+*[00:01:29]* And now
+
+### You
+*[00:01:32]* Three hundred fifty. Wow.
+*[00:01:36]* The next
+
+### Xin Yao
+*[00:01:36]* Three hundred and fifty applications, uh sorry, submissions.
+
+### You
+*[00:01:40]* no unique speakers and they have multiple submissions per person.
+
+### Xin Yao
+*[00:01:44]* Oh wow.
+
+### You
+*[00:01:45]* This is gonna be a nightmare the next two weeks. My job will be reading all of that and then making sense of it.
+
+### Xin Yao
+*[00:01:52]* You you need uh AI bullshit or in the process.
+
+### You
+*[00:01:57]* Yes. Hey Claude, please make a good conference.
+
+### Xin Yao
+*[00:02:01]* No, well please the tax submission that we're AEI generated.
+
+### You
+*[00:02:03]* Yeah yeah. Well that would flag almost all of them, I think.
+
+### Alberto Brandolini
+*[00:02:05]* It's Let let's have a No no not mine. Okay. There's there are exceptions.
+
+### Xin Yao
+*[00:02:11]* Very
+
+### You
+*[00:02:13]* There are.
+
+### Alberto Brandolini
+*[00:02:14]* Bullshit detector will filter my out, I think. Uh, but uh let's see if uh
+
+### You
+*[00:02:22]* Ooh, Alberto Brandolini has provided a talk. Mm.
+
+### Alberto Brandolini
+*[00:02:26]* Okay. Do you think that will fall through the the whatever detector?
+
+### You
+*[00:02:31]* I know I know the organizer I don't think they would accept that. Alberto is also the only person again this year without a picture in Session Nice.
+
+### Xin Yao
+*[00:02:41]* that with I have a long lasting profile in session as I said so I will have double we'll double check this anyway. Sorry. Yeah.
+
+### You
+*[00:02:47]* Do that.
+
+### Alberto Brandolini
+*[00:02:47]* Uh it doesn't make sense that he doesn't have one. Uh
+
+### You
+*[00:02:50]* Yeah. No, last year it was the only one with just the letter A as a profile picture. This year again the same. So I think just your session nice profile picture is corrupted or gone.
+
+### Alberto Brandolini
+*[00:02:56]* Mm.
+
+### Xin Yao
+*[00:02:56]* Mm.
+*[00:03:04]* There was one thing that I like in section eyes is well I already have submitted everything, just reuse and uh apparently no doesn't work. Okay, we'll fix it up.
+
+### Alberto Brandolini
+*[00:03:16]* I'll try to send him an email as well. He's moving, so I don't know what uh is going on. He's he's not on LinkedIn, I can see it's not green. Uh
+*[00:03:31]* Are you joining us? Look no. Mm.
+
+### You
+*[00:03:37]* just searching for the terms DDD and AI. Uh I I shouldn't have written that we're looking for D D AI talks. Now all the headlines are like, hey, let's do D D D with AI. Like, oh God.
+
+### Xin Yao
+*[00:03:51]* Rather the other way, I think. Uh everybody has uh started to f to realize there's something called U equipist language. Or if uh may maybe to mitigate non-determinism or something like this, I have uh just sent him an email. Um yeah, let's hope he is going to show up.
+
+### You
+*[00:04:16]* First.
+
+### Xin Yao
+*[00:04:17]* Yeah.
+*[00:04:21]* Uh what what's his time? Okay. Eighty two. What's in the morning it was That's the time he suggested. So I have to change. Eleven. Okay. He can't be sleeping so long. Okay. It could it could happen. I know he's a nighthawk. A lot of us are.
+*[00:04:51]* Uh, okay, so. Uh Marco, I heard rumors that your workshop is sold out. And is that kind of a
+*[00:05:04]* Okay. I guess you are on the rising side of the curve that people are AI curious and don't know how to do it, and you're the f one of the first movers to figure out even workflows you can make repeatable. It's not to like.
+
+### You
+*[00:05:24]* I would I would expand on that description. So it's not just me figuring out workflows because I've been figuring out workflows for a quarter uh three quarter years now or so. Like not not a full year, but the major part of a year. Um but the AI landscape is changing so fast that whatever workflow you have this week doesn't hold in three weeks anymore. Um Yeah, so it's more about the meta patterns. It's about, hey, we have this new non-deterministic uncertainty providing player in the game, um, that is very technically uh full of technical, that does everything very well. It can research, it can communicate, and so on and so forth. It has ups and downs. And how do you use this to become a better tool builder over time? So it's the meta patterns and the syllabi behind that. Um and well, I've been I mean, I'm Alberto knows that I'm super happy to show people what I've built with it, but whatever I'm showing people is only always an artifact. It's like I've built my own media um consumption library, I've built a complete transcription system that can translate language into text and the other way around, I can clone and train voice and whatnot, like all of those things are built fully locally and so on and so forth. I have like uh coding assistance uh left and right, whatever I need. So the point is. This is a tool making assistant, basically, that helps you to make your work better and it helps make itself better. So it's a constant optimization loop that doesn't end. And this is very powerful for individuals, like if you want to build something on your own, but the moment you start working in a team, completely different challenges occur, but you still have this ability. And with a combined power of multiple people and an AI, um, yeah, I mean, this is difficult, but it also gives you lots of opportunity, especially with DDD. And I try to make my training not about domain driven design. I actually have to put a big focus on not mentioning too many D terms. But I mean, let's be honest, const context, right? Bounded context, a small bounded context with a clear ubiquitous language is the magical powerhouse for LLMs. And um that together with the fact that technical context are also context. So if you have something at the boundary between the business areas and there's some technology in between, AIs are so good at researching things, how things work, at adapting new technologies. I've built my complete my my deeply event sourced system with projections and using messaging and distribution with technologies I've never used before. It's like, yeah, just make it work. And then I know how the pattern should look like. I don't know how to do this in this language or in this area, but or on Linux server or whatever. Now I do. It's like a week later, everything is working, it's tested, it runs. And yeah. So Long mumbling short. Um it's not about hey, I have a workflow that works. No workflows come every new week, there's a new workflow. Um and there I I would be I'm only one player. There's like 20, 30 people out there that do nothing else for a living than to implement better and better workflows. But they're all culminating towards similar patterns right now. So we have the agent OS, we have the getting shit done, we have uh the Ralph Wagum loop, which doesn't really matter anymore. Um basically any pattern that comes out gets gets eaten up by Anthropic a week later because they bring out their own feature that overtakes it. Then we had these Cloud bots that were using like Mac minis to really become autonomous agents. Um now that is obsolete because Cloud has new features that surpass that, and so on. But yeah, it's not about those processes. It's about how to stay in the loop, how to use the time wisely, and how to become a really great tool builder. Um, getting a foot in the door, starting to play with it, and not getting lost in the details by harnessing the actual like what are we doing on the meta level? Um, and then the details of like, hey, I have this version, how to start. That's a conversation you can have with your own AI agent. You don't need a marker for that. Um that's the easy part, right? The what's the best workflow right now? Let it research, get five options, try one, start. That's the that's the cheap part.
+
+### Xin Yao
+*[00:09:19]* Mm-mm, mm.
+
+### You
+*[00:09:20]* And that's why because I've been building for like ten month or so now, like last March is oh okay, it's already a year now. Okay. So for one year actually I've been building these systems or started to build these systems. I was very critical in the beginning, got more and more curious, trusted the I more and more, then I fell on my face a few times. And now it's like I would say I have a healthy skepticism with a lot of curiosity and I'm hyped. Not mindlessly hyped, but it's really a powerful thing that changes because it makes uncertainty a thing that we cannot get rid of anymore. Heuristical development becomes the norm. And I think that people who can manage uncertainty are the people that will lead into the better future. Like not just manage for themselves to be uncertain, but who live with the fact that you do not get deterministic outputs, but you have an uncertainty engine that still within enabling constraints generates meaningful things guided by humans and iterative processes, is something that we can leverage to really build not deterministically, but with a certain amount of confidence, really high quality systems that we could never produce without the AI.
+
+### Xin Yao
+*[00:10:28]* Yeah. I totally get that. I I I I I think I'm constantly swinging between like being really enthusiastic, well excited about how much learning like new languages, uh like what you said, uh about learning new things with the help of AI. And then sometimes I'm I'm so frustrated that well, even jealous that they don't need to take a coffee break. They are not getting tired. I I do, and I get this like Overwhelm about the learning possibilities uh I I I'm being provided with, and I have to be careful that that that sort of thing. But I I just want to say that that small batch size, uh small bounded context, that that that's really important, actually. Yeah. Uh the larger it gets, the the more uncertain and the more overwhelm it it gets for the individual and the team, I think. Yeah.
+
+### You
+*[00:11:29]* Yeah, yeah. That and that is not wrong. But then also Claude just published one million contacts window last week for everyone. in four point uh six and that completely changed the game again because now I already have agents that keep a small context, right? Uh I can work in a large code base or a large mental model, even to a bounded context that is kind of like being kind of unbounding, but I can keep my work assignments small and I can keep the research agents like talking to each other. They all do their part, and conglomeratively they build a bigger thing, while all of them keep a context window below 200,000. And now that's not necessary anymore because with a one million token context window, you can read large codes all of a sudden and reason about really big stuff. It has another problem on the other side. You always have to keep an eye on the cost because if you're using this through an API, one million token window, if you just do like small bug fixes here and there, eats up your money fast. But um yeah, you need different skills now when you work with this to not get bankrupt. Um but those are the I mean those are the easy things. You you make that experience once and then you know. Um but yeah, we now are able to actually read giant codebas and get mental models into the digital brain that we can't keep in our brains, and that's super powerful.
+
+### Alberto Brandolini
+*[00:12:27]* Okay.
+
+### Xin Yao
+*[00:12:46]* That's the problem. We we are now the bottleneck.
+
+### You
+*[00:12:49]* Yeah, yeah, yeah, yeah.
+
+### Xin Yao
+*[00:12:51]* Oh there's
+
+### Alberto Brandolini
+*[00:12:51]* So that's
+
+### Xin Yao
+*[00:12:53]* also another thing is not only the bottleneck i i think that the small uh bounded context still works uh for model clarity because uh if you if you give one million lines of code well code is gonna create uh a million lines of code big ball of mud couple code uh given your suggestion uh while keeping the suggestion clean is one of the hard parts and uh the other hard part is understanding which are the forces happening on your brain as an individual if you are in solo mode or as a team if you are pairing or mobbing uh or uh and um yeah that that that's the part we we are starting to get some answers but we're not getting uh I mean there is a total instability in the job market from companies to solo senior plus agents uh or teams uh still uh pretending to do mobbing but with mob prompting and uh but there is not not a real um yeah team workflow or uh I I also think that it code the AI po power for the entire day is not healthy. Just uh it's just like uh staying inside uh a slot machine room in Vegas for the entire day. Um is is you're you'll end up using the wrong part of your brain and it's not good for your design. I mean there's a loop of uh artificial perfectionism, and I've been there and I started adding all little details. What about this? What about this? It's actually great if it's But he can fall in the trap and uh. U is a tool which is designed to make you feel like that. That's a thing that we we should uh start discussing. It's just like uh for uh for a job you're supposed to drink a little alcohol every now and then. How much can you work? Depends on the culture, clearly, but uh no, there's something which is pulling you into a different brain state, and uh that that should be part of our activity. So is not in the coding now is totally not there. And um might be in the clarity. Um Uh that Anthropic now is uh bragging? Developers can now become managers. I I don't want to be a manager. For other people's creation. But but the role mismatch is uh so me and Margo had great experiences writing software. We were also the domain experts, and maybe the business stakeholders. And that makes a lot of things uh really, really simple and uh incredibly quick. But now Well probably not. Um You need to separate the role of the stakeholder and of the a But how do you make this feedback loop uh happen? If you just type what the what the expert says, uh, you're starting to look redundant in the in the domain expertise. Totally. You're not typing exact what he says. You're typing your framed interpret of that word, and that that's a super skill. Mm-hmm.
+
+### You
+*[00:16:22]* I think there will be a sorry. I think I think there will be very strong change in the landscape of who we need in a company. I mean, there have been developers and I lots of companies still have a lot of developers that are basically typing, right? You give them a ticket and they type, so the ticket goes away. And they want to do that. They don't want to understand the domain deeply, they don't want to become managers, they don't want to do any of the problem understanding and deep modeling and so on. And we've needed them. Like they were like um workers that prepare the work for the for the more business driven people to to take it home. Um but we don't need people to put the hay on the wagon if a machine can do that at some point. So I think it's really hard when you do these modeling sessions to to take everyone with you, because I realized Many developers are not as good as the AI is in what they do. And if they don't want to do the thing that now actually provides value, which is in the landscape where the AI can code better than you, has better architectural understanding and come up with faster solutions and experiments, guiding things, understanding customer and then stakeholder needs, understanding possible solutions and their long-term trade-offs emotionally and societally and so on, like guiding this with a moral uh standpoint and also with a with a strategic standpoint for from a um business point of view. Like this is what we need. And as Alberto said, you don't want to be the person typing what the domain expert says, but you want to be the person that can guide the domain expert, understands how LLMs work, how technology works, and how all this comes together socio technically, to say, look, these things are feasible, these are non-feasible, let me guide this into an implementation. But that being said, um I've seen with Roman, I talked to Alberto this morning already. Roman and I talked on the weekend. They tried letting POs work with uh how's it called? Claude Cowork. And lots of things where the terminal is not feasible because people look at a terminal and they get scared because it looks like computer stuff. But using cowork, just having a chat window, it can do the same thing. It can create programs, it can create PowerPoint presentations, it can analyze data deeply and make you graphical interpretations and whatnot. All of a sudden you have a fast feedback loop where you can say what you want. The program is created within minutes or seconds sometimes. You just say what you want differently and then it works. The problem with the vibe designing or vibe coding is that you don't know if it will hold long term and blah blah blah. So that you still need the senior developers who understand the outcome and then say, Oh yeah, this is good quality or not. But that's a time problem. Like given time, this is less and less and less needed. And I think the real value in our work is to be the shepherds that guide those people together with the technology to say we make it work together because we understand the long term consequences.
+
+### Xin Yao
+*[00:19:06]* My my because I have a twelve year old son and uh we uh it we discuss this all the time. How how do we how do we uh we we have all been through coding the hard way, right? And and and if you if you do not become a junior developer, you didn't struggle and and and you have all of a sudden become a bridge in some way between the the business and the AI. How it is that a viable route? We haven't I mean we haven't got time enough to uh to do this yet. I do not personally believe so because we asked Oliver to do coding and and and now he we still we we have a home baked uh LLM for him to you know ask to to to find bucks and and all that. But I do not believe that uh you can skip the the the basics entirely
+
+### You
+*[00:19:54]* Agreed.
+
+### Xin Yao
+*[00:19:55]* the men mentorship is dying. That's uh is uh the same thing that happened when my daughter started listening their own music on uh on a trip and I remember I was listening to my father jazz when I was young and he was driving he was putting music on in the car and now well But they are listening to their own music with the headphones, and my role as music mentor has been destroyed by the technology. And uh
+
+### Alberto Brandolini
+*[00:20:28]* Yeah. Yeah. It's it's not easy. I think f for us, I I don't know, it in a way I feel apart apart from the cognitive overwhelm and I need to be more aware of my the usage of my energy and my engagement, it's easier than for the for the new graduates. Like uh I don't know, uh I I talked with I know uh Corey uh during the AMA um and she shared with a lot of people that her computer science uh new graduate son, uh, who's very brilliant, he cannot find a job. He has uh sent in fifty applications. Uh and and he still hasn't got a job.
+
+### Xin Yao
+*[00:21:20]* I mean right now I would go for uh promising young developers in a co-located garage and uh and building uh strong team uh bindings and then and team uh co-working experience uh to solve problem together. That that's that's kind of a sustainable way or the best way to to teach people something. Uh that uh that and that's gonna be really an empty place uh somehow and uh and uh maybe the places where good developers would like to work because the other experience might be actually yeah the demoralizing uh or yeah it is. Uh Marco, have you uh I mean the other day I I tried uh to do not genetic coding but vibe coding with a group of PMs like product managers. Um and and uh uh I found you know there's a tool called Ask User Questions in in Cloud. I don't know if you have uh used it. Uh
+
+### You
+*[00:22:24]* I didn't understand the first part of the sentence there is what?
+
+### Xin Yao
+*[00:22:28]* in to in cloud ask you some questions right and it's basically the the the way to say okay if you don't know coding at all uh let's let let me guide you you know the through the requirement process in in a way um it's actually quite helpful uh to let them go through that process and through that document the specs in a language that is a little bit more uh like toward the code than their own language. Yeah. Yeah.
+
+### You
+*[00:22:29]* Yeah, yeah. Yeah.
+*[00:22:43]* Yeah, yeah, yes.
+*[00:23:01]* Yeah, I've built this is the part where you said in the beginning, right? I've built my own workflow. This is actually something that I've built, a domain modeling workflow that uses the internal agents. So I try to stay as native as possible to Cloud because it's changing all the time. And I don't want to build like a convoluted process using 100 MD files or whatnot. Um But yeah, just the the research, the questioning agent, and the worker agent are uh the background agents I'm using. And um I have a brainstorming skill which starts with me before I do any project work, I'll use brainstorming. So we have a conversation. The um command is to not ask me to not write any code, just to ask Socratic questions, guide me through thinking. And whenever there is something in the mix of our ideas where we're not sure, start research agent parallel while we're talking. So that when you're done, you can say, like, hey, I researched this topic, here's what I found on 10 blog posts, and blah, blah, blah. So I can read it quickly and then continue the questioning until we come to a mental model that is good enough to say, Okay, this this roughly covers it, and we have ideas and specifications and and whatnot, right? So um And I put a little bit of a harness around it to say figure out what the target audience is, figure out the the uh drawbacks or the actual error states we should look for and whatnot. Um And then before we do any work. There's a modeling step. So brainstorming is only the first thing that it builds you the model, and then you start modeling what you want to implement. Then you go into the doing, but the modeling is still a conversation. The modeling is a deep conversation about what technology do you want to use first, right? Or do you have no decision here? What what behavior do you want to do first? And it can go in any direction. And then once you have something that's tangible, there's a worker thread that starts working things and and it asks questions back if things are not clear enough. So it will ask like how do you want to solve this? How should this look like? How should this behave. And whenever in the process later, when the pro when the project or the software is already existing, you want to do anything. Is it a bug fix? Is it a pixel calculation, or is it actually a new feature or changing deep behavior? You just call the model skill. Say model and model starts conversation with you. So this very, very basic process, not constraining Claude too much because Claude really became a lot uh a lot creative in asking questions. Not constraining it too much, just say, hey, ask me Socratic questions, try to figure out what I really want to do. Uh, don't believe my bullshit when I tell you I'm the right, right? Just really question myself. And then you let Claw be um free and creative in that. I've had the best conversations with it. Like the I don't know if you've tried the new voice model. The new voice model goes both ways, right? You can talk, it talks back, and you actually have a conversation all of a sudden. That again changed the way I work with it a little, but yeah.
+
+### Xin Yao
+*[00:25:46]* Ah oh my god uh there's this new uh YouTube video of uh Bernie Sanders and and Claude about data privacy. Did you did you watch that? I was it was uh it was so uh awesome that uh to see uh Claude uh really agrees with whatever um a c yeah about his own um uh ethical flaws and and all that. That's the reason why anthropic is
+
+### You
+*[00:25:53]* Yeah, yeah. I saw that.
+
+### Alberto Brandolini
+*[00:26:13]* Topic is has been banned by the uh USA government.
+
+### You
+*[00:26:18]* No, actually that was after. They were banned before. They were banned because they didn't want to use their AI to do automatic kill decisions. That was the Oh, you were just joking, okay. Yeah, okay.
+
+### Alberto Brandolini
+*[00:26:27]* Okay. Yeah.
+
+### Xin Yao
+*[00:26:31]* Jabe is not on email. He's also not on LinkedIn. Uh yeah, this is uh this is really weird. It never happened before. He's very grateful that I uh uh reminded him of that. Uh yeah.
+
+### You
+*[00:26:35]* Okay.
+*[00:26:45]* Well, that disappointing. Um I'd say let him know uh you have my calendar invite thingy, right?
+
+### Xin Yao
+*[00:26:55]* have it in my email or LinkedIn somewhere. Yeah, yeah. Yeah. Yeah. Yeah.
+
+### You
+*[00:26:58]* I I can send you again if you want on on WhatsApp or email, whatever you prefer. Um, so I have uh I I have a lot of things to do tomorrow. Uh don't allow Zoom to do this. No no no. Are you still there? Okay, great. So. I have a very full calendar tomorrow, but I have multiple slots of one hour. Uh one at the exact time slot as today, for example. So if we could do the same thing just tomorrow would be perfect.
+
+### Xin Yao
+*[00:27:24]* But uh so you're assuming Alberto would just be available when you are? Are you uh twins? Okay. Okay. Yeah.
+
+### You
+*[00:27:30]* Alberto is an optional add-on. Like he wanted to be here because he's organizing the workshops, but he's not needed, needed to make the decision. And if Jabe can't do it now, that's uh if Alberto can come tomorrow, that's great. If not, I'd rather have a conversation with Jabe than to wait for everybody to align again. Because we are finished with a call for papers. If Jape wants to do a workshop, it is also I he's somebody I would like to see in the talk. So then I would give him a secret link, but I will start filling up the agenda now in the next three weeks. Um
+
+### Xin Yao
+*[00:28:03]* actually asked him to consider is to do uh both if uh he he is interested uh and uh his his uh um DDD Europe uh workshop was was uh had very very good feedback uh I heard it from Martin as well Martin Gunter uh yeah uh and so I mean uh I was a little FOMO that I was I couldn't participate uh so if he runs it again I I would definitely buy a ticket uh the uh the other thing I asked him to consider is that is a talk um he had a also he had so many podcasts about temporal complexity and about also about the um you know AI and uh phenomenology and uh he he's just a big brain uh yeah so um and I think I put this is my bias. I think that this year's D D Europe um agenda it's not um is a little bit I don't know it's um um it's a bit on the mechanistic side uh I I feel it's it's uh so so I could that could be a little bit of a differentiator from for for Kandinsky. Uh because DD Europe is starting to go for big names only kind of like thing. Yeah and and yeah I don't know uh that that's my bias of course um so so this is uh this is
+
+### Alberto Brandolini
+*[00:28:24]* Yeah.
+
+### Xin Yao
+*[00:29:22]* Uh yeah, and and and yeah, I don't know. Uh that that's my bias, uh of course. Um so so this is uh this is uh maybe uh a thing that uh it will differentiate uh Kandinsky in some way. But it all depends on Jade. He's not showing up.
+
+### Alberto Brandolini
+*[00:29:41]* So yeah.
+
+### You
+*[00:29:42]* I've sent the calendar link here in chat, if you see it.
+
+### Xin Yao
+*[00:29:47]* I'm not monitoring the Oh I'm I'm uh such uh Okay, now I get it. Sometimes uh the chat disappears on Linux uh for for Zoom. I also don't have the timer. Uh copy, copy, copy. Yes, I got it. So uh I know we're both we're all three very busy, so uh let's hold it here and hopefully that uh we can get hold of Jape uh soon enough um uh what um uh so so you want it to happen this week, right? Um
+
+### You
+*[00:29:51]* Dare you.
+*[00:30:26]* Th I mean the earlier the better. If we can do it tomorrow, perfect. Um if we can do it on Wednesday, even though my calendar is full on Wednesday, fully booked, uh this is a uh an appointment where I could jump in. So if if Wednesday works, I'll make it happen. The earlier the better because we're already in planning now. And um if Jabe Period. As soon as possible is what we want to go for.
+
+### Xin Yao
+*[00:30:51]* Yeah. Yes. Uh wonderful. It was uh really nice talking with you. Yeah okay my pleasure yeah you too bye bye bye
+
+### You
+*[00:30:59]* Likewise. Have a good day then. Talk to you later. Bye.
+
+### Alberto Brandolini
+*[00:31:03]* But

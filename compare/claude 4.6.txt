@@ -1,0 +1,45 @@
+Two Teams Built the Same Thing Without Knowing
+We tend to assume the hard part of adopting AI tools is figuring out which ones to use. Pick a tool, learn it, apply it. But anyone who has spent more than a few months seriously working with AI assistants knows that's not quite right. The tools change week to week. The workflows you trusted last month are obsolete. The question isn't which tool — it's whether you have the mental model to keep adapting.
+That tension sits at the centre of a recent Virtual DDD conversation with Marco Heimeshoff, whose workshop on AI-augmented development sold out before most people in the DDD community had finished reading the description. Joined by Xin Yao and Alberto Brandolini, Marco unpacks what it actually means to work well with AI — not as a productivity trick, but as a fundamental shift in how software design happens and who gets to do it.
+The Workflow Isn't the Point
+Marco is direct about something that often gets missed in conversations about AI tooling: "whatever workflow you have this week doesn't hold in three weeks anymore." He's not teaching a specific process. He's teaching people how to stay oriented while the ground keeps moving.
+What holds, he argues, are meta-patterns — the underlying structures that remain useful even as specific tools change. And one of those patterns maps almost perfectly onto something DDD practitioners already know: the bounded context. "A small bounded context with a clear ubiquitous language," he says, "is the magical powerhouse for LLMs." Small scope, clear language, defined responsibility. It works for teams. It turns out it also works for AI agents.
+This isn't a coincidence. When you give an AI a small, well-defined problem with unambiguous terms, you get coherent, useful output. When you give it a sprawling, poorly bounded mess, you get a sprawling, poorly bounded mess back — at impressive speed.
+The One Million Token Problem
+Just as the conversation settles into a comfortable rhythm about keeping context small, Marco introduces a wrinkle: Anthropic's recent release of a one-million-token context window changes the calculus. Suddenly, AI can hold enormous codebases in working memory and reason across them.
+But this doesn't invalidate the bounded-context thinking — it complicates it. Alberto notes that the risk of giving an AI a million lines of code is getting a million lines of tightly coupled output back. The model clarity that comes from small, well-defined contexts isn't just a workaround for AI limitations. It's a design discipline. And Xin Yao adds something equally important: "We are now the bottleneck."
+That phrase lands harder than it might seem. The AI isn't slow. It doesn't need coffee breaks. It doesn't get decision fatigue. The constraint in the system is human attention, human judgment, and the speed at which people can meaningfully evaluate what the AI produces.
+Shepherds, Not Typists
+The conversation turns to what this means for developer roles, and it gets uncomfortable in the way honest conversations do. Marco describes a category of developer whose primary function has been to take a ticket and implement it — to type. And he's blunt about what happens to that role when AI can do the typing faster and often better.
+What doesn't get automated, at least not yet, is the work of understanding. "Guiding things, understanding customer and stakeholder needs, understanding possible solutions and their long-term trade-offs emotionally and societally" — that's Marco's list of what actually creates value now. Alberto adds a sharper observation: you don't want to be the person typing what the domain expert says. You want to be the person who can "frame and interpret" it — who brings enough technical and contextual understanding to turn a domain expert's intent into something an AI can execute well.
+That's a different skill. It looks less like coding and more like facilitation, translation, and design judgment.
+The Junior Pipeline Question
+Xin Yao raises the part of this conversation that nobody has a clean answer for: what happens to the junior developer? If you can't learn by struggling through the basics the long way, can you skip that stage and go straight to "bridge between business and AI"?
+Her answer is no, and Alberto echoes it. The judgment you develop from doing things the hard way — from understanding why things break, from building something from scratch and watching it fail — seems hard to shortcut. And yet the path that used to create that judgment (junior roles, mentorship, graduated responsibility) is shrinking. Alberto mentions a new computer science graduate, genuinely talented, fifty applications sent, no job.
+Nobody in the conversation resolves this. That's appropriate, because nobody has.
+What a Modeling Workflow Actually Looks Like
+The most concrete part of the conversation is Marco describing his own workflow — not as a prescriptive template, but as an example of what happens when you take these principles seriously. It starts with a brainstorming phase: Socratic questions, no code, just guided thinking. Research agents run in parallel when something needs verifying. Once there's a mental model, there's a separate modeling conversation before anything gets built.
+"Don't believe my bullshit when I tell you I'm right," is how he describes the instruction he gives the AI. The goal is to have the AI genuinely challenge the model, not just execute it. The worker thread only starts once the model is good enough to be worth implementing.
+This is a small thing that matters a lot: he's using the AI to slow down the beginning of the process, not speed it up. The acceleration comes later. The questioning comes first.
+
+What This Conversation Surfaces
+A few patterns worth noting from this discussion:
+
+Meta-patterns outlast specific tools. Investing in a particular workflow is expensive when the landscape shifts monthly. Investing in the ability to evaluate and adapt workflows is durable.
+Bounded contexts don't just help humans — they help AI. Clear scope and language improve AI output quality for the same reasons they improve team communication. The principle transfers.
+The bottleneck moved. When AI can generate code faster than humans can review it, the constraint becomes human judgment, not production speed. Optimising for more output may be the wrong direction.
+Role shifts are real and uneven. The people most displaced are those whose value was primarily in execution. The people better positioned are those whose value was in understanding and translation.
+The junior pipeline problem is unsolved. The experiences that used to build judgment are disappearing. What replaces them isn't clear yet.
+
+
+The conversation Marco, Xin Yao, and Alberto are having is not really about AI. It's about what it means to do good design work when the tools that used to define the craft are changing faster than the people using them. The DDD instinct — understand the problem deeply before touching a solution — turns out to be a reasonable response to that. Not because it's timeless wisdom, but because it keeps working even when everything else is in flux.
+The question worth sitting with is this: if the AI can now do most of the typing, what exactly are you being paid to understand?
+
+Further Reading
+Worth exploring:
+
+Domain-Driven Design: Tackling Complexity in the Heart of Software — Eric Evans. The foundational text on bounded contexts and ubiquitous language, which Marco identifies as central to working effectively with LLMs.
+Continuous Discovery Habits — Teresa Torres. Relevant to the conversation about understanding user and stakeholder needs as the core of remaining value in software roles.
+Team Topologies — Matthew Skelton and Manuel Pais. Useful for thinking through how team structures and responsibilities shift when AI starts absorbing execution work.
+The Pragmatic Programmer — David Thomas and Andrew Hunt. The section on learning and adaptation speaks directly to what Marco describes as staying oriented in a fast-changing landscape.
+A Philosophy of Software Design — John Ousterhout. Relevant to Alberto's point about clarity of design being harder to maintain, not easier, as generation speed increases.

@@ -2,6 +2,68 @@
 
 ---
 
+## 2026-03-27 -- Task Completed: 091 - Reorder and resize conversation list columns
+
+**Type:** Task Completion
+**Task:** 091 - Reorder and resize conversation list columns
+**Summary:** Reordered conversation list columns from Title/Time/Speakers to Title/Speakers/Time with auto-sized widths and right-aligned Time column.
+**Files changed:** 2 files
+
+---
+
+## 2026-03-27 -- Task Started: 091 - Reorder and resize conversation list columns
+
+**Type:** Task Start
+**Task:** 091 - Reorder and resize conversation list columns
+**Milestone:** --
+
+---
+
+## 2026-03-27 -- Idea Promoted: Reorder conversations columns
+
+**Type:** Idea Promotion
+**From:** ideas/2026-03-27-reorder-conversations-columns.md
+**To:** tasks/todo/091-reorder-conversations-columns.md
+**Summary:** Reorder conversation list columns to Title → Speakers → Time, auto-size title, right-align time.
+
+---
+
+## 2026-03-27 -- Idea Captured: Reorder conversations columns
+
+**Type:** Idea Capture
+**Mode:** Quick
+**Filed to:** ideas/2026-03-27-reorder-conversations-columns.md
+
+---
+
+## 2026-03-27 15:30 -- Research: MacWhisper Growth Playbook
+
+**Type:** Research
+**Topic:** How MacWhisper (Jordi Bruin) reached 250K+ downloads with zero paid advertising
+**File:** research/macwhisper-growth-playbook.md
+**Key findings:**
+- 250K+ downloads in ~17 months (Jan 2023 - May 2024), zero paid ads
+- Primary channels: Twitter/X audience (build in public), Apple App Store featuring (7 apps featured), organic press (iMore App of Year), Product Hunt (2 launches, 4.86/5)
+- Core strategy: perfect timing on Whisper hype + 2-2-2 shipping method (2h prototype, 2d polish, 2w launch) + each version update treated as mini-launch event
+- Directly applicable to WhisperHeim: Windows is underserved, "local AI" narrative is current, same freemium + one-time purchase model works
+
+---
+
+## 2026-03-27 14:00 -- Research: Auto-Update & Distribution
+
+**Type:** Research
+**Topic:** Auto-update and distribution strategies for Windows desktop .NET WPF apps
+**File:** research/auto-update-and-distribution.md
+**Key findings:**
+- Velopack is the best update framework: free, open-source, Rust-based, delta updates, first-class WPF support, replaces unmaintained Squirrel.Windows
+- MSIX is a poor fit — containerization restricts WASAPI loopback, global hotkeys, and SendInput access
+- Code signing: Microsoft Trusted Signing excludes German individual developers; OV certs cost $200-500/yr with 2-8 week SmartScreen warmup; EV certs require a registered business
+- Recommended path: ship unsigned initially, sign after UG registration with EV cert
+- Don't trim WPF apps (.NET 9 has known assembly-stripping bugs); use self-contained + ReadyToRun instead
+- Host updates on GitHub Releases (free) during open-source/beta phase
+
+---
+
 ## 2026-03-26 -- Task Completed: 069 - Transcript Analysis with Local LLM
 
 **Type:** Task Completion
