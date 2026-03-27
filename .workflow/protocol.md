@@ -2,6 +2,15 @@
 
 ---
 
+## 2026-03-27 -- Idea Captured: UI Quality-of-Life Improvements
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/092-ui-quality-of-life-improvements.md
+**Summary:** Two UI fixes: (1) truncate template descriptions to single line with ellipsis in list view, (2) show original filename for imported files in pending state instead of generic "Call {date}" title.
+
+---
+
 ## 2026-03-27 -- Task Completed: 091 - Reorder and resize conversation list columns
 
 **Type:** Task Completion
