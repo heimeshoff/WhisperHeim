@@ -519,8 +519,20 @@ public partial class TranscriptsPage : UserControl
                     StringComparison.OrdinalIgnoreCase);
             var isQueued = queuedSessionDirs.Contains(Path.GetFullPath(dir));
 
+            // Check if a queued item (e.g. file import) has a custom title for this session
+            var fullDirPath = Path.GetFullPath(dir);
+            var matchingQueueItem = _queueService.Items.FirstOrDefault(q =>
+                q.SessionDir is not null &&
+                string.Equals(Path.GetFullPath(q.SessionDir), fullDirPath, StringComparison.OrdinalIgnoreCase) &&
+                q.Stage is not (QueueItemStage.Completed or QueueItemStage.Failed));
+
             string name;
-            if (dirName.Length >= 15 &&
+            if (matchingQueueItem is not null && !string.IsNullOrWhiteSpace(matchingQueueItem.Title))
+            {
+                // Use the title from the queue item (e.g. original filename for imports)
+                name = matchingQueueItem.Title;
+            }
+            else if (dirName.Length >= 15 &&
                 DateTime.TryParseExact(
                     dirName[..15],
                     "yyyyMMdd_HHmmss",
@@ -1100,6 +1112,90 @@ public partial class TranscriptsPage : UserControl
         _allItems.Remove(item);
         CloseDrawer();
         ApplyFilter();
+    }
+
+    private async void DeleteAudio_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedTranscript is null || _selectedListItem is null)
+            return;
+
+        var displayName = !string.IsNullOrEmpty(_selectedListItem.Name)
+            ? _selectedListItem.Name
+            : _selectedListItem.FileName;
+
+        var dialog = new WhisperHeim.Views.DeleteConfirmationDialog(
+            displayName, "Delete Audio Files")
+        {
+            Owner = Window.GetWindow(this)
+        };
+        dialog.ShowDialog();
+
+        if (!dialog.Confirmed)
+            return;
+
+        StopPlayback();
+        _audioPlayer.Close();
+
+        try
+        {
+            // Delete mic.wav and system.wav
+            var (micPath, sysPath) = _selectedTranscript.ResolvedSourceAudioPaths;
+            if (micPath is not null && File.Exists(micPath))
+            {
+                File.Delete(micPath);
+                Trace.TraceInformation("[TranscriptsPage] Deleted mic audio: {0}", micPath);
+            }
+            if (sysPath is not null && File.Exists(sysPath))
+            {
+                File.Delete(sysPath);
+                Trace.TraceInformation("[TranscriptsPage] Deleted system audio: {0}", sysPath);
+            }
+
+            // Delete combined audio file referenced by audioFilePath
+            var combinedPath = _selectedTranscript.ResolvedAudioFilePath;
+            if (combinedPath is not null && File.Exists(combinedPath))
+            {
+                File.Delete(combinedPath);
+                Trace.TraceInformation("[TranscriptsPage] Deleted combined audio: {0}", combinedPath);
+            }
+
+            // Clear audioFilePath in the transcript and persist
+            _selectedTranscript.AudioFilePath = null;
+            await _storageService.UpdateAsync(_selectedTranscript);
+
+            // Hide the playback panel
+            PlaybackPanel.Visibility = Visibility.Collapsed;
+
+            Trace.TraceInformation("[TranscriptsPage] Audio files deleted, transcript preserved for: {0}",
+                _selectedListItem.FilePath);
+        }
+        catch (Exception ex)
+        {
+            Trace.TraceError("[TranscriptsPage] Failed to delete audio files: {0}", ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Calculates the total size of WAV audio files for the given transcript in bytes.
+    /// </summary>
+    private static long GetAudioFileTotalSize(CallTranscript transcript)
+    {
+        long totalSize = 0;
+
+        var (micPath, sysPath) = transcript.ResolvedSourceAudioPaths;
+        if (micPath is not null && File.Exists(micPath))
+            totalSize += new FileInfo(micPath).Length;
+        if (sysPath is not null && File.Exists(sysPath))
+            totalSize += new FileInfo(sysPath).Length;
+
+        var combinedPath = transcript.ResolvedAudioFilePath;
+        if (combinedPath is not null && File.Exists(combinedPath)
+            && combinedPath != micPath && combinedPath != sysPath)
+        {
+            totalSize += new FileInfo(combinedPath).Length;
+        }
+
+        return totalSize;
     }
 
     // --- Audio playback ---
@@ -2011,11 +2107,23 @@ internal sealed class TranscriptGroupViewModel : INotifyPropertyChanged
         GroupName = groupName;
         Items = items;
         _isExpanded = isExpanded;
+
+        // Pre-compute distinct, sorted remote speaker names across all items in the group
+        var speakers = items
+            .Where(i => !string.IsNullOrWhiteSpace(i.SpeakersDisplay))
+            .SelectMany(i => i.SpeakersDisplay.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        SpeakersSummary = speakers.Count > 0 ? " — " + string.Join(", ", speakers) : "";
     }
 
     public string GroupName { get; }
     public List<TranscriptListItem> Items { get; }
     public string CountDisplay => $"({Items.Count})";
+
+    /// <summary>Distinct remote speaker names from all items, shown when collapsed.</summary>
+    public string SpeakersSummary { get; }
 
     public bool IsExpanded
     {
