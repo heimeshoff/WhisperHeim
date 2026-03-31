@@ -1,7 +1,7 @@
 # Task 094: Delete Audio Files While Keeping Transcript
 
 **Size:** Medium
-**Status:** Todo
+**Status:** Done
 **Created:** 2026-03-31
 **Milestone:** --
 **Dependencies:** None
@@ -53,12 +53,29 @@ The existing delete button in `ActionPanel` (bottom-left) continues to work exac
 
 ## Acceptance Criteria
 
-- [ ] WAV file total size (MB) is displayed next to the playback duration in the drawer
-- [ ] Red delete-audio button appears next to the file size
-- [ ] Clicking delete-audio shows a confirmation dialog
-- [ ] On confirmation: WAV files are deleted, transcript JSON is updated, PlaybackPanel hides
-- [ ] Transcript, speaker names, timestamps, duration, segment count all preserved after audio deletion
-- [ ] Recording still appears in conversation list after audio deletion
-- [ ] Delete-audio button is disabled when no transcription segments exist
-- [ ] Bottom delete button (full session delete) is unaffected and has no new constraints
-- [ ] On reopening a recording where audio was previously deleted, PlaybackPanel is hidden
+- [x] WAV file total size (MB) is displayed next to the playback duration in the drawer
+- [x] Red delete-audio button appears next to the file size
+- [x] Clicking delete-audio shows a confirmation dialog
+- [x] On confirmation: WAV files are deleted, transcript JSON is updated, PlaybackPanel hides
+- [x] Transcript, speaker names, timestamps, duration, segment count all preserved after audio deletion
+- [x] Recording still appears in conversation list after audio deletion
+- [x] Delete-audio button is disabled when no transcription segments exist
+- [x] Bottom delete button (full session delete) is unaffected and has no new constraints
+- [x] On reopening a recording where audio was previously deleted, PlaybackPanel is hidden
+
+## Work Log
+
+**2026-03-31** — Implemented delete-audio-keep-transcript feature.
+
+### Changes Made
+
+**TranscriptsPage.xaml**: Extended PlaybackPanel grid with two new columns — `AudioFileSizeText` (TextBlock showing total WAV size in MB) and `DeleteAudioButton` (red styled button matching existing delete style with disabled opacity trigger). Updated `OpenExternalButton` ColumnSpan to 6.
+
+**TranscriptsPage.xaml.cs**: Added `DeleteAudio_Click` handler that shows confirmation dialog, stops playback, deletes mic.wav/system.wav/combined audio files, clears `AudioFilePath` in transcript JSON via `UpdateAsync`, and hides `PlaybackPanel`. Added `GetAudioFileTotalSize` helper method. Updated `DisplayTranscript` to show file size and enable/disable the delete-audio button based on whether segments exist.
+
+### Acceptance Criteria Status
+All 9 acceptance criteria met. Build succeeds with 0 errors.
+
+### Files Changed
+- `src/WhisperHeim/Views/Pages/TranscriptsPage.xaml`
+- `src/WhisperHeim/Views/Pages/TranscriptsPage.xaml.cs`
