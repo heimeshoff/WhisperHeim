@@ -48,6 +48,14 @@
 
 | 2026-03-27 | MacWhisper Growth Playbook | [macwhisper-growth-playbook.md](macwhisper-growth-playbook.md) | Zero paid ads; 250K+ downloads in 17 months via Twitter/X audience, Apple featuring, press (iMore App of Year), Product Hunt, and perfect timing on Whisper hype. Ship fast (2-2-2 method), iterate publicly, each feature = launch event. |
 
+## Pre-Computed Voice Embeddings (2026-03-31)
+
+| 2026-03-31 | Pre-Computed Voice Embeddings | [pre-computed-voice-embeddings.md](pre-computed-voice-embeddings.md) | Pocket TTS Python supports safetensors for instant voice loading, but sherpa-onnx does NOT — requires upstream PR or fork; interim fix: warm up all voices at startup |
+
+## Filler Words & Custom Vocabulary (2026-03-31)
+
+| 2026-03-31 | Filler Words & Custom Vocabulary | [filler-words-and-custom-vocabulary.md](filler-words-and-custom-vocabulary.md) | Regex filter for fillers (dictation only); replacement dictionary for custom vocab (names, terms); hotword boosting blocked on Parakeet TDT in sherpa-onnx; Double Metaphone for phonetic fuzzy matching |
+
 ## UI Framework (2026-03-21)
 
 - **WPF + WPF UI (lepoco/wpfui)**: Mica, Fluent controls, tray icon via WPF-UI.Tray. Best fit for Windows 11 tray app.

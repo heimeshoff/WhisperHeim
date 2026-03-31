@@ -2,6 +2,32 @@
 
 ---
 
+## 2026-03-31 15:30 -- Research: Filler Words & Custom Vocabulary
+
+**Type:** Research
+**Topic:** Filler word filtering from ASR output and custom vocabulary/proper noun correction
+**File:** research/filler-words-and-custom-vocabulary.md
+**Key findings:**
+- Parakeet TDT / sherpa-onnx have no built-in filler word filtering — regex post-processing is the standard approach
+- Sherpa-onnx hotword boosting exists but is incompatible with Parakeet TDT's stateful decoder (track issues #2541, #2753)
+- Practical path: replacement dictionary (like MacWhisper's Global Replace) + optional Double Metaphone phonetic matching
+- LLM-based correction tested by Vosk team — hallucinated in 25% of cases, worst at proper nouns specifically
+- Dictation should filter fillers by default; transcription should keep them with optional cleanup
+
+---
+
+## 2026-03-31 14:00 -- Research: Pre-Computed Voice Embeddings
+
+**Type:** Research
+**Topic:** How to get pre-trained/pre-computed voice tensor models for faster TTS, matching original Python Pocket TTS behavior
+**File:** research/pre-computed-voice-embeddings.md
+**Key findings:**
+- Pocket TTS Python has `export-voice` CLI and `export_model_state()` API to save KV cache as `.safetensors` — loads instantly vs slow Mimi encoder
+- sherpa-onnx does NOT support loading pre-computed embeddings — only accepts raw WAV audio
+- Recommended path: (1) warm up all voices at startup now, (2) pre-export voices with Python CLI, (3) submit PR to sherpa-onnx to accept safetensors
+
+---
+
 ## 2026-03-27 -- Idea Captured: UI Quality-of-Life Improvements
 
 **Type:** Idea Capture
