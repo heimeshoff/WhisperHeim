@@ -975,6 +975,17 @@ public partial class TranscriptsPage : UserControl
         var audioPath = micPath ?? sysPath ?? transcript.ResolvedAudioFilePath;
         if (audioPath is not null)
         {
+            // Show audio file size
+            var totalBytes = GetAudioFileTotalSize(transcript);
+            var sizeMb = totalBytes / (1024.0 * 1024.0);
+            AudioFileSizeText.Text = $"{sizeMb:F1} MB";
+            AudioFileSizeText.Visibility = Visibility.Visible;
+
+            // Enable delete-audio only when transcription segments exist
+            var hasSegments = transcript.Segments is { Count: > 0 };
+            DeleteAudioButton.IsEnabled = hasSegments;
+            DeleteAudioButton.Visibility = Visibility.Visible;
+
             try
             {
                 if (micPath is not null && sysPath is not null)

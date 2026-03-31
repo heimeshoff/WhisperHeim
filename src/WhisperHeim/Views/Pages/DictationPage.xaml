@@ -2,9 +2,11 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:converters="clr-namespace:WhisperHeim.Converters"
              SizeChanged="Page_SizeChanged">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+        <converters:SingleLineTextConverter x:Key="SingleLineText" />
         <!-- Quiet Engine: Subtle body text -->
         <Style x:Key="SubtleText" TargetType="TextBlock">
             <Setter Property="FontSize" Value="13" />
@@ -523,7 +525,7 @@
                                                                VerticalAlignment="Center"
                                                                Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                                                     <TextBlock x:Name="DescText" Grid.Column="1"
-                                                               Text="{Binding Text}"
+                                                               Text="{Binding Text, Converter={StaticResource SingleLineText}}"
                                                                FontSize="12"
                                                                TextTrimming="CharacterEllipsis"
                                                                TextWrapping="NoWrap"
