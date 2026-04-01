@@ -2,6 +2,73 @@
 
 ---
 
+## 2026-03-31 -- Task Completed: 094 - Delete Audio Keep Transcript
+
+**Type:** Task Completion
+**Task:** 094 - Delete Audio Files While Keeping Transcript
+**Summary:** Added file size display (MB) and red DELETE AUDIO button to PlaybackPanel. Button shows confirmation dialog, deletes WAV files, clears audioFilePath in transcript JSON, and hides PlaybackPanel. Disabled when no transcription segments exist.
+**Files changed:** 2 files
+
+---
+
+## 2026-03-31 -- Task Completed: 092 - UI Quality-of-Life Improvements
+
+**Type:** Task Completion
+**Task:** 092 - UI Quality-of-Life Improvements
+**Summary:** Fixed template descriptions to display as single lines using a new SingleLineTextConverter, and imported audio files now show original filename as pending title instead of generic "Call {date}".
+**Files changed:** 3 files
+
+---
+
+## 2026-03-31 -- Task Completed: 093 - Collapsed Group Speaker Names
+
+**Type:** Task Completion
+**Task:** 093 - Show Distinct Speaker Names in Collapsed Date Groups
+**Summary:** Added SpeakersSummary property to TranscriptGroupViewModel and bound it to the group header with inverse visibility on IsExpanded, showing distinct sorted remote speaker names when collapsed.
+**Files changed:** 2 files
+
+---
+
+## 2026-03-31 -- Batch Started: [092, 093, 094]
+
+**Type:** Batch Start
+**Tasks:** 092 - UI Quality-of-Life Improvements, 093 - Collapsed Group Speaker Names, 094 - Delete Audio Keep Transcript
+**Mode:** Parallel (batch of 3)
+
+---
+
+## 2026-03-31 -- Idea Captured: Delete Audio Keep Transcript
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/094-delete-audio-keep-transcript.md
+**Summary:** Add ability to delete WAV files from a recording while preserving the full transcript. Shows file size in MB next to playback duration, adds a red delete-audio button (disabled until transcription exists), and hides the playback panel after audio removal. Bottom delete button remains unchanged.
+
+---
+
+## 2026-03-31 -- Idea Captured: Collapsed Group Speaker Names
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/093-collapsed-group-speaker-names.md
+**Summary:** Show distinct remote speaker names in collapsed date group headers; hide them when expanded since individual recordings already show speakers.
+
+---
+
+## 2026-03-31 18:00 -- Research: WAV-to-MP3 Before Transcription
+
+**Type:** Research
+**Topic:** Feasibility of converting WAV recordings to MP3 before transcription and diarization
+**File:** research/wav-to-mp3-before-transcription.md
+**Key findings:**
+- ASR accuracy unaffected at 64+ kbps (Whisper tested down to 32 kbps, Parakeet decodes to PCM internally)
+- Speaker diarization safe at 128 kbps mono; MP3 removes subtle spectral features below that
+- 4x storage reduction: dual-stream 1-hour call drops from ~460 MB to ~115 MB
+- NAudio.Lame NuGet integrates directly with existing NAudio stack, few lines of code
+- AudioFileDecoder already supports MP3 — pipeline changes are minimal
+
+---
+
 ## 2026-03-31 15:30 -- Research: Filler Words & Custom Vocabulary
 
 **Type:** Research

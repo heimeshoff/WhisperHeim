@@ -1015,7 +1015,16 @@ public partial class TranscriptsPage : UserControl
         else
         {
             PlaybackPanel.Visibility = Visibility.Collapsed;
+            ReTranscribeButton.Visibility = Visibility.Collapsed;
+            SetSegmentCursors(Cursors.Arrow);
         }
+    }
+
+    private void SetSegmentCursors(Cursor cursor)
+    {
+        if (_currentSegmentViewModels is null) return;
+        foreach (var vm in _currentSegmentViewModels)
+            vm.SegmentCursor = cursor;
     }
 
     // --- Transcript name editing ---
@@ -1174,8 +1183,10 @@ public partial class TranscriptsPage : UserControl
             _selectedTranscript.AudioFilePath = null;
             await _storageService.UpdateAsync(_selectedTranscript);
 
-            // Hide the playback panel
+            // Hide the playback panel, re-transcribe button, and remove hand cursor from segments
             PlaybackPanel.Visibility = Visibility.Collapsed;
+            ReTranscribeButton.Visibility = Visibility.Collapsed;
+            SetSegmentCursors(Cursors.Arrow);
 
             Trace.TraceInformation("[TranscriptsPage] Audio files deleted, transcript preserved for: {0}",
                 _selectedListItem.FilePath);
@@ -2333,6 +2344,13 @@ internal sealed class SegmentViewModel : INotifyPropertyChanged
     public Brush SpeakerColor { get; }
 
     public Brush CurrentBackground => _isCurrentlyPlaying ? PlayingHighlight : _defaultBackground;
+
+    private Cursor _segmentCursor = Cursors.Hand;
+    public Cursor SegmentCursor
+    {
+        get => _segmentCursor;
+        set { _segmentCursor = value; OnPropertyChanged(); }
+    }
 
     public bool IsCurrentlyPlaying
     {
