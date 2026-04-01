@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using WhisperHeim.Services.Settings;
 
@@ -153,6 +154,17 @@ public sealed class TranscriptStorageService : ITranscriptStorageService
             {
                 files.Add(transcriptFile);
             }
+            else if (!Directory.EnumerateFileSystemEntries(sessionDir).Any())
+            {
+                // Clean up empty session folders (e.g. left behind after deletion on synced drives)
+                try
+                {
+                    Directory.Delete(sessionDir);
+                    Trace.TraceInformation(
+                        "[TranscriptStorageService] Cleaned up empty session directory: {0}", sessionDir);
+                }
+                catch (IOException) { }
+            }
         }
 
         // Also support old-style flat transcript files during migration
@@ -213,6 +225,12 @@ public sealed class TranscriptStorageService : ITranscriptStorageService
                 StringComparison.OrdinalIgnoreCase))
         {
             Directory.Delete(sessionDir, recursive: true);
+            // On synced drives the folder may linger; remove the now-empty shell
+            if (Directory.Exists(sessionDir) &&
+                !Directory.EnumerateFileSystemEntries(sessionDir).Any())
+            {
+                Directory.Delete(sessionDir);
+            }
             Trace.TraceInformation(
                 "[TranscriptStorageService] Deleted session directory: {0}", sessionDir);
         }
