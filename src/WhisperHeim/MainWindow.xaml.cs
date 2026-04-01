@@ -185,12 +185,18 @@ public partial class MainWindow : FluentWindow
         var savedWidth = Width;
         var savedHeight = Height;
 
+        // Move off-screen at the WPF level BEFORE creating the HWND, so the
+        // Win32 window is born off-screen and no gray rectangle flashes.
+        Left = -32000;
+        Top = -32000;
+        Width = 0;
+        Height = 0;
+
         // Create the Win32 HWND without showing the window at all.
         var helper = new System.Windows.Interop.WindowInteropHelper(this);
         helper.EnsureHandle();
 
-        // Move the window off-screen and make it zero-size at the Win32 level
-        // BEFORE any WPF render pass can display it.
+        // Also set at Win32 level for good measure.
         SetWindowPos(helper.Handle, IntPtr.Zero, -32000, -32000, 0, 0,
             SWP_NOZORDER | SWP_NOACTIVATE);
 

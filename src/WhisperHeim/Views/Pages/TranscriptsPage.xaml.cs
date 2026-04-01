@@ -53,7 +53,6 @@ public partial class TranscriptsPage : UserControl
     private bool _isActiveRecordingDrawerOpen;
     private List<SpeakerNameItem> _activeRecordingSpeakerNames = new();
     private string _activeRecordingTitle = "";
-    private int _activeRecordingSpeakerCount;
 
     // Analysis state
     private CancellationTokenSource? _analysisCts;
@@ -134,7 +133,11 @@ public partial class TranscriptsPage : UserControl
     /// <summary>
     /// Reloads the transcript list from storage.
     /// </summary>
-    public void RefreshList() => Dispatcher.Invoke(LoadTranscriptList);
+    public void RefreshList() => Dispatcher.Invoke(() =>
+    {
+        LoadTranscriptList();
+        TryAutoOpenTranscriptInDrawer();
+    });
 
     /// <summary>
     /// Shows the "Transcribing..." banner at the top of the page.
@@ -176,7 +179,6 @@ public partial class TranscriptsPage : UserControl
         Dispatcher.BeginInvoke(() =>
         {
             _activeRecordingTitle = "";
-            _activeRecordingSpeakerCount = 0;
             _activeRecordingSpeakerNames.Clear();
             ShowActiveRecordingCard();
             UpdateRecordingButtonState();
@@ -187,6 +189,12 @@ public partial class TranscriptsPage : UserControl
     {
         Dispatcher.BeginInvoke(() =>
         {
+            // Save the title from the drawer if it's open
+            if (_isActiveRecordingDrawerOpen)
+            {
+                _activeRecordingTitle = TranscriptNameBox.Text?.Trim() ?? "";
+            }
+
             HideActiveRecordingCard();
             UpdateRecordingButtonState();
 
@@ -194,6 +202,12 @@ public partial class TranscriptsPage : UserControl
             {
                 Trace.TraceWarning("[TranscriptsPage] Recording stopped with error, skipping auto-enqueue: {0}",
                     e.Exception.Message);
+
+                if (_isActiveRecordingDrawerOpen)
+                {
+                    _isActiveRecordingDrawerOpen = false;
+                    CloseDrawer();
+                }
                 return;
             }
 
@@ -213,6 +227,27 @@ public partial class TranscriptsPage : UserControl
 
             _queueService.Enqueue(title, session);
             Trace.TraceInformation("[TranscriptsPage] Auto-enqueued recording for transcription: {0}", title);
+
+            // Transition the drawer from recording state to "waiting for transcription" state
+            if (_isActiveRecordingDrawerOpen)
+            {
+                _isActiveRecordingDrawerOpen = false;
+
+                // Hide recording-specific elements
+                RecordingIndicatorPanel.Visibility = Visibility.Collapsed;
+                DrawerRecordingDuration.Visibility = Visibility.Collapsed;
+                RecordingInfoText.Visibility = Visibility.Collapsed;
+
+                // Update header to show completed state
+                TranscriptInfo.Visibility = Visibility.Visible;
+                TranscriptInfo.Text = "Transcription queued — the drawer will update when complete.";
+
+                // Show the transcript scroll area (empty for now)
+                TranscriptScrollViewer.Visibility = Visibility.Visible;
+
+                // Remember the session dir so we can auto-open the transcript when done
+                _currentlyTranscribingSessionDir = Path.GetDirectoryName(session.MicWavFilePath);
+            }
 
             // Refresh to show it moved from pending state
             LoadTranscriptList();
@@ -245,12 +280,8 @@ public partial class TranscriptsPage : UserControl
         _recordingDotPulseTimer.Stop();
         RecordingDot.BeginAnimation(UIElement.OpacityProperty, null);
 
-        // Close the active recording drawer if it's open
-        if (_isActiveRecordingDrawerOpen)
-        {
-            _isActiveRecordingDrawerOpen = false;
-            CloseDrawer();
-        }
+        // Do NOT close the drawer here — the recording-stopped handler
+        // will transition the drawer to transcribed state if it's open.
     }
 
     private void UpdateActiveRecordingDuration()
@@ -286,53 +317,36 @@ public partial class TranscriptsPage : UserControl
     {
         _isActiveRecordingDrawerOpen = true;
 
-        // Hide transcript drawer content, show active recording content
-        ActiveRecordingDrawerContent.Visibility = Visibility.Visible;
-        TranscriptDrawerContent.Visibility = Visibility.Collapsed;
-        // Also hide child panels that belong to transcript view
+        // Use the unified drawer in recording mode
+        TranscriptDrawerContent.Visibility = Visibility.Visible;
+
+        // Show recording-specific elements
+        RecordingIndicatorPanel.Visibility = Visibility.Visible;
+        DrawerRecordingDuration.Visibility = Visibility.Visible;
+        RecordingInfoText.Visibility = Visibility.Visible;
+
+        // Hide transcript-specific elements
+        TranscriptInfo.Visibility = Visibility.Collapsed;
         PlaybackPanel.Visibility = Visibility.Collapsed;
-        SpeakerNamesPanel.Visibility = Visibility.Collapsed;
+        TranscriptScrollViewer.Visibility = Visibility.Collapsed;
         SegmentList.ItemsSource = null;
         PlaceholderText.Visibility = Visibility.Collapsed;
         ActionPanel.Visibility = Visibility.Collapsed;
+        AnalysisPanel.Visibility = Visibility.Collapsed;
+        ReTranscribeButton.Visibility = Visibility.Collapsed;
 
-        // Populate fields
-        ActiveSessionTitleBox.Text = _activeRecordingTitle;
-        ActiveSpeakerCountText.Text = _activeRecordingSpeakerCount.ToString();
-        ActiveSpeakerNamesList.ItemsSource = _activeRecordingSpeakerNames;
+        // Populate title
+        TranscriptNameBox.Text = _activeRecordingTitle;
+
+        // Populate speaker names using the shared panel
+        _speakerNameItems = _activeRecordingSpeakerNames;
+        SpeakerNamesList.ItemsSource = _speakerNameItems;
+        SpeakerNamesPanel.Visibility = Visibility.Visible;
 
         UpdateActiveRecordingDuration();
 
         DrawerPanel.Visibility = Visibility.Visible;
         AnimateDrawer(open: true);
-    }
-
-    private void IncrementSpeakerCount_Click(object sender, RoutedEventArgs e)
-    {
-        _activeRecordingSpeakerCount++;
-        ActiveSpeakerCountText.Text = _activeRecordingSpeakerCount.ToString();
-        SyncActiveSpeakerNameSlots();
-    }
-
-    private void DecrementSpeakerCount_Click(object sender, RoutedEventArgs e)
-    {
-        if (_activeRecordingSpeakerCount <= 0) return;
-        _activeRecordingSpeakerCount--;
-        ActiveSpeakerCountText.Text = _activeRecordingSpeakerCount.ToString();
-        SyncActiveSpeakerNameSlots();
-    }
-
-    private void SyncActiveSpeakerNameSlots()
-    {
-        // Grow or shrink the speaker name list to match the count
-        while (_activeRecordingSpeakerNames.Count < _activeRecordingSpeakerCount)
-            _activeRecordingSpeakerNames.Add(new SpeakerNameItem { Name = "" });
-
-        while (_activeRecordingSpeakerNames.Count > _activeRecordingSpeakerCount)
-            _activeRecordingSpeakerNames.RemoveAt(_activeRecordingSpeakerNames.Count - 1);
-
-        ActiveSpeakerNamesList.ItemsSource = null;
-        ActiveSpeakerNamesList.ItemsSource = _activeRecordingSpeakerNames;
     }
 
     /// <summary>
@@ -838,8 +852,14 @@ public partial class TranscriptsPage : UserControl
             var drawerAlreadyOpen = DrawerPanel.Visibility == Visibility.Visible;
 
             _isActiveRecordingDrawerOpen = false;
-            ActiveRecordingDrawerContent.Visibility = Visibility.Collapsed;
             TranscriptDrawerContent.Visibility = Visibility.Visible;
+
+            // Ensure recording-specific elements are hidden
+            RecordingIndicatorPanel.Visibility = Visibility.Collapsed;
+            DrawerRecordingDuration.Visibility = Visibility.Collapsed;
+            RecordingInfoText.Visibility = Visibility.Collapsed;
+            TranscriptScrollViewer.Visibility = Visibility.Visible;
+            TranscriptInfo.Visibility = Visibility.Visible;
 
             if (drawerAlreadyOpen)
             {
@@ -882,6 +902,32 @@ public partial class TranscriptsPage : UserControl
         }
     }
 
+    /// <summary>
+    /// If the drawer was left open after a recording session ended, try to auto-open
+    /// the completed transcript so the drawer transitions live to the transcribed state.
+    /// </summary>
+    private void TryAutoOpenTranscriptInDrawer()
+    {
+        if (_currentlyTranscribingSessionDir is null) return;
+        if (DrawerPanel.Visibility != Visibility.Visible) return;
+        if (_isActiveRecordingDrawerOpen) return;
+
+        // Find the transcript item that matches the session directory
+        var sessionDir = Path.GetFullPath(_currentlyTranscribingSessionDir);
+        var matchingItem = _allItems.FirstOrDefault(item =>
+        {
+            var itemDir = Path.GetDirectoryName(item.FilePath);
+            return itemDir is not null &&
+                   string.Equals(Path.GetFullPath(itemDir), sessionDir, StringComparison.OrdinalIgnoreCase);
+        });
+
+        if (matchingItem is not null)
+        {
+            _currentlyTranscribingSessionDir = null;
+            OpenTranscriptDrawer(matchingItem);
+        }
+    }
+
     private void AnimateDrawer(bool open)
     {
         var anim = new DoubleAnimation
@@ -909,10 +955,8 @@ public partial class TranscriptsPage : UserControl
         if (_isActiveRecordingDrawerOpen)
         {
             // Save active recording metadata before closing
-            _activeRecordingTitle = ActiveSessionTitleBox.Text?.Trim() ?? "";
+            _activeRecordingTitle = TranscriptNameBox.Text?.Trim() ?? "";
             _isActiveRecordingDrawerOpen = false;
-            ActiveRecordingDrawerContent.Visibility = Visibility.Collapsed;
-            TranscriptDrawerContent.Visibility = Visibility.Visible;
 
             // Update the card subtitle with the title if set
             if (!string.IsNullOrWhiteSpace(_activeRecordingTitle))
@@ -926,10 +970,16 @@ public partial class TranscriptsPage : UserControl
                 : "Click to edit metadata";
         }
 
+        // Hide recording-specific elements
+        RecordingIndicatorPanel.Visibility = Visibility.Collapsed;
+        DrawerRecordingDuration.Visibility = Visibility.Collapsed;
+        RecordingInfoText.Visibility = Visibility.Collapsed;
+
         StopPlayback();
         _audioPlayer.Close();
         PlaybackPanel.Visibility = Visibility.Collapsed;
         SpeakerNamesPanel.Visibility = Visibility.Collapsed;
+        TranscriptScrollViewer.Visibility = Visibility.Visible;
 
         _selectedTranscript = null;
         _selectedListItem = null;
@@ -1572,7 +1622,8 @@ public partial class TranscriptsPage : UserControl
 
     private void AddSpeaker_Click(object sender, RoutedEventArgs e)
     {
-        if (_selectedTranscript is null) return;
+        // Allow adding speakers during active recording or when viewing a transcript
+        if (_selectedTranscript is null && !_isActiveRecordingDrawerOpen) return;
 
         _speakerNameItems.Add(new SpeakerNameItem { Name = "" });
         SpeakerNamesList.ItemsSource = null;
@@ -1587,7 +1638,10 @@ public partial class TranscriptsPage : UserControl
         _speakerNameItems.Remove(item);
         SpeakerNamesList.ItemsSource = null;
         SpeakerNamesList.ItemsSource = _speakerNameItems;
-        SaveSpeakerNames();
+
+        // Only persist to storage if viewing a transcript (not during active recording)
+        if (!_isActiveRecordingDrawerOpen)
+            SaveSpeakerNames();
     }
 
     private void SpeakerNameList_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
@@ -1597,7 +1651,8 @@ public partial class TranscriptsPage : UserControl
             // Force the binding to update, then move focus away to trigger save
             var binding = tb.GetBindingExpression(TextBox.TextProperty);
             binding?.UpdateSource();
-            SaveSpeakerNames();
+            if (!_isActiveRecordingDrawerOpen)
+                SaveSpeakerNames();
             System.Windows.Input.Keyboard.ClearFocus();
             e.Handled = true;
         }
@@ -1605,7 +1660,8 @@ public partial class TranscriptsPage : UserControl
 
     private void SpeakerName_LostFocus(object sender, RoutedEventArgs e)
     {
-        SaveSpeakerNames();
+        if (!_isActiveRecordingDrawerOpen)
+            SaveSpeakerNames();
     }
 
     private async void SaveSpeakerNames()

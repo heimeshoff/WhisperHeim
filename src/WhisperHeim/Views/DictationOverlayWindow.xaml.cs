@@ -63,6 +63,7 @@ public partial class DictationOverlayWindow : Window
     private DispatcherTimer? _barAnimationTimer;
 
     private bool _isVisible;
+    private bool _hasBeenLoaded;
     private OverlayMicState _currentState = OverlayMicState.Idle;
 
     // Smoothed RMS value for amplitude-driven animation
@@ -89,6 +90,10 @@ public partial class DictationOverlayWindow : Window
         Loaded -= OnLoaded;
 
         SetClickThrough();
+        // Reposition after SetClickThrough() — adding WS_EX_TOOLWINDOW can
+        // cause Windows to move the window on first show.
+        PositionAtBottomCenter();
+        _hasBeenLoaded = true;
         InitializeBars();
 
         _fadeIn = (Storyboard)FindResource("FadeIn");
@@ -231,6 +236,10 @@ public partial class DictationOverlayWindow : Window
 
         PositionAtBottomCenter();
         Show();
+        // On subsequent shows (HWND already exists, Loaded won't fire again),
+        // re-position in case work area changed.
+        if (_hasBeenLoaded)
+            PositionAtBottomCenter();
 
         if (_fadeIn != null)
         {

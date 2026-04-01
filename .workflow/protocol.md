@@ -2,6 +2,46 @@
 
 ---
 
+## 2026-04-01 15:17 -- Task Completed: 095 - Unified Recording & Transcript Drawer
+
+**Type:** Task Completion
+**Task:** 095 - Unified Recording & Transcript Drawer
+**Summary:** Unified the active-recording and transcript drawers into a single live-transitioning drawer. Fixed input bug caused by z-order overlap, replaced +/- speaker counter with add/remove name list, and added live state transition when transcription completes.
+**Files changed:** 3 files
+
+---
+
+## 2026-04-01 15:10 -- Task Started: 095 - Unified Recording & Transcript Drawer
+
+**Type:** Task Start
+**Task:** 095 - Unified Recording & Transcript Drawer
+**Milestone:** --
+
+---
+
+## 2026-04-01 15:00 -- Idea Captured: Unified Recording & Transcript Drawer
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/095-unified-recording-drawer.md
+**Summary:** Unify the active-recording drawer and transcript drawer into a single live-transitioning drawer. Fix the current bug where the active-recording drawer doesn't accept input. Replace speaker counter with add/remove name list. Drawer stays open and live-updates when transcription completes.
+
+---
+
+## 2026-04-01 14:00 -- Research: TTS Voice Cloning Models 2026
+
+**Type:** Research
+**Topic:** State of the art TTS models with voice cloning (April 2026), prompted by Mistral's Voxtral release
+**File:** research/tts-voice-cloning-models-2026.md
+**Key findings:**
+- Voxtral TTS (Mistral, 4B params) has excellent voice cloning + German, but CC BY-NC license blocks commercial use and no ONNX/sherpa-onnx support
+- Chatterbox Turbo (Resemble AI, 350M, MIT, 23 langs incl. German, ONNX available) is the best upgrade candidate
+- Qwen3-TTS 0.6B (Apache 2.0, 10 langs incl. German, community ONNX) is a strong runner-up
+- ZipVoice (k2-fsa, 123M) already has native sherpa-onnx support with voice cloning but no German
+- Pocket TTS remains best integrated option; Kyutai confirmed German is planned but no timeline
+
+---
+
 ## 2026-03-31 -- Task Completed: 094 - Delete Audio Keep Transcript
 
 **Type:** Task Completion

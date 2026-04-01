@@ -60,6 +60,10 @@
 
 | 2026-03-31 | WAV-to-MP3 Before Transcription | [wav-to-mp3-before-transcription.md](wav-to-mp3-before-transcription.md) | Fully feasible at 128 kbps mono — no ASR degradation, diarization safe, 4x storage reduction; use NAudio.Lame NuGet |
 
+## TTS Voice Cloning Models (2026-04-01)
+
+| 2026-04-01 | TTS Voice Cloning Models 2026 | [tts-voice-cloning-models-2026.md](tts-voice-cloning-models-2026.md) | Voxtral (Mistral) blocked by CC BY-NC license; Chatterbox Turbo (MIT, 23 langs incl. German, ONNX) is best upgrade candidate; Pocket TTS German coming; ZipVoice is easiest sherpa-onnx swap |
+
 ## UI Framework (2026-03-21)
 
 - **WPF + WPF UI (lepoco/wpfui)**: Mica, Fluent controls, tray icon via WPF-UI.Tray. Best fit for Windows 11 tray app.
