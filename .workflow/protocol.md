@@ -2,6 +2,32 @@
 
 ---
 
+## 2026-04-02 -- Task Completed: 096 - Streams Tab -- Video Link Transcription
+
+**Type:** Task Completion
+**Task:** 096 - Streams Tab -- Video Link Transcription
+**Summary:** Implemented Streams tab with StreamTranscript model, StreamStorageService (JSON persistence), StreamTranscriptionService (yt-dlp/gallery-dl captions with Parakeet ASR fallback), and StreamsPage UI (textarea input, progress bar, transcript cards with copy/delete). Build succeeds, all 32 tests pass.
+**Files changed:** 11 files
+
+---
+
+## 2026-04-02 -- Task Started: 096 - Streams Tab -- Video Link Transcription
+
+**Type:** Task Start
+**Task:** 096 - Streams Tab -- Video Link Transcription
+**Milestone:** M5 (Streams / Web Media Transcription)
+
+---
+
+## 2026-04-02 -- Idea Captured: Streams Tab (Video Link Transcription)
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/backlog/096-streams-tab-video-transcription.md
+**Summary:** New "Streams" sidebar tab where the user pastes YouTube/Instagram URLs into a textarea and gets individual transcriptions per link. Uses yt-dlp and gallery-dl with a caption-first, audio-fallback strategy. Transcriptions persist to disk, are sorted by date, and are designed for easy copy-paste into Obsidian.
+
+---
+
 ## 2026-04-01 15:17 -- Task Completed: 095 - Unified Recording & Transcript Drawer
 
 **Type:** Task Completion

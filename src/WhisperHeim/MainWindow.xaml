@@ -144,6 +144,13 @@
                                        FontSize="11" FontWeight="Medium" />
                         </StackPanel>
                     </ListBoxItem>
+                    <ListBoxItem Tag="Streams" Style="{StaticResource NavPillItem}">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="Video24" Margin="0,0,10,0" FontSize="18" />
+                            <TextBlock x:Name="NavLabelStreams" Text="STREAMS" VerticalAlignment="Center"
+                                       FontSize="11" FontWeight="Medium" />
+                        </StackPanel>
+                    </ListBoxItem>
                     <ListBoxItem Tag="TextToSpeech" Style="{StaticResource NavPillItem}">
                         <StackPanel Orientation="Horizontal">
                             <ui:SymbolIcon Symbol="ReadAloud24" Margin="0,0,10,0" FontSize="18" />

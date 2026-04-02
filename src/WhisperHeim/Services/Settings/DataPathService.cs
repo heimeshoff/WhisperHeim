@@ -42,6 +42,9 @@ public sealed class DataPathService
     /// <summary>Root directory for recordings (synced).</summary>
     public string RecordingsPath => Path.Combine(DataPath, "recordings");
 
+    /// <summary>Root directory for stream transcripts (synced).</summary>
+    public string StreamsPath => Path.Combine(DataPath, "streams");
+
     /// <summary>Root directory for custom voice samples (synced).</summary>
     public string VoicesPath => Path.Combine(DataPath, "voices");
 

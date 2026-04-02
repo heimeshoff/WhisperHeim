@@ -14,6 +14,7 @@ using WhisperHeim.Services.SelectedText;
 using WhisperHeim.Services.TextToSpeech;
 using WhisperHeim.Services.Transcription;
 using WhisperHeim.Services.Analysis;
+using WhisperHeim.Services.Streams;
 using WhisperHeim.Views;
 using Wpf.Ui.Appearance;
 
@@ -211,6 +212,11 @@ public partial class App : Application
         // Create Ollama analysis service (local LLM transcript analysis)
         var ollamaService = new OllamaService(_settingsService);
 
+        // Create stream transcription services
+        var streamStorageService = new StreamStorageService(_dataPathService);
+        var streamTranscriptionService = new StreamTranscriptionService(
+            transcriptionService, streamStorageService);
+
         // Check the user's "Start Minimized" setting
         var startMinimized = _settingsService.Current.General.StartMinimized;
 
@@ -233,7 +239,9 @@ public partial class App : Application
             _dataPathService,
             _readAloudHotkeyService,
             transcriptionQueueService,
-            ollamaService);
+            ollamaService,
+            streamTranscriptionService,
+            streamStorageService);
         MainWindow = mainWindow;
 
         if (startMinimized)

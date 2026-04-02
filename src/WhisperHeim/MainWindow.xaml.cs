@@ -24,6 +24,7 @@ using WhisperHeim.Services.Templates;
 using WhisperHeim.Services.SelectedText;
 using WhisperHeim.Services.TextToSpeech;
 using WhisperHeim.Services.Analysis;
+using WhisperHeim.Services.Streams;
 using WhisperHeim.Converters;
 using WhisperHeim.Views;
 using WhisperHeim.Views.Pages;
@@ -76,6 +77,10 @@ public partial class MainWindow : FluentWindow
     // Ollama LLM analysis service
     private readonly OllamaService _ollamaService;
 
+    // Stream transcription services
+    private readonly StreamTranscriptionService _streamTranscriptionService;
+    private readonly StreamStorageService _streamStorageService;
+
     // Hotkey and orchestration
     private readonly GlobalHotkeyService _hotkeyService = new();
     private DictationOrchestrator? _orchestrator;
@@ -116,7 +121,9 @@ public partial class MainWindow : FluentWindow
         DataPathService dataPathService,
         ReadAloudHotkeyService readAloudHotkeyService,
         TranscriptionQueueService transcriptionQueueService,
-        OllamaService ollamaService)
+        OllamaService ollamaService,
+        StreamTranscriptionService streamTranscriptionService,
+        StreamStorageService streamStorageService)
     {
         _settingsService = settingsService;
         _audioCaptureService = audioCaptureService;
@@ -136,6 +143,8 @@ public partial class MainWindow : FluentWindow
         _readAloudHotkeyService = readAloudHotkeyService;
         _transcriptionQueueService = transcriptionQueueService;
         _ollamaService = ollamaService;
+        _streamTranscriptionService = streamTranscriptionService;
+        _streamStorageService = streamStorageService;
 
         InitializeComponent();
 
@@ -766,6 +775,7 @@ public partial class MainWindow : FluentWindow
             {
                 "Dictation" => new DictationPage(_settingsService, _audioCaptureService, _templateService),
                 "Recordings" => GetOrCreateTranscriptsPage(),
+                "Streams" => new StreamsPage(_streamTranscriptionService, _streamStorageService),
                 "TextToSpeech" => new TextToSpeechPage(
                     _textToSpeechService,
                     _highQualityRecorderService,
@@ -817,6 +827,7 @@ public partial class MainWindow : FluentWindow
         BrandingHeader.HorizontalAlignment = collapsed ? HorizontalAlignment.Center : HorizontalAlignment.Left;
         NavLabelDictation.Visibility = labelVisibility;
         NavLabelRecordings.Visibility = labelVisibility;
+        NavLabelStreams.Visibility = labelVisibility;
         NavLabelTextToSpeech.Visibility = labelVisibility;
         NavLabelSettings.Visibility = labelVisibility;
         NavLabelAbout.Visibility = labelVisibility;
