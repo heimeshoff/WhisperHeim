@@ -30,6 +30,7 @@ public interface ICallTranscriptionPipeline
         CallRecordingSession session,
         IReadOnlyList<string>? remoteSpeakerNames = null,
         string? localSpeakerName = null,
+        string? transcriptName = null,
         IProgress<TranscriptionPipelineProgress>? progress = null,
         CancellationToken cancellationToken = default);
 }

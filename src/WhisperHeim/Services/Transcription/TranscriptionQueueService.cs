@@ -589,7 +589,7 @@ public sealed class TranscriptionQueueService : INotifyPropertyChanged
         await Task.Run(async () =>
             await _pipeline.ProcessAsync(
                 item.Session, remoteSpeakerNames, localSpeakerName,
-                progress, _activeCts!.Token));
+                item.Title, progress, _activeCts!.Token));
     }
 
     private async Task ProcessFileItem(TranscriptionQueueItem item)

@@ -336,6 +336,7 @@ public partial class TranscriptsPage : UserControl
         ReTranscribeButton.Visibility = Visibility.Collapsed;
 
         // Populate title
+        TranscriptNameBox.IsReadOnly = false;
         TranscriptNameBox.Text = _activeRecordingTitle;
 
         // Populate speaker names using the shared panel
@@ -344,6 +345,41 @@ public partial class TranscriptsPage : UserControl
         SpeakerNamesPanel.Visibility = Visibility.Visible;
 
         UpdateActiveRecordingDuration();
+
+        DrawerPanel.Visibility = Visibility.Visible;
+        AnimateDrawer(open: true);
+    }
+
+    private void OpenPendingTranscribingDrawer(PendingRecordingItem item)
+    {
+        _isActiveRecordingDrawerOpen = false;
+
+        // Use the unified drawer in "transcribing" state
+        TranscriptDrawerContent.Visibility = Visibility.Visible;
+
+        // Hide recording-specific elements
+        RecordingIndicatorPanel.Visibility = Visibility.Collapsed;
+        DrawerRecordingDuration.Visibility = Visibility.Collapsed;
+        RecordingInfoText.Visibility = Visibility.Collapsed;
+
+        // Hide transcript-specific elements (not available yet)
+        PlaybackPanel.Visibility = Visibility.Collapsed;
+        TranscriptScrollViewer.Visibility = Visibility.Visible;
+        SegmentList.ItemsSource = null;
+        PlaceholderText.Visibility = Visibility.Collapsed;
+        ActionPanel.Visibility = Visibility.Collapsed;
+        AnalysisPanel.Visibility = Visibility.Collapsed;
+        ReTranscribeButton.Visibility = Visibility.Collapsed;
+        SpeakerNamesPanel.Visibility = Visibility.Collapsed;
+
+        // Show title and status
+        TranscriptNameBox.Text = item.Name;
+        TranscriptNameBox.IsReadOnly = true;
+        TranscriptInfo.Visibility = Visibility.Visible;
+        TranscriptInfo.Text = "Transcription queued \u2014 the drawer will update when complete.";
+
+        // Remember the session dir so TryAutoOpenTranscriptInDrawer can transition
+        _currentlyTranscribingSessionDir = item.SessionDir;
 
         DrawerPanel.Visibility = Visibility.Visible;
         AnimateDrawer(open: true);
@@ -801,6 +837,9 @@ public partial class TranscriptsPage : UserControl
             _queueService.EnqueueFileImport(title, audioFile, item.SessionDir);
         }
 
+        // Open the drawer in "transcribing" state
+        OpenPendingTranscribingDrawer(item);
+
         // Refresh immediately so the item moves from Pending to Transcribing/Queued
         LoadPendingSessions();
         e.Handled = true;
@@ -1005,6 +1044,7 @@ public partial class TranscriptsPage : UserControl
         PlaceholderText.Visibility = Visibility.Collapsed;
         ActionPanel.Visibility = Visibility.Visible;
 
+        TranscriptNameBox.IsReadOnly = false;
         TranscriptNameBox.Text = transcript.Name;
         TranscriptInfo.Text = $"Started: {transcript.RecordingStartedUtc.LocalDateTime:HH:mm:ss} | " +
                               $"Duration: {transcript.Duration:hh\\:mm\\:ss} | " +
