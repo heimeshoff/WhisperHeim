@@ -2,6 +2,23 @@
 
 ---
 
+## 2026-04-07 -- Task Completed: 097 - Enter-to-Confirm in Drawer Text Fields
+
+**Type:** Task Completion
+**Task:** 097 - Enter-to-Confirm in Drawer Text Fields
+**Summary:** Added Enter-to-confirm behavior for transcript name and speaker name fields. Pressing Enter dismisses focus and immediately updates the list entry. Pressing Escape dismisses without committing.
+**Files changed:** 1 file
+
+---
+
+## 2026-04-07 -- Task Started: 098 - Pending Transcription Drawer with Playback
+
+**Type:** Task Start
+**Task:** 098 - Pending Transcription Drawer with Playback
+**Milestone:** M2
+
+---
+
 ## 2026-04-07 -- Task Started: 097 - Enter-to-Confirm in Drawer Text Fields
 
 **Type:** Task Start

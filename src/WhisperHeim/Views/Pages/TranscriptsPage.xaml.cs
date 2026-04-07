@@ -54,6 +54,13 @@ public partial class TranscriptsPage : UserControl
     private List<SpeakerNameItem> _activeRecordingSpeakerNames = new();
     private string _activeRecordingTitle = "";
 
+    // Pending drawer state
+    private bool _isPendingDrawerOpen;
+    private PendingRecordingItem? _pendingDrawerItem;
+    private List<SpeakerNameItem> _pendingDrawerSpeakerNames = new();
+    private string _pendingDrawerTitle = "";
+    private bool _isSeekBarDragging;
+
     // Analysis state
     private CancellationTokenSource? _analysisCts;
     private bool _isAnalysisVisible;
@@ -316,9 +323,12 @@ public partial class TranscriptsPage : UserControl
     private void OpenActiveRecordingDrawer()
     {
         _isActiveRecordingDrawerOpen = true;
+        _isPendingDrawerOpen = false;
+        _pendingDrawerItem = null;
 
         // Use the unified drawer in recording mode
         TranscriptDrawerContent.Visibility = Visibility.Visible;
+        QueueTranscriptionPanel.Visibility = Visibility.Collapsed;
 
         // Show recording-specific elements
         RecordingIndicatorPanel.Visibility = Visibility.Visible;
@@ -353,8 +363,11 @@ public partial class TranscriptsPage : UserControl
     private void OpenPendingTranscribingDrawer(PendingRecordingItem item)
     {
         _isActiveRecordingDrawerOpen = false;
+        _isPendingDrawerOpen = true;
+        _pendingDrawerItem = item;
+        _selectedTranscript = null;
 
-        // Use the unified drawer in "transcribing" state
+        // Use the unified drawer
         TranscriptDrawerContent.Visibility = Visibility.Visible;
 
         // Hide recording-specific elements
@@ -362,27 +375,177 @@ public partial class TranscriptsPage : UserControl
         DrawerRecordingDuration.Visibility = Visibility.Collapsed;
         RecordingInfoText.Visibility = Visibility.Collapsed;
 
-        // Hide transcript-specific elements (not available yet)
-        PlaybackPanel.Visibility = Visibility.Collapsed;
-        TranscriptScrollViewer.Visibility = Visibility.Visible;
+        // Hide transcript-specific elements (no transcript yet)
+        TranscriptScrollViewer.Visibility = Visibility.Collapsed;
         SegmentList.ItemsSource = null;
         PlaceholderText.Visibility = Visibility.Collapsed;
         ActionPanel.Visibility = Visibility.Collapsed;
         AnalysisPanel.Visibility = Visibility.Collapsed;
         ReTranscribeButton.Visibility = Visibility.Collapsed;
-        SpeakerNamesPanel.Visibility = Visibility.Collapsed;
 
-        // Show title and status
-        TranscriptNameBox.Text = item.Name;
-        TranscriptNameBox.IsReadOnly = true;
+        // Show editable title
+        TranscriptNameBox.IsReadOnly = false;
+        _pendingDrawerTitle = item.Name;
+        TranscriptNameBox.Text = _pendingDrawerTitle;
+
+        // Show status info
         TranscriptInfo.Visibility = Visibility.Visible;
-        TranscriptInfo.Text = "Transcription queued \u2014 the drawer will update when complete.";
+        TranscriptInfo.Text = item.IsTranscribing
+            ? "Transcription in progress\u2026"
+            : "Not yet transcribed \u2014 edit details and queue when ready.";
+
+        // Populate speaker names
+        _pendingDrawerSpeakerNames = LoadSpeakerNamesFromSessionDir(item.SessionDir);
+        _speakerNameItems = _pendingDrawerSpeakerNames;
+        SpeakerNamesList.ItemsSource = _speakerNameItems;
+        SpeakerNamesPanel.Visibility = Visibility.Visible;
+
+        // Show/hide queue button based on transcription state
+        QueueTranscriptionPanel.Visibility = item.IsTranscribing
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+
+        // Load audio playback
+        StopPlayback();
+        _audioPlayer.Close();
+        _externalAudioPath = null;
+        LoadPendingAudioPlayback(item.SessionDir);
 
         // Remember the session dir so TryAutoOpenTranscriptInDrawer can transition
         _currentlyTranscribingSessionDir = item.SessionDir;
 
         DrawerPanel.Visibility = Visibility.Visible;
         AnimateDrawer(open: true);
+    }
+
+    private void LoadPendingAudioPlayback(string sessionDir)
+    {
+        var micPath = Path.Combine(sessionDir, "mic.wav");
+        var systemPath = Path.Combine(sessionDir, "system.wav");
+
+        string? audioPath = null;
+        if (File.Exists(micPath))
+            audioPath = micPath;
+        else
+        {
+            // Imported audio file -- find the first supported file
+            var files = Directory.Exists(sessionDir) ? Directory.GetFiles(sessionDir) : Array.Empty<string>();
+            audioPath = files.FirstOrDefault(f => _fileTranscriptionService.IsSupported(f));
+        }
+
+        if (audioPath is null)
+        {
+            PlaybackPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        try
+        {
+            if (File.Exists(micPath) && File.Exists(systemPath))
+                _audioPlayer.Open(micPath, systemPath);
+            else
+                _audioPlayer.Open(audioPath);
+
+            PlaybackPanel.Visibility = Visibility.Visible;
+            PlayPauseButton.Content = "Play";
+            PlayPauseButton.Visibility = Visibility.Visible;
+            StopButton.Visibility = Visibility.Visible;
+            PlaybackPositionText.Visibility = Visibility.Visible;
+            OpenExternalButton.Visibility = Visibility.Collapsed;
+            AudioFileSizeText.Visibility = Visibility.Collapsed;
+            DeleteAudioButton.Visibility = Visibility.Collapsed;
+            PlaybackSeekBar.Visibility = Visibility.Visible;
+            PlaybackSeekBar.Value = 0;
+            UpdatePlaybackPositionText();
+        }
+        catch (Exception ex)
+        {
+            Trace.TraceInformation("[TranscriptsPage] Inline playback not supported for pending audio '{0}': {1}", audioPath, ex.Message);
+            _externalAudioPath = audioPath;
+            PlaybackPanel.Visibility = Visibility.Visible;
+            PlayPauseButton.Visibility = Visibility.Collapsed;
+            StopButton.Visibility = Visibility.Collapsed;
+            PlaybackPositionText.Visibility = Visibility.Collapsed;
+            PlaybackSeekBar.Visibility = Visibility.Collapsed;
+            OpenExternalButton.Visibility = Visibility.Visible;
+        }
+    }
+
+    private static bool TryLoadPendingName(string sessionDir, out string name)
+    {
+        name = "";
+        var nameFile = Path.Combine(sessionDir, "transcript_name.json");
+        if (!File.Exists(nameFile)) return false;
+
+        try
+        {
+            var json = File.ReadAllText(nameFile);
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty("name", out var nameElement))
+            {
+                var val = nameElement.GetString();
+                if (!string.IsNullOrWhiteSpace(val))
+                {
+                    name = val;
+                    return true;
+                }
+            }
+        }
+        catch { }
+        return false;
+    }
+
+    private List<SpeakerNameItem> LoadSpeakerNamesFromSessionDir(string sessionDir)
+    {
+        // Try to load speaker names from the transcript_name.json file if it exists
+        var nameFile = Path.Combine(sessionDir, "transcript_name.json");
+        if (File.Exists(nameFile))
+        {
+            try
+            {
+                var json = File.ReadAllText(nameFile);
+                using var doc = JsonDocument.Parse(json);
+                if (doc.RootElement.TryGetProperty("speakers", out var speakersElement))
+                {
+                    return speakersElement.EnumerateArray()
+                        .Select(s => new SpeakerNameItem { Name = s.GetString() ?? "" })
+                        .ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceWarning("[TranscriptsPage] Failed to load speaker names from {0}: {1}", nameFile, ex.Message);
+            }
+        }
+        return new List<SpeakerNameItem>();
+    }
+
+    private void SavePendingDrawerMetadata()
+    {
+        if (_pendingDrawerItem is null) return;
+
+        var sessionDir = _pendingDrawerItem.SessionDir;
+        var nameFile = Path.Combine(sessionDir, "transcript_name.json");
+
+        var speakers = _pendingDrawerSpeakerNames
+            .Select(i => i.Name ?? "")
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .ToList();
+
+        try
+        {
+            var data = new
+            {
+                name = _pendingDrawerTitle,
+                speakers
+            };
+            var json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(nameFile, json);
+        }
+        catch (Exception ex)
+        {
+            Trace.TraceWarning("[TranscriptsPage] Failed to save pending metadata to {0}: {1}", nameFile, ex.Message);
+        }
     }
 
     /// <summary>
@@ -581,6 +744,10 @@ public partial class TranscriptsPage : UserControl
             {
                 // Use the title from the queue item (e.g. original filename for imports)
                 name = matchingQueueItem.Title;
+            }
+            else if (TryLoadPendingName(dir, out var savedName))
+            {
+                name = savedName;
             }
             else if (dirName.Length >= 15 &&
                 DateTime.TryParseExact(
@@ -784,64 +951,8 @@ public partial class TranscriptsPage : UserControl
         if (sender is not FrameworkElement { DataContext: PendingRecordingItem item })
             return;
 
-        // Already transcribing or queued — don't re-enqueue
-        if (item.IsTranscribing)
-            return;
-
-        var micPath = Path.Combine(item.SessionDir, "mic.wav");
-        var systemPath = Path.Combine(item.SessionDir, "system.wav");
-
-        if (File.Exists(micPath))
-        {
-            // Standard call recording session (mic.wav + optional system.wav)
-            var dirName = Path.GetFileName(item.SessionDir);
-            DateTimeOffset startTimestamp;
-            if (dirName.Length >= 15 &&
-                DateTime.TryParseExact(
-                    dirName[..15],
-                    "yyyyMMdd_HHmmss",
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    System.Globalization.DateTimeStyles.None,
-                    out var date))
-            {
-                startTimestamp = new DateTimeOffset(date, TimeZoneInfo.Local.GetUtcOffset(date));
-            }
-            else
-            {
-                startTimestamp = DateTimeOffset.UtcNow;
-            }
-
-            var session = new CallRecordingSession(
-                micPath,
-                File.Exists(systemPath) ? systemPath : micPath,
-                startTimestamp);
-
-            var lastWrite = File.GetLastWriteTimeUtc(micPath);
-            session.EndTimestamp = new DateTimeOffset(lastWrite, TimeSpan.Zero);
-
-            TranscriptionRequested?.Invoke(this, session);
-        }
-        else
-        {
-            // Imported audio file (no mic.wav) — use file transcription pipeline
-            var audioFile = Directory.GetFiles(item.SessionDir)
-                .FirstOrDefault(f => _fileTranscriptionService.IsSupported(f));
-
-            if (audioFile is null)
-            {
-                Trace.TraceWarning("[TranscriptsPage] Pending session has no supported audio files: {0}", item.SessionDir);
-                return;
-            }
-
-            var title = Path.GetFileNameWithoutExtension(audioFile);
-            _queueService.EnqueueFileImport(title, audioFile, item.SessionDir);
-        }
-
-        // Open the drawer in "transcribing" state
+        // Just open the drawer -- do NOT auto-enqueue for transcription
         OpenPendingTranscribingDrawer(item);
-
-        // Refresh immediately so the item moves from Pending to Transcribing/Queued
-        LoadPendingSessions();
         e.Handled = true;
     }
 
@@ -891,7 +1002,10 @@ public partial class TranscriptsPage : UserControl
             var drawerAlreadyOpen = DrawerPanel.Visibility == Visibility.Visible;
 
             _isActiveRecordingDrawerOpen = false;
+            _isPendingDrawerOpen = false;
+            _pendingDrawerItem = null;
             TranscriptDrawerContent.Visibility = Visibility.Visible;
+            QueueTranscriptionPanel.Visibility = Visibility.Collapsed;
 
             // Ensure recording-specific elements are hidden
             RecordingIndicatorPanel.Visibility = Visibility.Collapsed;
@@ -1009,6 +1123,15 @@ public partial class TranscriptsPage : UserControl
                 : "Click to edit metadata";
         }
 
+        if (_isPendingDrawerOpen)
+        {
+            // Save pending drawer metadata before closing
+            _pendingDrawerTitle = TranscriptNameBox.Text?.Trim() ?? _pendingDrawerTitle;
+            SavePendingDrawerMetadata();
+            _isPendingDrawerOpen = false;
+            _pendingDrawerItem = null;
+        }
+
         // Hide recording-specific elements
         RecordingIndicatorPanel.Visibility = Visibility.Collapsed;
         DrawerRecordingDuration.Visibility = Visibility.Collapsed;
@@ -1018,6 +1141,7 @@ public partial class TranscriptsPage : UserControl
         _audioPlayer.Close();
         PlaybackPanel.Visibility = Visibility.Collapsed;
         SpeakerNamesPanel.Visibility = Visibility.Collapsed;
+        QueueTranscriptionPanel.Visibility = Visibility.Collapsed;
         TranscriptScrollViewer.Visibility = Visibility.Visible;
 
         _selectedTranscript = null;
@@ -1088,6 +1212,8 @@ public partial class TranscriptsPage : UserControl
                 StopButton.Visibility = Visibility.Visible;
                 PlaybackPositionText.Visibility = Visibility.Visible;
                 OpenExternalButton.Visibility = Visibility.Collapsed;
+                PlaybackSeekBar.Visibility = Visibility.Visible;
+                PlaybackSeekBar.Value = 0;
                 UpdatePlaybackPositionText();
                 Trace.TraceInformation("[TranscriptsPage] Audio available for inline playback: {0}", audioPath);
             }
@@ -1099,6 +1225,7 @@ public partial class TranscriptsPage : UserControl
                 PlayPauseButton.Visibility = Visibility.Collapsed;
                 StopButton.Visibility = Visibility.Collapsed;
                 PlaybackPositionText.Visibility = Visibility.Collapsed;
+                PlaybackSeekBar.Visibility = Visibility.Collapsed;
                 OpenExternalButton.Visibility = Visibility.Visible;
             }
         }
@@ -1148,6 +1275,8 @@ public partial class TranscriptsPage : UserControl
                 TranscriptNameBox.Text = _selectedTranscript.Name;
             else if (_isActiveRecordingDrawerOpen)
                 TranscriptNameBox.Text = _activeRecordingTitle;
+            else if (_isPendingDrawerOpen)
+                TranscriptNameBox.Text = _pendingDrawerTitle;
 
             System.Windows.Input.Keyboard.ClearFocus();
             e.Handled = true;
@@ -1163,6 +1292,17 @@ public partial class TranscriptsPage : UserControl
         {
             if (!string.IsNullOrEmpty(newName))
                 _activeRecordingTitle = newName;
+            return;
+        }
+
+        // For pending drawer, save to metadata file
+        if (_isPendingDrawerOpen && _selectedTranscript is null)
+        {
+            if (!string.IsNullOrEmpty(newName))
+            {
+                _pendingDrawerTitle = newName;
+                SavePendingDrawerMetadata();
+            }
             return;
         }
 
@@ -1405,6 +1545,7 @@ public partial class TranscriptsPage : UserControl
         {
             UpdatePlaybackPositionText();
             UpdatePlayingSegmentHighlight(position);
+            UpdateSeekBar();
         });
     }
 
@@ -1423,6 +1564,136 @@ public partial class TranscriptsPage : UserControl
         UpdatePlayPauseButton();
         ClearSegmentHighlights();
         UpdatePlaybackPositionText();
+        UpdateSeekBar();
+    }
+
+    // --- Seek bar ---
+
+    private void SeekBar_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        _isSeekBarDragging = true;
+    }
+
+    private void SeekBar_PreviewMouseUp(object sender, MouseButtonEventArgs e)
+    {
+        _isSeekBarDragging = false;
+        if (!_audioPlayer.IsLoaded) return;
+
+        var total = _audioPlayer.TotalDuration.TotalSeconds;
+        if (total <= 0) return;
+
+        var seekTo = TimeSpan.FromSeconds(PlaybackSeekBar.Value / 100.0 * total);
+        _audioPlayer.Seek(seekTo);
+        UpdatePlaybackPositionText();
+    }
+
+    private void SeekBar_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        // Only seek during drag -- otherwise the position timer handles updates
+        if (!_isSeekBarDragging || !_audioPlayer.IsLoaded) return;
+
+        var total = _audioPlayer.TotalDuration.TotalSeconds;
+        if (total <= 0) return;
+
+        var seekTo = TimeSpan.FromSeconds(PlaybackSeekBar.Value / 100.0 * total);
+        _audioPlayer.Seek(seekTo);
+        UpdatePlaybackPositionText();
+    }
+
+    private void UpdateSeekBar()
+    {
+        if (_isSeekBarDragging || !_audioPlayer.IsLoaded) return;
+
+        var total = _audioPlayer.TotalDuration.TotalSeconds;
+        if (total <= 0)
+        {
+            PlaybackSeekBar.Value = 0;
+            return;
+        }
+
+        var current = _audioPlayer.CurrentPosition.TotalSeconds;
+        PlaybackSeekBar.Value = current / total * 100.0;
+    }
+
+    // --- Queue Transcription ---
+
+    private void QueueTranscription_Click(object sender, RoutedEventArgs e)
+    {
+        if (_pendingDrawerItem is null) return;
+
+        // Save any edited metadata first
+        _pendingDrawerTitle = TranscriptNameBox.Text?.Trim() ?? _pendingDrawerTitle;
+        SavePendingDrawerMetadata();
+
+        var item = _pendingDrawerItem;
+        var micPath = Path.Combine(item.SessionDir, "mic.wav");
+        var systemPath = Path.Combine(item.SessionDir, "system.wav");
+
+        if (File.Exists(micPath))
+        {
+            // Standard call recording session
+            var dirName = Path.GetFileName(item.SessionDir);
+            DateTimeOffset startTimestamp;
+            if (dirName.Length >= 15 &&
+                DateTime.TryParseExact(
+                    dirName[..15],
+                    "yyyyMMdd_HHmmss",
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.None,
+                    out var date))
+            {
+                startTimestamp = new DateTimeOffset(date, TimeZoneInfo.Local.GetUtcOffset(date));
+            }
+            else
+            {
+                startTimestamp = DateTimeOffset.UtcNow;
+            }
+
+            var session = new CallRecordingSession(
+                micPath,
+                File.Exists(systemPath) ? systemPath : micPath,
+                startTimestamp);
+
+            var lastWrite = File.GetLastWriteTimeUtc(micPath);
+            session.EndTimestamp = new DateTimeOffset(lastWrite, TimeSpan.Zero);
+
+            // Apply speaker names from the pending drawer
+            session.RemoteSpeakerNames = _pendingDrawerSpeakerNames
+                .Select(i => i.Name ?? "")
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .ToList();
+
+            var title = !string.IsNullOrWhiteSpace(_pendingDrawerTitle)
+                ? _pendingDrawerTitle
+                : item.Name;
+
+            TranscriptionRequested?.Invoke(this, session);
+        }
+        else
+        {
+            // Imported audio file
+            var audioFile = Directory.GetFiles(item.SessionDir)
+                .FirstOrDefault(f => _fileTranscriptionService.IsSupported(f));
+
+            if (audioFile is null)
+            {
+                Trace.TraceWarning("[TranscriptsPage] Pending session has no supported audio files: {0}", item.SessionDir);
+                return;
+            }
+
+            var title = !string.IsNullOrWhiteSpace(_pendingDrawerTitle)
+                ? _pendingDrawerTitle
+                : Path.GetFileNameWithoutExtension(audioFile);
+
+            _queueService.EnqueueFileImport(title, audioFile, item.SessionDir);
+        }
+
+        // Update drawer to show queued state
+        QueueTranscriptionPanel.Visibility = Visibility.Collapsed;
+        TranscriptInfo.Text = "Transcription queued \u2014 the drawer will update when complete.";
+
+        // Refresh the pending list
+        LoadPendingSessions();
     }
 
     private void OpenExternal_Click(object sender, RoutedEventArgs e)
@@ -1692,8 +1963,8 @@ public partial class TranscriptsPage : UserControl
 
     private void AddSpeaker_Click(object sender, RoutedEventArgs e)
     {
-        // Allow adding speakers during active recording or when viewing a transcript
-        if (_selectedTranscript is null && !_isActiveRecordingDrawerOpen) return;
+        // Allow adding speakers during active recording, pending drawer, or when viewing a transcript
+        if (_selectedTranscript is null && !_isActiveRecordingDrawerOpen && !_isPendingDrawerOpen) return;
 
         _speakerNameItems.Add(new SpeakerNameItem { Name = "" });
         SpeakerNamesList.ItemsSource = null;
@@ -1709,9 +1980,11 @@ public partial class TranscriptsPage : UserControl
         SpeakerNamesList.ItemsSource = null;
         SpeakerNamesList.ItemsSource = _speakerNameItems;
 
-        // Only persist to storage if viewing a transcript (not during active recording)
-        if (!_isActiveRecordingDrawerOpen)
+        // Persist to storage if viewing a transcript (not during active recording or pending drawer)
+        if (!_isActiveRecordingDrawerOpen && !_isPendingDrawerOpen)
             SaveSpeakerNames();
+        else if (_isPendingDrawerOpen)
+            SavePendingDrawerMetadata();
     }
 
     private void SpeakerNameList_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
@@ -1721,8 +1994,10 @@ public partial class TranscriptsPage : UserControl
             // Force the binding to update, then move focus away to trigger save
             var binding = tb.GetBindingExpression(TextBox.TextProperty);
             binding?.UpdateSource();
-            if (!_isActiveRecordingDrawerOpen)
+            if (!_isActiveRecordingDrawerOpen && !_isPendingDrawerOpen)
                 SaveSpeakerNames();
+            else if (_isPendingDrawerOpen)
+                SavePendingDrawerMetadata();
             System.Windows.Input.Keyboard.ClearFocus();
             e.Handled = true;
         }
@@ -1736,8 +2011,10 @@ public partial class TranscriptsPage : UserControl
 
     private void SpeakerName_LostFocus(object sender, RoutedEventArgs e)
     {
-        if (!_isActiveRecordingDrawerOpen)
+        if (!_isActiveRecordingDrawerOpen && !_isPendingDrawerOpen)
             SaveSpeakerNames();
+        else if (_isPendingDrawerOpen)
+            SavePendingDrawerMetadata();
     }
 
     private async void SaveSpeakerNames()
