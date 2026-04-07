@@ -2,6 +2,31 @@
 
 ---
 
+## 2026-04-07 -- Task Started: 097 - Enter-to-Confirm in Drawer Text Fields
+
+**Type:** Task Start
+**Task:** 097 - Enter-to-Confirm in Drawer Text Fields
+**Milestone:** M2
+
+---
+
+## 2026-04-07 -- Batch Promoted: 097, 098, 099
+
+**Type:** Batch Promotion
+**Tasks:** 097 - Enter-to-Confirm in Drawer Text Fields, 098 - Pending Transcription Drawer with Playback, 099 - Explicit Transcription Queuing
+**Summary:** Promoted all three drawer UX tasks to todo for sequential execution based on dependency chain.
+
+---
+
+## 2026-04-07 -- Ideas Captured: 097, 098, 099
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/backlog/097-enter-to-confirm-drawer-fields.md, tasks/backlog/098-pending-transcription-drawer.md, tasks/backlog/099-transcription-queue-explicit.md
+**Summary:** Three tasks from deep-capture session refining drawer UX: (097) Enter-to-confirm behavior for name and speaker text fields, (098) full pending transcription drawer with playback/scrubbing and explicit queue button, (099) explicit transcription queuing replacing auto-enqueue on click.
+
+---
+
 ## 2026-04-02 -- Task Completed: 096 - Streams Tab -- Video Link Transcription
 
 **Type:** Task Completion

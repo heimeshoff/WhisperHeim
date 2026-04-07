@@ -1129,15 +1129,45 @@ public partial class TranscriptsPage : UserControl
         if (e.Key == System.Windows.Input.Key.Enter)
         {
             await SaveTranscriptNameAsync();
+
+            // Update active recording card title immediately
+            if (_isActiveRecordingDrawerOpen)
+            {
+                var title = TranscriptNameBox.Text?.Trim();
+                if (!string.IsNullOrWhiteSpace(title))
+                    ActiveRecordingTitle.Text = title;
+            }
+
+            System.Windows.Input.Keyboard.ClearFocus();
+            e.Handled = true;
+        }
+        else if (e.Key == System.Windows.Input.Key.Escape)
+        {
+            // Revert to saved name and dismiss focus
+            if (_selectedTranscript is not null)
+                TranscriptNameBox.Text = _selectedTranscript.Name;
+            else if (_isActiveRecordingDrawerOpen)
+                TranscriptNameBox.Text = _activeRecordingTitle;
+
+            System.Windows.Input.Keyboard.ClearFocus();
             e.Handled = true;
         }
     }
 
     private async Task SaveTranscriptNameAsync()
     {
+        var newName = TranscriptNameBox.Text?.Trim();
+
+        // For active recordings, just update the in-memory title
+        if (_isActiveRecordingDrawerOpen && _selectedTranscript is null)
+        {
+            if (!string.IsNullOrEmpty(newName))
+                _activeRecordingTitle = newName;
+            return;
+        }
+
         if (_selectedTranscript is null) return;
 
-        var newName = TranscriptNameBox.Text?.Trim();
         if (string.IsNullOrEmpty(newName) || newName == _selectedTranscript.Name)
             return;
 
@@ -1693,6 +1723,12 @@ public partial class TranscriptsPage : UserControl
             binding?.UpdateSource();
             if (!_isActiveRecordingDrawerOpen)
                 SaveSpeakerNames();
+            System.Windows.Input.Keyboard.ClearFocus();
+            e.Handled = true;
+        }
+        else if (e.Key == System.Windows.Input.Key.Escape)
+        {
+            // Dismiss focus without committing
             System.Windows.Input.Keyboard.ClearFocus();
             e.Handled = true;
         }
