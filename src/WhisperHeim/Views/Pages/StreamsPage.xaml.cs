@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using WhisperHeim.Services.Streams;
 
 namespace WhisperHeim.Views.Pages;
@@ -118,27 +119,123 @@ public partial class StreamsPage : UserControl
         _cts?.Cancel();
     }
 
+    /// <summary>
+    /// Detects the source platform from a URL.
+    /// Returns (platformLabel, symbolIcon).
+    /// </summary>
+    private static (string Label, Wpf.Ui.Controls.SymbolRegular Icon) DetectPlatform(string url)
+    {
+        if (string.IsNullOrEmpty(url))
+            return ("Video", Wpf.Ui.Controls.SymbolRegular.Video24);
+
+        var lower = url.ToLowerInvariant();
+        if (lower.Contains("youtube.com") || lower.Contains("youtu.be"))
+            return ("YouTube", Wpf.Ui.Controls.SymbolRegular.VideoClip24);
+        if (lower.Contains("instagram.com"))
+            return ("Instagram", Wpf.Ui.Controls.SymbolRegular.Camera24);
+
+        return ("Video", Wpf.Ui.Controls.SymbolRegular.Video24);
+    }
+
     private UIElement CreateTranscriptCard(StreamTranscript transcript)
     {
-        var card = new Border
-        {
-            Background = (System.Windows.Media.Brush)FindResource("CardBackgroundFillColorDefaultBrush"),
-            BorderBrush = (System.Windows.Media.Brush)FindResource("CardStrokeColorDefaultBrush"),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(8),
-            Padding = new Thickness(16, 12, 16, 12),
-            Margin = new Thickness(0, 0, 0, 8),
-        };
+        var card = new Border();
+        card.Style = (Style)FindResource("TranscriptCard");
 
         var stack = new StackPanel();
 
-        // Header row: chevron + title + duration + date + delete (always visible, clickable to toggle)
-        var headerRow = new Grid { Cursor = Cursors.Hand };
-        headerRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });  // chevron
-        headerRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // title
-        headerRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });  // duration
-        headerRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });  // date
-        headerRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });  // delete
+        var secondaryBrush = (Brush)FindResource("TextFillColorSecondaryBrush");
+        var (platformLabel, platformIcon) = DetectPlatform(transcript.SourceUrl);
+
+        // === Top row: platform badge + method pill + action buttons ===
+        var topRow = new Grid { Margin = new Thickness(0, 0, 0, 6) };
+        topRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        topRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        // Left side: badges
+        var badgePanel = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+
+        // Platform badge
+        var platformBadge = new Border
+        {
+            Style = (Style)FindResource("PillBadge"),
+        };
+        var platformContent = new StackPanel { Orientation = Orientation.Horizontal };
+        platformContent.Children.Add(new Wpf.Ui.Controls.SymbolIcon
+        {
+            Symbol = platformIcon,
+            FontSize = 12,
+            Margin = new Thickness(0, 0, 4, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+        });
+        platformContent.Children.Add(new TextBlock
+        {
+            Text = platformLabel,
+            FontSize = 11,
+            FontWeight = FontWeights.SemiBold,
+            VerticalAlignment = VerticalAlignment.Center,
+        });
+        platformBadge.Child = platformContent;
+        badgePanel.Children.Add(platformBadge);
+
+        // Transcription method pill
+        if (!string.IsNullOrEmpty(transcript.TranscriptionMethod))
+        {
+            var methodBadge = new Border
+            {
+                Style = (Style)FindResource("PillBadge"),
+            };
+            methodBadge.Child = new TextBlock
+            {
+                Text = transcript.TranscriptionMethod == "captions" ? "Captions" : "Parakeet ASR",
+                FontSize = 11,
+                Foreground = secondaryBrush,
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            badgePanel.Children.Add(methodBadge);
+        }
+
+        Grid.SetColumn(badgePanel, 0);
+        topRow.Children.Add(badgePanel);
+
+        // Right side: action buttons
+        var actionPanel = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+
+        var primaryBrush = (Brush)FindResource("TextFillColorPrimaryBrush");
+
+        var copyButton = new Button
+        {
+            Content = new Wpf.Ui.Controls.SymbolIcon { Symbol = Wpf.Ui.Controls.SymbolRegular.Copy24, FontSize = 16, Foreground = primaryBrush },
+            Style = (Style)FindResource("IconActionButton"),
+            ToolTip = "Copy transcript",
+        };
+        copyButton.Click += (_, _) =>
+        {
+            try { Clipboard.SetText(transcript.TranscriptText); }
+            catch (Exception ex) { Trace.TraceWarning("[StreamsPage] Clipboard copy failed: {0}", ex.Message); }
+        };
+        actionPanel.Children.Add(copyButton);
+
+        var deleteButton = new Button
+        {
+            Content = new Wpf.Ui.Controls.SymbolIcon { Symbol = Wpf.Ui.Controls.SymbolRegular.Delete24, FontSize = 16, Foreground = primaryBrush },
+            Style = (Style)FindResource("IconActionButton"),
+            ToolTip = "Delete transcript",
+            Tag = transcript,
+        };
+        deleteButton.Click += DeleteTranscript_Click;
+        actionPanel.Children.Add(deleteButton);
+
+        Grid.SetColumn(actionPanel, 1);
+        topRow.Children.Add(actionPanel);
+
+        stack.Children.Add(topRow);
+
+        // === Title row with chevron + title + metadata ===
+        var titleRow = new Grid { Cursor = Cursors.Hand };
+        titleRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });  // chevron
+        titleRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // title
+        titleRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });  // metadata
 
         var chevron = new Wpf.Ui.Controls.SymbolIcon
         {
@@ -149,7 +246,7 @@ public partial class StreamsPage : UserControl
             RenderTransformOrigin = new Point(0.5, 0.5),
         };
         Grid.SetColumn(chevron, 0);
-        headerRow.Children.Add(chevron);
+        titleRow.Children.Add(chevron);
 
         var titleText = new TextBlock
         {
@@ -160,88 +257,57 @@ public partial class StreamsPage : UserControl
             VerticalAlignment = VerticalAlignment.Center,
         };
         Grid.SetColumn(titleText, 1);
-        headerRow.Children.Add(titleText);
+        titleRow.Children.Add(titleText);
 
-        var secondaryBrush = (System.Windows.Media.Brush)FindResource("TextFillColorSecondaryBrush");
-
-        if (transcript.Duration > TimeSpan.Zero)
+        // Metadata: URL · date · duration · method
+        var metaText = new TextBlock
         {
-            var durationText = new TextBlock
-            {
-                Text = FormatDuration(transcript.Duration),
-                FontSize = 11,
-                Foreground = secondaryBrush,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(12, 0, 0, 0),
-            };
-            Grid.SetColumn(durationText, 2);
-            headerRow.Children.Add(durationText);
-        }
-
-        var dateText = new TextBlock
-        {
-            Text = transcript.DateTranscribedUtc.LocalDateTime.ToString("yyyy-MM-dd HH:mm"),
             FontSize = 11,
             Foreground = secondaryBrush,
             VerticalAlignment = VerticalAlignment.Center,
             Margin = new Thickness(12, 0, 0, 0),
-        };
-        Grid.SetColumn(dateText, 3);
-        headerRow.Children.Add(dateText);
-
-        var deleteButton = new Button
-        {
-            Content = new Wpf.Ui.Controls.SymbolIcon { Symbol = Wpf.Ui.Controls.SymbolRegular.Delete24, FontSize = 16 },
-            Background = System.Windows.Media.Brushes.Transparent,
-            BorderThickness = new Thickness(0),
-            Padding = new Thickness(4),
-            Cursor = Cursors.Hand,
-            ToolTip = "Delete transcript",
-            Tag = transcript,
-            Margin = new Thickness(12, 0, 0, 0),
-        };
-        deleteButton.Click += DeleteTranscript_Click;
-        Grid.SetColumn(deleteButton, 4);
-        headerRow.Children.Add(deleteButton);
-
-        stack.Children.Add(headerRow);
-
-        // Detail panel (collapsible, starts collapsed)
-        var detailPanel = new StackPanel { Visibility = Visibility.Collapsed, Margin = new Thickness(22, 8, 0, 0) };
-
-        // URL + method metadata
-        var metaPanel = new WrapPanel { Margin = new Thickness(0, 0, 0, 8) };
-
-        var urlLink = new TextBlock
-        {
-            Text = transcript.SourceUrl,
-            FontSize = 11,
-            Foreground = secondaryBrush,
             TextTrimming = TextTrimming.CharacterEllipsis,
             MaxWidth = 400,
-            Cursor = Cursors.Hand,
-            ToolTip = transcript.SourceUrl,
-            Margin = new Thickness(0, 0, 16, 0),
         };
-        urlLink.MouseLeftButtonDown += (_, _) =>
+
+        var urlRun = new System.Windows.Documents.Run(transcript.SourceUrl);
+        var urlHyperlink = new System.Windows.Documents.Hyperlink(urlRun)
+        {
+            Foreground = secondaryBrush,
+            TextDecorations = null,
+            ToolTip = transcript.SourceUrl,
+        };
+        urlHyperlink.Click += (_, _) =>
         {
             try { Process.Start(new ProcessStartInfo(transcript.SourceUrl) { UseShellExecute = true }); }
             catch { /* ignore */ }
         };
-        metaPanel.Children.Add(urlLink);
+        metaText.Inlines.Add(urlHyperlink);
+
+        metaText.Inlines.Add(new System.Windows.Documents.Run("  ·  "));
+        metaText.Inlines.Add(new System.Windows.Documents.Run(
+            transcript.DateTranscribedUtc.LocalDateTime.ToString("yyyy-MM-dd HH:mm")));
+
+        if (transcript.Duration > TimeSpan.Zero)
+        {
+            metaText.Inlines.Add(new System.Windows.Documents.Run("  ·  "));
+            metaText.Inlines.Add(new System.Windows.Documents.Run(FormatDuration(transcript.Duration)));
+        }
 
         if (!string.IsNullOrEmpty(transcript.TranscriptionMethod))
         {
-            metaPanel.Children.Add(new TextBlock
-            {
-                Text = transcript.TranscriptionMethod == "captions" ? "via captions" : "via Parakeet",
-                FontSize = 11,
-                Foreground = secondaryBrush,
-                FontStyle = FontStyles.Italic,
-            });
+            metaText.Inlines.Add(new System.Windows.Documents.Run("  ·  "));
+            metaText.Inlines.Add(new System.Windows.Documents.Run(
+                transcript.TranscriptionMethod == "captions" ? "Captions" : "Parakeet ASR"));
         }
 
-        detailPanel.Children.Add(metaPanel);
+        Grid.SetColumn(metaText, 2);
+        titleRow.Children.Add(metaText);
+
+        stack.Children.Add(titleRow);
+
+        // === Detail panel (collapsible, starts collapsed) ===
+        var detailPanel = new StackPanel { Visibility = Visibility.Collapsed, Margin = new Thickness(22, 8, 0, 0) };
 
         // Transcript text
         var textBox = new TextBox
@@ -252,48 +318,16 @@ public partial class StreamsPage : UserControl
             MaxHeight = 200,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             FontSize = 13,
-            Background = System.Windows.Media.Brushes.Transparent,
+            Background = Brushes.Transparent,
             BorderThickness = new Thickness(0),
             Padding = new Thickness(0),
         };
         detailPanel.Children.Add(textBox);
 
-        // Copy button
-        var copyButton = new Button
-        {
-            Margin = new Thickness(0, 6, 0, 0),
-            Padding = new Thickness(12, 6, 12, 6),
-            Cursor = Cursors.Hand,
-            HorizontalAlignment = HorizontalAlignment.Left,
-        };
-
-        var copyContent = new StackPanel { Orientation = Orientation.Horizontal };
-        copyContent.Children.Add(new Wpf.Ui.Controls.SymbolIcon
-        {
-            Symbol = Wpf.Ui.Controls.SymbolRegular.Copy24,
-            FontSize = 14,
-            Margin = new Thickness(0, 0, 6, 0),
-        });
-        copyContent.Children.Add(new TextBlock { Text = "Copy", FontSize = 12 });
-        copyButton.Content = copyContent;
-
-        copyButton.Click += (_, _) =>
-        {
-            try
-            {
-                Clipboard.SetText(transcript.TranscriptText);
-            }
-            catch (Exception ex)
-            {
-                Trace.TraceWarning("[StreamsPage] Clipboard copy failed: {0}", ex.Message);
-            }
-        };
-        detailPanel.Children.Add(copyButton);
-
         stack.Children.Add(detailPanel);
 
-        // Toggle expand/collapse on header click
-        headerRow.MouseLeftButtonDown += (_, _) =>
+        // Toggle expand/collapse on title row click
+        titleRow.MouseLeftButtonDown += (_, _) =>
         {
             if (detailPanel.Visibility == Visibility.Collapsed)
             {

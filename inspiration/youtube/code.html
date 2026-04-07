@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Parakeet | Digital Curator</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-dim": "#ec7ec0",
+                        "secondary-fixed": "#d6cbff",
+                        "on-background": "#dee5ff",
+                        "primary-dim": "#5e5eff",
+                        "on-primary-fixed-variant": "#11009c",
+                        "surface-container": "#0f1930",
+                        "tertiary-container": "#fc8bce",
+                        "outline-variant": "#40485d",
+                        "secondary-dim": "#a38efb",
+                        "surface-tint": "#a4a5ff",
+                        "surface-variant": "#192540",
+                        "primary": "#a4a5ff",
+                        "surface": "#060e20",
+                        "error-dim": "#d73357",
+                        "on-tertiary-fixed": "#350026",
+                        "surface-container-high": "#141f38",
+                        "surface-dim": "#060e20",
+                        "background": "#060e20",
+                        "tertiary-fixed-dim": "#ec7ec0",
+                        "surface-container-highest": "#192540",
+                        "on-secondary-container": "#d5c9ff",
+                        "tertiary": "#ffa1d6",
+                        "on-error-container": "#ffb2b9",
+                        "on-tertiary": "#6d1252",
+                        "secondary-fixed-dim": "#c8bbff",
+                        "surface-bright": "#1f2b49",
+                        "on-primary": "#1300a3",
+                        "on-error": "#490013",
+                        "surface-container-low": "#091328",
+                        "error-container": "#a70138",
+                        "inverse-surface": "#faf8ff",
+                        "surface-container-lowest": "#000000",
+                        "error": "#ff6e84",
+                        "secondary-container": "#4a339c",
+                        "on-tertiary-fixed-variant": "#6c1051",
+                        "on-primary-container": "#0c0081",
+                        "tertiary-fixed": "#fc8bce",
+                        "secondary": "#a690fe",
+                        "inverse-on-surface": "#4d556b",
+                        "on-surface": "#dee5ff",
+                        "outline": "#6d758c",
+                        "on-secondary": "#250074",
+                        "primary-container": "#9496ff",
+                        "on-secondary-fixed-variant": "#543ea7",
+                        "on-tertiary-container": "#600247",
+                        "on-surface-variant": "#a3aac4",
+                        "inverse-primary": "#4644ea"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "label": ["Inter", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        body {
+            background-color: #060e20;
+            color: #dee5ff;
+            font-family: 'Inter', sans-serif;
+        }
+        .glass-panel {
+            background: rgba(25, 37, 64, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+<!-- SideNavBar (Desktop) -->
+<nav class="hidden md:flex flex-col h-screen w-72 fixed left-0 top-0 bg-[#091328] p-6 space-y-8 z-50">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+</div>
+<div>
+<h1 class="font-['Manrope'] font-extrabold text-[#a4a5ff] text-xl">Digital Curator</h1>
+<p class="text-slate-500 text-xs font-['Inter'] tracking-wide">Intellectual Property</p>
+</div>
+</div>
+<div class="flex flex-col space-y-2 flex-grow">
+<a class="flex items-center gap-3 px-4 py-3 bg-[#192540] text-[#a4a5ff] rounded-xl font-semibold active:translate-x-1 transition-transform" href="#">
+<span class="material-symbols-outlined">history</span>
+<span>History</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 hover:text-slate-200 hover:bg-[#0f1930] rounded-xl transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">folder_special</span>
+<span>Library</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 hover:text-slate-200 hover:bg-[#0f1930] rounded-xl transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span>Settings</span>
+</a>
+</div>
+<button class="w-full bg-gradient-to-r from-primary to-primary-dim text-on-primary py-4 rounded-full font-bold flex items-center justify-center gap-2 shadow-lg hover:opacity-90 transition-all active:scale-95">
+<span class="material-symbols-outlined">mic</span>
+            Transcribe Audio
+        </button>
+</nav>
+<!-- Main Content Wrapper -->
+<main class="md:ml-72 min-h-screen flex flex-col">
+<!-- TopNavBar -->
+<header class="sticky top-0 z-50 w-full bg-[#060e20]/80 backdrop-blur-xl flex justify-between items-center px-8 py-4">
+<div class="flex items-center gap-6">
+<span class="text-2xl font-black tracking-tighter text-[#a4a5ff] uppercase font-['Manrope'] md:hidden">Parakeet</span>
+<div class="hidden md:flex items-center bg-surface-container-lowest border border-outline-variant/15 rounded-full px-4 py-2 w-80">
+<span class="material-symbols-outlined text-outline">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm text-on-surface w-full ml-2" placeholder="Search archives..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 text-slate-400 hover:bg-[#141f38] hover:text-white rounded-full transition-all duration-300">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-slate-400 hover:bg-[#141f38] hover:text-white rounded-full transition-all duration-300">
+<span class="material-symbols-outlined">help</span>
+</button>
+<div class="h-8 w-8 rounded-full bg-surface-container overflow-hidden border border-outline-variant/30">
+<img alt="Curator Profile" class="w-full h-full object-cover" data-alt="Profile portrait of a curator in a creative workspace with soft rim lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDT0p80RdS_ac37ODOXa7tgK_dBzW334bs6ArJcdG7gWLNTbcqFgxvhLRCYcwkIKmJmTmPtbx8gmdE3k5ogotrllTjXbB5wK_ZPXWaGNMddKKJc8FDq4BaiYlyZk5uHpPOVNbjyoIvLQjM0RZca6lQP2NJsDzri19kDYMujwqaU-ZhT1a8dJVXr5qxz3C-Xj80WRUe5fmGI76C-wQAStt-09HCXQVEH-yYFbFyvzNLtNh20s1785FXea409xTLKrn_wL_k1mcCHPWlW"/>
+</div>
+</div>
+</header>
+<!-- Page Canvas -->
+<div class="px-8 py-12 max-w-6xl mx-auto w-full space-y-12">
+<!-- Hero / Input Section -->
+<section class="space-y-6">
+<div class="space-y-2">
+<h2 class="text-4xl md:text-5xl font-extrabold font-headline tracking-tight text-on-surface">Curate Wisdom.</h2>
+<p class="text-on-surface-variant text-lg font-body max-w-2xl">Paste URLs from YouTube or Instagram to transform video content into high-fidelity editorial transcripts.</p>
+</div>
+<div class="bg-surface-container-low rounded-3xl p-6 shadow-2xl relative overflow-hidden group">
+<div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-50"></div>
+<div class="relative z-10 flex flex-col md:flex-row gap-4">
+<div class="flex-grow flex items-center bg-surface-container-lowest border border-outline-variant/15 rounded-2xl px-6 py-4 focus-within:border-primary/40 focus-within:shadow-[0_0_15px_rgba(164,165,255,0.15)] transition-all">
+<span class="material-symbols-outlined text-primary mr-4">link</span>
+<textarea class="bg-transparent border-none focus:ring-0 text-on-surface w-full h-12 md:h-12 resize-none py-1 scrollbar-hide" placeholder="Paste video URLs here (one per line)..." rows="1"></textarea>
+</div>
+<button class="bg-gradient-to-r from-primary to-primary-dim text-on-primary px-10 py-4 rounded-2xl font-bold font-headline text-lg flex items-center justify-center gap-2 shadow-xl hover:opacity-90 active:scale-95 transition-all">
+<span class="material-symbols-outlined">bolt</span>
+                            Transcribe
+                        </button>
+</div>
+<div class="mt-4 flex gap-4 text-xs font-label text-outline uppercase tracking-widest">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">check_circle</span> YouTube Supported</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">check_circle</span> Instagram Reels</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">check_circle</span> 40+ Languages</span>
+</div>
+</div>
+</section>
+<!-- Results Grid -->
+<section class="space-y-8">
+<div class="flex justify-between items-end">
+<h3 class="text-xl font-bold font-headline text-[#a4a5ff] uppercase tracking-widest">Recent Curation</h3>
+<div class="flex gap-2">
+<button class="p-2 rounded-lg bg-surface-container hover:bg-surface-container-high transition-colors"><span class="material-symbols-outlined">filter_list</span></button>
+<button class="p-2 rounded-lg bg-surface-container hover:bg-surface-container-high transition-colors"><span class="material-symbols-outlined">grid_view</span></button>
+</div>
+</div>
+<div class="grid grid-cols-1 gap-6">
+<!-- Result Card 1: Completed -->
+<div class="group bg-surface-container-low hover:bg-surface-container-high transition-all duration-300 rounded-2xl p-6 flex flex-col md:flex-row gap-8 items-start">
+<div class="w-full md:w-64 h-40 rounded-xl overflow-hidden relative shrink-0">
+<img class="w-full h-full object-cover" data-alt="Youtube video thumbnail showing a minimalist architectural study with soft shadows and neutral tones" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAv5uVLMP_ZVPO_pvwZCWTwG_k_vJael3jpPs-yvJZK_24ult2wpJOO1SNVKHVQSF_cMIfaXiblmgwGXcF95uDgE88jiga25sRwQubOXn-vAJtfr5kxaOJ_lx2xjw7LvrqefJ2Jh_issJIRk1FDmFYm4RFyq89GWzw7UbmyUoSKlsJWq2oTIYPpCq4FobJbV3mWTlcun_IDxX_9HsPW4uAQKejOZE5RSGq4VV2nMtAKROoLEgAAJxOL0oI3kKa7RZWNAof0lo87UbVo"/>
+<div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-white text-4xl">play_circle</span>
+</div>
+<div class="absolute bottom-2 right-2 bg-black/70 px-2 py-1 rounded text-[10px] font-bold text-white uppercase tracking-tighter">12:45</div>
+</div>
+<div class="flex-grow space-y-4">
+<div class="flex justify-between items-start">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-error text-lg" style="font-variation-settings: 'FILL' 1;">smart_display</span>
+<span class="text-[10px] font-label font-bold text-outline uppercase tracking-widest">YouTube Archive</span>
+</div>
+<h4 class="text-2xl font-headline font-bold text-on-surface group-hover:text-primary transition-colors">The Future of Generative Architecture in 2024</h4>
+</div>
+<div class="bg-surface-container-highest px-3 py-1 rounded-full border border-primary/20">
+<span class="text-[10px] font-bold text-primary uppercase tracking-widest">Completed</span>
+</div>
+</div>
+<p class="text-on-surface-variant font-body text-sm line-clamp-3 leading-relaxed opacity-80">
+                                "The fundamental shift we're seeing isn't just about automation, it's about the synthesis of human intent and algorithmic precision. When we look at the way structural lattices are being optimized through digital curation, we realize that the architect of tomorrow is less of a draftsman and more of a curator of possibilities..."
+                            </p>
+<div class="flex flex-wrap justify-between items-center pt-4 gap-4">
+<div class="flex gap-6">
+<div class="flex flex-col">
+<span class="text-[10px] font-bold text-outline uppercase">Curated On</span>
+<span class="text-sm font-label text-on-surface">Oct 24, 2023</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] font-bold text-outline uppercase">Confidence</span>
+<span class="text-sm font-label text-secondary">98.2%</span>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="p-3 bg-surface-container-highest hover:bg-surface-bright rounded-xl transition-all group/btn" title="Copy Text">
+<span class="material-symbols-outlined text-on-surface-variant group-hover/btn:text-primary">content_copy</span>
+</button>
+<button class="p-3 bg-surface-container-highest hover:bg-surface-bright rounded-xl transition-all group/btn" title="Export PDF">
+<span class="material-symbols-outlined text-on-surface-variant group-hover/btn:text-primary">ios_share</span>
+</button>
+<button class="p-3 bg-surface-container-highest hover:bg-error/10 rounded-xl transition-all group/btn" title="Delete">
+<span class="material-symbols-outlined text-on-surface-variant group-hover/btn:text-error">delete</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Result Card 2: Transcribing -->
+<div class="group bg-surface-container-low rounded-2xl p-6 flex flex-col md:flex-row gap-8 items-start border border-primary/5">
+<div class="w-full md:w-64 h-40 rounded-xl overflow-hidden relative shrink-0 bg-surface-container-lowest">
+<div class="w-full h-full bg-[#141f38] animate-pulse flex items-center justify-center">
+<span class="material-symbols-outlined text-primary/30 text-5xl animate-spin">cyclone</span>
+</div>
+<div class="absolute bottom-2 right-2 bg-black/70 px-2 py-1 rounded text-[10px] font-bold text-white uppercase tracking-tighter">--:--</div>
+</div>
+<div class="flex-grow space-y-4">
+<div class="flex justify-between items-start">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary text-lg" style="font-variation-settings: 'FILL' 1;">camera_roll</span>
+<span class="text-[10px] font-label font-bold text-outline uppercase tracking-widest">Instagram Reel</span>
+</div>
+<h4 class="text-2xl font-headline font-bold text-on-surface-variant italic">Analyzing Source Media...</h4>
+</div>
+<div class="bg-secondary-container px-3 py-1 rounded-full">
+<span class="text-[10px] font-bold text-on-secondary-container uppercase tracking-widest flex items-center gap-2">
+<span class="w-1.5 h-1.5 bg-primary rounded-full animate-ping"></span>
+                                        Transcribing
+                                    </span>
+</div>
+</div>
+<div class="space-y-3 pt-2">
+<div class="h-4 bg-surface-container-high rounded-full w-full"></div>
+<div class="h-4 bg-surface-container-high rounded-full w-5/6"></div>
+<div class="h-4 bg-surface-container-high rounded-full w-4/6 opacity-50"></div>
+</div>
+<div class="flex justify-between items-center pt-4">
+<div class="flex gap-6">
+<div class="flex flex-col">
+<span class="text-[10px] font-bold text-outline uppercase">Queue Position</span>
+<span class="text-sm font-label text-on-surface">#2 in line</span>
+</div>
+</div>
+<div class="flex gap-2 opacity-30 cursor-not-allowed">
+<button class="p-3 bg-surface-container-highest rounded-xl"><span class="material-symbols-outlined">content_copy</span></button>
+<button class="p-3 bg-surface-container-highest rounded-xl"><span class="material-symbols-outlined">ios_share</span></button>
+<button class="p-3 bg-surface-container-highest rounded-xl"><span class="material-symbols-outlined text-error">delete</span></button>
+</div>
+</div>
+</div>
+</div>
+<!-- Result Card 3: Completed -->
+<div class="group bg-surface-container-low hover:bg-surface-container-high transition-all duration-300 rounded-2xl p-6 flex flex-col md:flex-row gap-8 items-start">
+<div class="w-full md:w-64 h-40 rounded-xl overflow-hidden relative shrink-0">
+<img class="w-full h-full object-cover" data-alt="Close up of a premium espresso machine pouring coffee into a glass in a dark moody cafe setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBk_QSbv7t7ERB-7ztrybbSzZDG-HyZlPefNCkz0sk7_2X8kUJ0XmlJBwQwOnU-lJJDtUevXWRlYhGkD_yaJOPhyqgZ9NctmhFAEo6KZpOZcvPG3kCaerObBIcYKj5EU9zZlQctSlAfjCDI66qoG4Vt1HhI5cEARxXWMIgiiMQsV8AJbEBthgAfaRPrdM2VYMb2bzjsrTTFcWr4sVkMNkeN_q8oU0JVNXdXZHqyE5i8p_jhAMmFxine2O3Nt9HtVlIF9ggSVeDKPP4H"/>
+<div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-white text-4xl">play_circle</span>
+</div>
+<div class="absolute bottom-2 right-2 bg-black/70 px-2 py-1 rounded text-[10px] font-bold text-white uppercase tracking-tighter">04:12</div>
+</div>
+<div class="flex-grow space-y-4">
+<div class="flex justify-between items-start">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-error text-lg" style="font-variation-settings: 'FILL' 1;">smart_display</span>
+<span class="text-[10px] font-label font-bold text-outline uppercase tracking-widest">YouTube Archive</span>
+</div>
+<h4 class="text-2xl font-headline font-bold text-on-surface group-hover:text-primary transition-colors">Digital Nomad Essentials: The Workflow</h4>
+</div>
+<div class="bg-surface-container-highest px-3 py-1 rounded-full border border-primary/20">
+<span class="text-[10px] font-bold text-primary uppercase tracking-widest">Completed</span>
+</div>
+</div>
+<p class="text-on-surface-variant font-body text-sm line-clamp-3 leading-relaxed opacity-80">
+                                "Efficiency isn't about working more, it's about the seamless transition between creative states. For the curator, this means having tools that get out of the way. When you're in the flow, every micro-interaction matters, from the way your files are labeled to the way your transcription engine handles nuance..."
+                            </p>
+<div class="flex flex-wrap justify-between items-center pt-4 gap-4">
+<div class="flex gap-6">
+<div class="flex flex-col">
+<span class="text-[10px] font-bold text-outline uppercase">Curated On</span>
+<span class="text-sm font-label text-on-surface">Oct 21, 2023</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] font-bold text-outline uppercase">Confidence</span>
+<span class="text-sm font-label text-secondary">99.1%</span>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="p-3 bg-surface-container-highest hover:bg-surface-bright rounded-xl transition-all group/btn">
+<span class="material-symbols-outlined text-on-surface-variant group-hover/btn:text-primary">content_copy</span>
+</button>
+<button class="p-3 bg-surface-container-highest hover:bg-surface-bright rounded-xl transition-all group/btn">
+<span class="material-symbols-outlined text-on-surface-variant group-hover/btn:text-primary">ios_share</span>
+</button>
+<button class="p-3 bg-surface-container-highest hover:bg-error/10 rounded-xl transition-all group/btn">
+<span class="material-symbols-outlined text-on-surface-variant group-hover/btn:text-error">delete</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Footer Info -->
+<footer class="mt-auto px-8 py-8 border-t border-outline-variant/10 text-center">
+<p class="text-outline text-[10px] font-label uppercase tracking-[0.2em]">Curated by Parakeet Intelligence Engine © 2024</p>
+</footer>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 right-0 glass-panel border-t border-outline-variant/10 px-6 py-4 flex justify-around items-center z-50">
+<a class="flex flex-col items-center gap-1 text-[#a4a5ff]" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">history</span>
+<span class="text-[10px] font-bold uppercase tracking-widest">History</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">folder_special</span>
+<span class="text-[10px] font-bold uppercase tracking-widest">Library</span>
+</a>
+<button class="-mt-12 bg-primary w-14 h-14 rounded-full flex items-center justify-center shadow-xl border-4 border-surface active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-on-primary text-3xl">add</span>
+</button>
+<a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="text-[10px] font-bold uppercase tracking-widest">Insight</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-[10px] font-bold uppercase tracking-widest">Setup</span>
+</a>
+</nav>
+</body></html>

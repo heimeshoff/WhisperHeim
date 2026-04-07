@@ -6,7 +6,7 @@
         <Style x:Key="SectionLabel" TargetType="TextBlock">
             <Setter Property="FontSize" Value="10" />
             <Setter Property="FontWeight" Value="Bold" />
-            <Setter Property="Foreground" Value="#FF005FAA" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
         </Style>
         <Style x:Key="SubtleText" TargetType="TextBlock">
             <Setter Property="FontSize" Value="13" />
@@ -44,7 +44,14 @@
                 </Setter.Value>
             </Setter>
         </Style>
-        <!-- Transcript entry card -->
+        <!-- Pill badge for transcription method -->
+        <Style x:Key="PillBadge" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="8,3" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+        </Style>
+        <!-- Transcript entry card with hover -->
         <Style x:Key="TranscriptCard" TargetType="Border">
             <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
             <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
@@ -52,71 +59,143 @@
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="Padding" Value="16,12" />
             <Setter Property="Margin" Value="0,0,0,8" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <!-- Icon-only action button -->
+        <Style x:Key="IconActionButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="6" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" CornerRadius="6" Padding="{TemplateBinding Padding}"
+                                Background="Transparent">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </UserControl.Resources>
 
-    <Grid Margin="24,16,24,16">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
-
-        <!-- Page header -->
-        <StackPanel Grid.Row="0" Margin="0,0,0,16">
-            <TextBlock Text="STREAMS" Style="{StaticResource SectionLabel}" Margin="0,0,0,4" />
-            <TextBlock Text="Paste video URLs to transcribe (YouTube, Instagram)"
-                       Style="{StaticResource SubtleText}" />
-        </StackPanel>
-
-        <!-- URL input area -->
-        <Grid Grid.Row="1" Margin="0,0,0,12">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid Margin="40,36,40,32" MaxWidth="900" HorizontalAlignment="Stretch">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <TextBox x:Name="UrlInputBox"
-                     Grid.Row="0"
-                     AcceptsReturn="True"
-                     TextWrapping="Wrap"
-                     VerticalScrollBarVisibility="Auto"
-                     Height="100"
-                     Padding="12,8"
-                     FontSize="13"
-                     VerticalContentAlignment="Top" />
-
-            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,8,0,0">
-                <Button x:Name="TranscribeButton"
-                        Content="Transcribe"
-                        Style="{StaticResource GradientButton}"
-                        Click="TranscribeButton_Click" />
-                <Button x:Name="CancelButton"
-                        Content="Cancel"
-                        Margin="12,0,0,0"
-                        Padding="20,12"
-                        Visibility="Collapsed"
-                        Click="CancelButton_Click" />
+            <!-- Page header -->
+            <StackPanel Grid.Row="0" Margin="0,0,0,28">
+                <TextBlock Text="Streams"
+                           FontSize="28" FontWeight="Bold"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                           Margin="0,0,0,6" />
+                <TextBlock Text="Paste video URLs to transcribe audio from YouTube, Instagram, and more."
+                           Style="{StaticResource SubtleText}"
+                           TextWrapping="Wrap" />
             </StackPanel>
+
+            <!-- URL input area -->
+            <Border Grid.Row="1"
+                    Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}"
+                    CornerRadius="12"
+                    Padding="24"
+                    Margin="0,0,0,12">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <!-- Input with link icon -->
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <ui:SymbolIcon Symbol="Link24"
+                                       FontSize="20"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       VerticalAlignment="Top"
+                                       Margin="0,12,12,0" />
+                        <TextBox x:Name="UrlInputBox"
+                                 Grid.Column="1"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 VerticalScrollBarVisibility="Auto"
+                                 Height="100"
+                                 Padding="12,8"
+                                 FontSize="13"
+                                 VerticalContentAlignment="Top" />
+                    </Grid>
+
+                    <!-- Platform indicators -->
+                    <TextBlock Grid.Row="1"
+                               Style="{StaticResource SubtleText}"
+                               FontSize="11"
+                               Margin="32,8,0,0">
+                        <Run Text="YouTube" FontWeight="SemiBold" />
+                        <Run Text=" supported" />
+                        <Run Text="  ·  " />
+                        <Run Text="Instagram Reels" FontWeight="SemiBold" />
+                    </TextBlock>
+
+                    <!-- Buttons -->
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,12,0,0">
+                        <Button x:Name="TranscribeButton"
+                                Content="Transcribe"
+                                Style="{StaticResource GradientButton}"
+                                Click="TranscribeButton_Click" />
+                        <Button x:Name="CancelButton"
+                                Content="Cancel"
+                                Margin="12,0,0,0"
+                                Padding="20,12"
+                                Visibility="Collapsed"
+                                Click="CancelButton_Click" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Progress indicator -->
+            <StackPanel x:Name="ProgressPanel" Grid.Row="2" Margin="0,0,0,12" Visibility="Collapsed">
+                <ProgressBar x:Name="BatchProgressBar"
+                             Height="4"
+                             Minimum="0"
+                             Maximum="100"
+                             IsIndeterminate="False"
+                             Margin="0,0,0,6" />
+                <TextBlock x:Name="ProgressText"
+                           Style="{StaticResource SubtleText}"
+                           FontSize="12" />
+            </StackPanel>
+
+            <!-- Section divider: RECENT TRANSCRIPTS -->
+            <TextBlock Grid.Row="3"
+                       Text="RECENT TRANSCRIPTS"
+                       Style="{StaticResource SectionLabel}"
+                       Margin="0,16,0,12" />
+
+            <!-- Transcript list -->
+            <ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Auto">
+                <StackPanel x:Name="TranscriptList" />
+            </ScrollViewer>
         </Grid>
-
-        <!-- Progress indicator -->
-        <StackPanel x:Name="ProgressPanel" Grid.Row="2" Margin="0,0,0,12" Visibility="Collapsed">
-            <ProgressBar x:Name="BatchProgressBar"
-                         Height="4"
-                         Minimum="0"
-                         Maximum="100"
-                         IsIndeterminate="False"
-                         Margin="0,0,0,6" />
-            <TextBlock x:Name="ProgressText"
-                       Style="{StaticResource SubtleText}"
-                       FontSize="12" />
-        </StackPanel>
-
-        <!-- Transcript list -->
-        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
-            <StackPanel x:Name="TranscriptList" />
-        </ScrollViewer>
-    </Grid>
+    </ScrollViewer>
 </UserControl>

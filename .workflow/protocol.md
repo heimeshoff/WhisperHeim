@@ -2,6 +2,41 @@
 
 ---
 
+## 2026-04-07 -- Task Completed: 100 - Streams page visual polish
+
+**Type:** Task Completion
+**Task:** 100 - Streams page visual polish
+**Summary:** Visual polish applied to Streams page — bold title with subtitle, URL input card with link icon and platform indicators, "RECENT TRANSCRIPTS" section label, richer transcript cards with platform badges, method pills, labeled metadata columns, icon-only action buttons with hover accents, and consistent 40px margins with MaxWidth 900.
+**Files changed:** 2 files
+
+---
+
+## 2026-04-07 -- Task Started: 100 - Streams page visual polish
+
+**Type:** Task Start
+**Task:** 100 - Streams page visual polish
+**Milestone:** UI Polish
+
+---
+
+## 2026-04-07 -- Idea Captured: Streams page visual polish
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/100-streams-visual-polish.md
+**Summary:** Visual polish for the Streams page inspired by the editorial design in inspiration/youtube/. Covers richer header, URL input with platform indicators, improved transcript cards with source badges and metadata columns, and consistency fixes to match other pages. Stays within the existing WPF UI theme.
+
+---
+
+## 2026-04-07 -- Task Completed: 099 - Explicit Transcription Queuing
+
+**Type:** Task Completion
+**Task:** 099 - Explicit Transcription Queuing
+**Summary:** Added visual distinction for queued vs unqueued pending items (amber/orange styling for queued, blue for actively transcribing). Most work was already done by task 098.
+**Files changed:** 2 files
+
+---
+
 ## 2026-04-07 -- Task Completed: 098 - Pending Transcription Drawer with Playback
 
 **Type:** Task Completion
