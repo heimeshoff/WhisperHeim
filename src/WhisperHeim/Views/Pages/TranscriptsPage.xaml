@@ -325,7 +325,7 @@
                         <ItemsControl x:Name="TranscribingList">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Padding="12,10" Margin="0,1,0,1"
+                                    <Border x:Name="TranscribingBorder" Padding="12,10" Margin="0,1,0,1"
                                             CornerRadius="6"
                                             Background="#1825abfe">
                                         <Grid>
@@ -334,7 +334,7 @@
                                                 <ColumnDefinition Width="160" />
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Grid.Column="0" Orientation="Horizontal">
-                                                <Ellipse Width="8" Height="8" Fill="#FF25abfe"
+                                                <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="#FF25abfe"
                                                          VerticalAlignment="Center" Margin="0,0,8,0" />
                                                 <TextBlock Text="{Binding Name}"
                                                            FontWeight="SemiBold"
@@ -344,7 +344,7 @@
                                                            VerticalAlignment="Center"
                                                            Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                                             </StackPanel>
-                                            <TextBlock Grid.Column="1"
+                                            <TextBlock x:Name="DetailText" Grid.Column="1"
                                                        Text="{Binding Detail}"
                                                        FontSize="11"
                                                        TextTrimming="CharacterEllipsis"
@@ -352,6 +352,13 @@
                                                        Foreground="#FF25abfe" />
                                         </Grid>
                                     </Border>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding IsQueued}" Value="True">
+                                            <Setter TargetName="TranscribingBorder" Property="Background" Value="#18F0A030" />
+                                            <Setter TargetName="StatusDot" Property="Fill" Value="#FFF0A030" />
+                                            <Setter TargetName="DetailText" Property="Foreground" Value="#FFF0A030" />
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>

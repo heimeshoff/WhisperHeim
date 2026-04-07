@@ -1,7 +1,7 @@
 # Task 099: Explicit Transcription Queuing
 
 **Size:** Small
-**Status:** Backlog
+**Status:** Done
 **Created:** 2026-04-07
 **Milestone:** M2
 **Dependencies:** 075, 098
@@ -50,3 +50,25 @@ Change pending transcription items to require explicit user action to queue for 
 - [ ] No "last-wins" behavior -- all queued items eventually get transcribed
 
 ## Work Log
+
+### 2026-04-07 -- Implementation
+
+**What was done:**
+Task 098 already completed the core requirements (removing auto-enqueue from PendingRow_Click and adding the Queue Transcription button in the drawer). This task added the remaining visual distinction for queued items:
+
+1. Added `IsQueued` property to `PendingRecordingItem` to distinguish queued-but-waiting items from actively-transcribing items
+2. Updated `LoadPendingSessions()` to pass `isQueued: true` for items in the queue that are not yet actively transcribing
+3. Added XAML DataTrigger to show queued items with an amber/orange dot and background (vs blue for actively transcribing)
+4. Updated the drawer status text to show "Queued for transcription -- waiting to start." for queued items
+
+**Acceptance Criteria Status:**
+- [x] Clicking a pending item opens the drawer without starting transcription (done in task 098)
+- [x] "Queue Transcription" button in drawer is the only way to enqueue a pending item (done in task 098)
+- [x] Multiple items can be queued and process in FIFO order (queue service already supports this)
+- [x] Queued items show distinct visual state vs unqueued pending items in the list (amber dot/bg for queued, blue for active, pending section for unqueued)
+- [x] Queued items appear in the bottom bar as before (unchanged)
+- [x] No "last-wins" behavior -- all queued items eventually get transcribed (queue service FIFO)
+
+**Files changed:**
+- `src/WhisperHeim/Views/Pages/TranscriptsPage.xaml` -- DataTrigger for queued item visual state (amber vs blue)
+- `src/WhisperHeim/Views/Pages/TranscriptsPage.xaml.cs` -- Added IsQueued property, updated LoadPendingSessions and drawer status text

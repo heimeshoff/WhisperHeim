@@ -2,6 +2,23 @@
 
 ---
 
+## 2026-04-07 -- Task Completed: 098 - Pending Transcription Drawer with Playback
+
+**Type:** Task Completion
+**Task:** 098 - Pending Transcription Drawer with Playback
+**Summary:** Implemented pending drawer with full editing UI, audio playback with seek bar, and explicit "Queue Transcription" button. Removed auto-enqueue on click. Added metadata persistence via transcript_name.json.
+**Files changed:** 2 files
+
+---
+
+## 2026-04-07 -- Task Started: 099 - Explicit Transcription Queuing
+
+**Type:** Task Start
+**Task:** 099 - Explicit Transcription Queuing
+**Milestone:** M2
+
+---
+
 ## 2026-04-07 -- Task Completed: 097 - Enter-to-Confirm in Drawer Text Fields
 
 **Type:** Task Completion

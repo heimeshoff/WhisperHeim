@@ -390,9 +390,11 @@ public partial class TranscriptsPage : UserControl
 
         // Show status info
         TranscriptInfo.Visibility = Visibility.Visible;
-        TranscriptInfo.Text = item.IsTranscribing
-            ? "Transcription in progress\u2026"
-            : "Not yet transcribed \u2014 edit details and queue when ready.";
+        TranscriptInfo.Text = item.IsQueued
+            ? "Queued for transcription \u2014 waiting to start."
+            : item.IsTranscribing
+                ? "Transcription in progress\u2026"
+                : "Not yet transcribed \u2014 edit details and queue when ready.";
 
         // Populate speaker names
         _pendingDrawerSpeakerNames = LoadSpeakerNamesFromSessionDir(item.SessionDir);
@@ -774,8 +776,8 @@ public partial class TranscriptsPage : UserControl
             }
             else if (isQueued)
             {
-                // Already in queue — show as "Queued" but don't allow re-clicking
-                transcribingItems.Add(new PendingRecordingItem(dir, name, "Queued", true));
+                // Already in queue — show as "Queued" with distinct visual state
+                transcribingItems.Add(new PendingRecordingItem(dir, name, "Queued", true, isQueued: true));
             }
             else
             {
@@ -2830,18 +2832,21 @@ internal sealed class SegmentViewModel : INotifyPropertyChanged
 /// </summary>
 internal sealed class PendingRecordingItem
 {
-    public PendingRecordingItem(string sessionDir, string name, string detail, bool isTranscribing)
+    public PendingRecordingItem(string sessionDir, string name, string detail, bool isTranscribing, bool isQueued = false)
     {
         SessionDir = sessionDir;
         Name = name;
         Detail = detail;
         IsTranscribing = isTranscribing;
+        IsQueued = isQueued;
     }
 
     public string SessionDir { get; }
     public string Name { get; }
     public string Detail { get; }
     public bool IsTranscribing { get; }
+    /// <summary>True when item is in the queue but not yet actively transcribing.</summary>
+    public bool IsQueued { get; }
 }
 
 /// <summary>
