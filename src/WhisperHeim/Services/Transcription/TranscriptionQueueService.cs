@@ -97,6 +97,12 @@ public sealed class TranscriptionQueueItem : INotifyPropertyChanged
 
     public DateTimeOffset EnqueuedAt { get; }
 
+    /// <summary>
+    /// Number of times this item (or its source session) has failed transcription.
+    /// Used to enforce the maximum retry limit.
+    /// </summary>
+    public int FailureCount { get; set; }
+
     public QueueItemStage Stage
     {
         get => _stage;
@@ -155,6 +161,11 @@ public sealed class TranscriptionQueueItem : INotifyPropertyChanged
 /// </summary>
 public sealed class TranscriptionQueueService : INotifyPropertyChanged
 {
+    /// <summary>
+    /// Maximum number of transcription attempts before a session is marked as permanently failed.
+    /// </summary>
+    public const int MaxRetries = 3;
+
     private readonly ICallTranscriptionPipeline _pipeline;
     private readonly IFileTranscriptionService _fileTranscriptionService;
     private readonly ITranscriptStorageService _transcriptStorage;
@@ -395,25 +406,42 @@ public sealed class TranscriptionQueueService : INotifyPropertyChanged
 
     /// <summary>
     /// Re-enqueues a failed item for retry (appended at the end).
+    /// Returns false if the item has exceeded the maximum retry limit.
     /// </summary>
-    public void Retry(TranscriptionQueueItem item)
+    public bool Retry(TranscriptionQueueItem item)
     {
         if (item.Stage != QueueItemStage.Failed)
-            return;
+            return false;
+
+        var failureCount = GetSessionFailureCount(item);
+        if (failureCount >= MaxRetries)
+        {
+            Trace.TraceWarning(
+                "[TranscriptionQueue] Retry rejected for '{0}' — {1} failures reached the limit of {2}.",
+                item.Title, failureCount, MaxRetries);
+            return false;
+        }
 
         DispatcherInvoke(() => Items.Remove(item));
 
-        // Create a fresh item for the retry
+        // Create a fresh item for the retry, carrying over the failure count
+        TranscriptionQueueItem? newItem = null;
         if (item.ItemType == QueueItemType.File && item.FilePath is not null)
         {
             if (item.SessionDir is not null)
-                EnqueueFileImport(item.Title, item.FilePath, item.SessionDir);
+                newItem = EnqueueFileImport(item.Title, item.FilePath, item.SessionDir);
             else
-                EnqueueFile(item.FilePath);
+                newItem = EnqueueFile(item.FilePath);
         }
         else if (item.Session is not null)
+        {
             Enqueue(item.Title, item.Session);
-        Trace.TraceInformation("[TranscriptionQueue] Retrying '{0}'.", item.Title);
+        }
+
+        Trace.TraceInformation(
+            "[TranscriptionQueue] Retrying '{0}' (attempt {1}/{2}).",
+            item.Title, failureCount + 1, MaxRetries);
+        return true;
     }
 
     /// <summary>
@@ -549,15 +577,22 @@ public sealed class TranscriptionQueueService : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
+            var failureCount = IncrementSessionFailureCount(item);
+            var retryNote = failureCount >= MaxRetries
+                ? $" (failed {failureCount}/{MaxRetries} times — no more retries)"
+                : $" (attempt {failureCount}/{MaxRetries})";
+
             DispatcherInvoke(() =>
             {
                 item.Stage = QueueItemStage.Failed;
-                item.ErrorMessage = ex.Message;
-                item.StageDescription = $"Failed: {ex.Message}";
+                item.FailureCount = failureCount;
+                item.ErrorMessage = ex.Message + retryNote;
+                item.StageDescription = $"Failed: {ex.Message}{retryNote}";
                 item.CompletedAt = DateTimeOffset.Now;
             });
 
-            Trace.TraceError("[TranscriptionQueue] Failed '{0}': {1}", item.Title, ex.Message);
+            Trace.TraceError("[TranscriptionQueue] Failed '{0}'{1}: {2}",
+                item.Title, retryNote, ex.Message);
             ItemFailed?.Invoke(this, item);
         }
         finally
@@ -695,6 +730,88 @@ public sealed class TranscriptionQueueService : INotifyPropertyChanged
         PipelineStage.Completed => QueueItemStage.Completed,
         _ => QueueItemStage.Loading,
     };
+
+    // ── Persistent failure tracking ────────────────────────────────────
+
+    private const string FailureFileName = "transcription_failures.txt";
+
+    /// <summary>
+    /// Gets the session directory for a queue item (for persistent failure tracking).
+    /// </summary>
+    private static string? GetSessionDir(TranscriptionQueueItem item)
+    {
+        if (item.SessionDir is not null)
+            return item.SessionDir;
+        if (item.Session is not null)
+        {
+            var dir = System.IO.Path.GetDirectoryName(item.Session.MicWavFilePath);
+            return dir;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Reads the persistent failure count for a queue item's session directory.
+    /// </summary>
+    public static int GetSessionFailureCount(TranscriptionQueueItem item)
+    {
+        var dir = GetSessionDir(item);
+        if (dir is null) return 0;
+        return GetSessionFailureCount(dir);
+    }
+
+    /// <summary>
+    /// Reads the persistent failure count from a session directory.
+    /// </summary>
+    public static int GetSessionFailureCount(string sessionDir)
+    {
+        var failurePath = System.IO.Path.Combine(sessionDir, FailureFileName);
+        if (!System.IO.File.Exists(failurePath))
+            return 0;
+        try
+        {
+            var text = System.IO.File.ReadAllText(failurePath).Trim();
+            return int.TryParse(text, out var count) ? count : 0;
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
+    /// <summary>
+    /// Increments and persists the failure count for a queue item's session directory.
+    /// Returns the new count.
+    /// </summary>
+    private static int IncrementSessionFailureCount(TranscriptionQueueItem item)
+    {
+        var dir = GetSessionDir(item);
+        if (dir is null) return 0;
+
+        var current = GetSessionFailureCount(dir);
+        var newCount = current + 1;
+
+        try
+        {
+            var failurePath = System.IO.Path.Combine(dir, FailureFileName);
+            System.IO.File.WriteAllText(failurePath, newCount.ToString());
+        }
+        catch (Exception ex)
+        {
+            Trace.TraceWarning(
+                "[TranscriptionQueue] Could not persist failure count: {0}", ex.Message);
+        }
+
+        return newCount;
+    }
+
+    /// <summary>
+    /// Returns true if a session directory has exceeded the maximum retry limit.
+    /// </summary>
+    public static bool HasExceededRetryLimit(string sessionDir)
+    {
+        return GetSessionFailureCount(sessionDir) >= MaxRetries;
+    }
 
     private static void DispatcherInvoke(Action action)
     {

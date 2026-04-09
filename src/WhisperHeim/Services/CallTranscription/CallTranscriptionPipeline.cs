@@ -91,6 +91,12 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
         bool systemExists = File.Exists(session.SystemWavFilePath) &&
             !string.Equals(session.MicWavFilePath, session.SystemWavFilePath, StringComparison.OrdinalIgnoreCase);
 
+        // Validate and attempt repair of WAV files before processing
+        if (micExists)
+            ValidateAndRepairWav(session.MicWavFilePath, "mic");
+        if (systemExists)
+            ValidateAndRepairWav(session.SystemWavFilePath, "system");
+
         double micDurationSeconds = micExists ? GetWavDuration(session.MicWavFilePath) : 0;
         double systemDurationSeconds = systemExists ? GetWavDuration(session.SystemWavFilePath) : 0;
 
@@ -511,6 +517,32 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
         finally
         {
             try { File.Delete(tempFile); } catch { }
+        }
+    }
+
+    /// <summary>
+    /// Validates a WAV file and attempts repair if the header is corrupted.
+    /// Throws if the file is invalid and cannot be repaired.
+    /// </summary>
+    private static void ValidateAndRepairWav(string wavFilePath, string streamLabel)
+    {
+        var error = WavFileValidator.Validate(wavFilePath);
+        if (error is null)
+            return; // file is valid
+
+        Trace.TraceWarning(
+            "[CallTranscriptionPipeline] {0} WAV validation failed: {1}. Attempting repair...",
+            streamLabel, error);
+
+        if (WavFileValidator.TryRepair(wavFilePath, out var repairError))
+        {
+            Trace.TraceInformation(
+                "[CallTranscriptionPipeline] {0} WAV repaired successfully.", streamLabel);
+        }
+        else
+        {
+            throw new InvalidOperationException(
+                $"WAV file '{streamLabel}' is corrupted and could not be repaired: {repairError ?? error}");
         }
     }
 

@@ -390,11 +390,14 @@ public partial class TranscriptsPage : UserControl
 
         // Show status info
         TranscriptInfo.Visibility = Visibility.Visible;
+        var failures = TranscriptionQueueService.GetSessionFailureCount(item.SessionDir);
         TranscriptInfo.Text = item.IsQueued
             ? "Queued for transcription \u2014 waiting to start."
             : item.IsTranscribing
                 ? "Transcription in progress\u2026"
-                : "Not yet transcribed \u2014 edit details and queue when ready.";
+                : failures > 0
+                    ? $"Transcription failed {failures} time{(failures != 1 ? "s" : "")} \u2014 click Queue to retry."
+                    : "Not yet transcribed \u2014 edit details and queue when ready.";
 
         // Populate speaker names
         _pendingDrawerSpeakerNames = LoadSpeakerNamesFromSessionDir(item.SessionDir);
@@ -783,7 +786,8 @@ public partial class TranscriptsPage : UserControl
             {
                 var audioFiles = CountAudioFiles(dir);
                 var detail = $"{audioFiles} audio file{(audioFiles != 1 ? "s" : "")}";
-                pendingItems.Add(new PendingRecordingItem(dir, name, detail, false));
+                var failures = TranscriptionQueueService.GetSessionFailureCount(dir);
+                pendingItems.Add(new PendingRecordingItem(dir, name, detail, false, failureCount: failures));
             }
         }
 
@@ -2832,13 +2836,16 @@ internal sealed class SegmentViewModel : INotifyPropertyChanged
 /// </summary>
 internal sealed class PendingRecordingItem
 {
-    public PendingRecordingItem(string sessionDir, string name, string detail, bool isTranscribing, bool isQueued = false)
+    public PendingRecordingItem(string sessionDir, string name, string detail, bool isTranscribing, bool isQueued = false, int failureCount = 0)
     {
         SessionDir = sessionDir;
         Name = name;
-        Detail = detail;
+        Detail = failureCount > 0
+            ? $"Failed {failureCount}x \u2014 {detail}"
+            : detail;
         IsTranscribing = isTranscribing;
         IsQueued = isQueued;
+        FailureCount = failureCount;
     }
 
     public string SessionDir { get; }
@@ -2847,6 +2854,10 @@ internal sealed class PendingRecordingItem
     public bool IsTranscribing { get; }
     /// <summary>True when item is in the queue but not yet actively transcribing.</summary>
     public bool IsQueued { get; }
+    /// <summary>Number of times transcription has failed for this session.</summary>
+    public int FailureCount { get; }
+    /// <summary>True when transcription has failed at least once.</summary>
+    public bool HasFailed => FailureCount > 0;
 }
 
 /// <summary>

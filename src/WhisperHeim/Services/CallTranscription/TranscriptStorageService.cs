@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using WhisperHeim.Services.Settings;
+using WhisperHeim.Services.Transcription;
 
 namespace WhisperHeim.Services.CallTranscription;
 
@@ -200,8 +201,14 @@ public sealed class TranscriptStorageService : ITranscriptStorageService
 
             var hasAudio = Directory.GetFiles(sessionDir)
                 .Any(f => AudioExtensions.Contains(Path.GetExtension(f)));
-            if (hasAudio)
-                pending.Add(sessionDir);
+            if (!hasAudio)
+                continue;
+
+            // Skip sessions that have exhausted all retry attempts
+            if (Transcription.TranscriptionQueueService.HasExceededRetryLimit(sessionDir))
+                continue;
+
+            pending.Add(sessionDir);
         }
 
         return pending.OrderByDescending(d => d).ToArray();

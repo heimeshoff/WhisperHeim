@@ -399,7 +399,7 @@
                                                        TextWrapping="NoWrap"
                                                        VerticalAlignment="Center"
                                                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                                            <TextBlock Grid.Column="1"
+                                            <TextBlock x:Name="PendingDetailText" Grid.Column="1"
                                                        Text="{Binding Detail}"
                                                        FontSize="11"
                                                        TextTrimming="CharacterEllipsis"
@@ -407,6 +407,11 @@
                                                        Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
                                         </Grid>
                                     </Button>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding HasFailed}" Value="True">
+                                            <Setter TargetName="PendingDetailText" Property="Foreground" Value="#FFE05050" />
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
