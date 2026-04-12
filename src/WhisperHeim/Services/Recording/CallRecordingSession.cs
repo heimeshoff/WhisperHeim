@@ -43,6 +43,13 @@ public sealed class CallRecordingSession
     public TimeSpan Duration => (EndTimestamp ?? DateTimeOffset.UtcNow) - StartTimestamp;
 
     /// <summary>
+    /// Optional user-defined title for this recording session.
+    /// When set, this title is preserved through re-transcription instead of
+    /// being replaced by a date/time-derived name.
+    /// </summary>
+    public string? Title { get; set; }
+
+    /// <summary>
     /// User-defined list of remote speaker names for this recording session.
     /// Used as a hint for diarization (numSpeakers) and for speaker labeling in transcripts.
     /// </summary>

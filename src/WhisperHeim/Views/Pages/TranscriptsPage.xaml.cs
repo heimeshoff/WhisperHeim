@@ -1205,6 +1205,7 @@ public partial class TranscriptsPage : UserControl
             var hasSegments = transcript.Segments is { Count: > 0 };
             DeleteAudioButton.IsEnabled = hasSegments;
             DeleteAudioButton.Visibility = Visibility.Visible;
+            ReTranscribeButton.Visibility = Visibility.Visible;
 
             try
             {
@@ -1669,7 +1670,7 @@ public partial class TranscriptsPage : UserControl
                 .Where(n => !string.IsNullOrWhiteSpace(n))
                 .ToList();
 
-            var title = !string.IsNullOrWhiteSpace(_pendingDrawerTitle)
+            session.Title = !string.IsNullOrWhiteSpace(_pendingDrawerTitle)
                 ? _pendingDrawerTitle
                 : item.Name;
 
@@ -2174,6 +2175,7 @@ public partial class TranscriptsPage : UserControl
                     transcript.RecordingStartedUtc);
                 session.EndTimestamp = transcript.RecordingEndedUtc;
                 session.RemoteSpeakerNames = speakerNames;
+                session.Title = transcript.Name;
 
                 ReTranscriptionRequested?.Invoke(this, session);
             }
@@ -2195,6 +2197,7 @@ public partial class TranscriptsPage : UserControl
                 transcript.RecordingStartedUtc);
             session.EndTimestamp = transcript.RecordingEndedUtc;
             session.RemoteSpeakerNames = transcript.RemoteSpeakerNames?.ToList() ?? new List<string>();
+            session.Title = transcript.Name;
 
             ReTranscriptionRequested?.Invoke(this, session);
         }

@@ -2,6 +2,19 @@
 
 ---
 
+## 2026-04-09 14:00 -- Research: Gemma 4 vs Qwen 2.5 14B for Transcript Analysis
+
+**Type:** Research
+**Topic:** Whether Google's Gemma 4 (released April 2, 2026) can replace Qwen 2.5 14B for transcript analysis on RTX 3080 10GB
+**File:** research/gemma-4-vs-qwen-2.5-for-transcript-analysis.md
+**Key findings:**
+- Gemma 4 E4B (effective 4B params, ~2.5GB VRAM) fits easily but scores 10+ points lower on MMLU and much worse on instruction following than Qwen 2.5 14B
+- The competitive Gemma 4 models (26B MoE at 15GB, 31B Dense at 18GB) don't fit on 10GB VRAM
+- Qwen 2.5 14B remains the best choice for structured transcript extraction on this hardware
+- Open question: Qwen 3.5-9B (~6GB VRAM) may be a better upgrade path than any Gemma model
+
+---
+
 ## 2026-04-07 -- Task Completed: 100 - Streams page visual polish
 
 **Type:** Task Completion

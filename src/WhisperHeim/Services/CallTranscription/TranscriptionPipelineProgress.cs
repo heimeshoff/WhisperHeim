@@ -16,6 +16,9 @@ public sealed class TranscriptionPipelineProgress
 
     /// <summary>Human-readable description of the current activity.</summary>
     public required string Description { get; init; }
+
+    /// <summary>Warning message about degraded results (e.g. skipped diarization chunks). Null when OK.</summary>
+    public string? WarningMessage { get; init; }
 }
 
 /// <summary>

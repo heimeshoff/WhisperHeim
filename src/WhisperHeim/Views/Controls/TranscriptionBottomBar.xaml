@@ -233,6 +233,17 @@
                                             <Setter TargetName="StageLabel" Property="Text" Value="Completed" />
                                         </DataTrigger>
 
+                                        <!-- Completed with warnings: amber dot, warning label with tooltip -->
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding Stage}" Value="Completed" />
+                                                <Condition Binding="{Binding HasWarning}" Value="True" />
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter TargetName="StatusDot" Property="Fill" Value="#FFCC8844" />
+                                            <Setter TargetName="StageLabel" Property="Text" Value="{Binding WarningMessage}" />
+                                            <Setter TargetName="StageLabel" Property="Opacity" Value="0.85" />
+                                        </MultiDataTrigger>
+
                                         <!-- Failed: red dot, retry button -->
                                         <DataTrigger Binding="{Binding Stage}" Value="Failed">
                                             <Setter TargetName="StatusDot" Property="Fill" Value="#FFCC4444" />

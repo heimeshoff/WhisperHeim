@@ -446,9 +446,14 @@ public partial class MainWindow : FluentWindow
 
     private void EnqueueTranscription(CallRecordingSession session)
     {
-        // Derive a title from the session directory name (e.g. "2026-03-25_14-30-00")
-        var sessionDir = Path.GetDirectoryName(session.MicWavFilePath);
-        var title = Path.GetFileName(sessionDir) ?? "Recording";
+        // Use the session's title if set (e.g. from re-transcription or pending drawer),
+        // otherwise derive from the session directory name (e.g. "2026-03-25_14-30-00")
+        var title = session.Title;
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            var sessionDir = Path.GetDirectoryName(session.MicWavFilePath);
+            title = Path.GetFileName(sessionDir) ?? "Recording";
+        }
         _transcriptionQueueService.Enqueue(title, session);
     }
 

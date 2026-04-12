@@ -24,6 +24,14 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
     private const int ExpectedSampleRate = 16000;
 
     /// <summary>
+    /// RMS threshold below which a chunk is considered silence.
+    /// Typical speech RMS is 0.01–0.10; loopback silence is ~0.0001.
+    /// sherpa-onnx crashes (access violation) on near-silent chunks because
+    /// the segmentation model produces no speech frames.
+    /// </summary>
+    private const double SilenceRmsThreshold = 0.001;
+
+    /// <summary>
     /// Weight of each pipeline stage in the overall progress calculation.
     /// Loading=5%, Diarizing=30%, Transcribing=55%, Assembling=5%, Saving=5%.
     /// </summary>
@@ -136,23 +144,60 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
         }
 
         // -- Diarize system stream --
+        // When there's only one remote speaker (or none), diarization is unnecessary
+        // and error-prone — use lightweight VAD instead, just like the mic stream.
+        // Only run full diarization when multiple remote speakers need distinguishing.
         DiarizationResult? systemDiarization = null;
+        string? diarizationWarning = null;
         if (systemExists && systemDurationSeconds > 0.5)
         {
-            ReportProgress(progress, PipelineStage.Diarizing, 50, "Diarizing system audio...");
+            if (loopbackNumSpeakers > 1)
+            {
+                ReportProgress(progress, PipelineStage.Diarizing, 50, "Diarizing system audio...");
 
-            systemDiarization = await DiarizeFromFileAsync(
-                session.SystemWavFilePath, numSpeakers: loopbackNumSpeakers,
-                dp =>
+                var (sysResult, skippedChunks, totalChunks) = await DiarizeFromFileAsync(
+                    session.SystemWavFilePath, numSpeakers: loopbackNumSpeakers,
+                    dp =>
+                    {
+                        ReportProgress(progress, PipelineStage.Diarizing, 50 + dp.Percent * 0.5,
+                            $"Diarizing system — chunk {dp.ProcessedChunks}/{dp.TotalChunks}");
+                    },
+                    cancellationToken);
+                systemDiarization = sysResult;
+
+                if (skippedChunks > 0)
                 {
-                    ReportProgress(progress, PipelineStage.Diarizing, 50 + dp.Percent * 0.5,
-                        $"Diarizing system — chunk {dp.ProcessedChunks}/{dp.TotalChunks}");
-                },
-                cancellationToken);
+                    // Each chunk step covers ~110s (120s chunk - 10s overlap)
+                    int skippedMinutes = skippedChunks * 110 / 60;
+                    diarizationWarning =
+                        $"{skippedChunks}/{totalChunks} diarization chunks failed — " +
+                        $"~{skippedMinutes}min of system audio may be missing from the transcript.";
+                    Trace.TraceWarning(
+                        "[CallTranscriptionPipeline] {0}", diarizationWarning);
+                }
 
-            Trace.TraceInformation(
-                "[CallTranscriptionPipeline] System diarization: {0} segments",
-                systemDiarization.Segments.Count);
+                Trace.TraceInformation(
+                    "[CallTranscriptionPipeline] System diarization: {0} segments",
+                    systemDiarization.Segments.Count);
+            }
+            else
+            {
+                // Single remote speaker (or auto-detect): use VAD like the mic stream
+                ReportProgress(progress, PipelineStage.Diarizing, 50, "Processing system audio (VAD speech detection)...");
+
+                var sysSegments = await Task.Run(
+                    () => DetectSpeechSegmentsWithVad(session.SystemWavFilePath, systemDurationSeconds),
+                    cancellationToken);
+
+                systemDiarization = new DiarizationResult(
+                    sysSegments, SpeakerCount: 1,
+                    AudioDuration: TimeSpan.FromSeconds(systemDurationSeconds),
+                    ProcessingDuration: TimeSpan.Zero);
+
+                Trace.TraceInformation(
+                    "[CallTranscriptionPipeline] System: VAD detected {0} speech segments ({1:F1}s total audio)",
+                    sysSegments.Count, systemDurationSeconds);
+            }
         }
 
         // -- Build attributed segments --
@@ -210,7 +255,10 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
         diarizedSegments.Sort((a, b) => a.StartTime.CompareTo(b.StartTime));
 
         ReportProgress(progress, PipelineStage.Diarizing, 100,
-            $"Diarization complete: {diarizedSegments.Count} segments found.");
+            diarizationWarning is not null
+                ? $"Diarization complete: {diarizedSegments.Count} segments found. WARNING: {diarizationWarning}"
+                : $"Diarization complete: {diarizedSegments.Count} segments found.",
+            warningMessage: diarizationWarning);
 
         for (int i = 0; i < diarizedSegments.Count; i++)
         {
@@ -521,6 +569,96 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
     }
 
     /// <summary>
+    /// Computes the root-mean-square (RMS) energy of an audio buffer.
+    /// Used to detect silence before sending to native diarization.
+    /// </summary>
+    private static double ComputeRms(float[] samples)
+    {
+        if (samples.Length == 0)
+            return 0.0;
+
+        double sumSquares = 0;
+        for (int i = 0; i < samples.Length; i++)
+            sumSquares += (double)samples[i] * samples[i];
+
+        return Math.Sqrt(sumSquares / samples.Length);
+    }
+
+    /// <summary>
+    /// Retries a failed diarization chunk by splitting it into two halves.
+    /// Smaller chunks may avoid native crashes triggered by specific audio patterns.
+    /// Returns a merged result, or null if both halves fail.
+    /// </summary>
+    private static async Task<DiarizationResult?> RetryChunkAsHalvesAsync(
+        float[] samples,
+        int numSpeakers,
+        int chunkLabel,
+        int totalChunks,
+        double parentOffsetSec,
+        CancellationToken cancellationToken)
+    {
+        int mid = samples.Length / 2;
+        var firstHalf = samples[..mid];
+        var secondHalf = samples[mid..];
+        var segments = new List<DiarizationSegment>();
+
+        // Try first half
+        if (ComputeRms(firstHalf) >= SilenceRmsThreshold)
+        {
+            var r1 = await DiarizeChunkOutOfProcessAsync(firstHalf, numSpeakers, cancellationToken);
+            if (r1 is not null)
+            {
+                segments.AddRange(r1.Segments);
+                Trace.TraceInformation(
+                    "[CallTranscriptionPipeline] Chunk {0}/{1} first half succeeded — {2} segments.",
+                    chunkLabel, totalChunks, r1.Segments.Count);
+            }
+            else
+            {
+                Trace.TraceWarning(
+                    "[CallTranscriptionPipeline] Chunk {0}/{1} first half also failed.",
+                    chunkLabel, totalChunks);
+            }
+        }
+
+        // Try second half (offset segments by half-chunk duration)
+        if (ComputeRms(secondHalf) >= SilenceRmsThreshold)
+        {
+            var r2 = await DiarizeChunkOutOfProcessAsync(secondHalf, numSpeakers, cancellationToken);
+            if (r2 is not null)
+            {
+                double halfOffsetSec = (double)mid / ExpectedSampleRate;
+                foreach (var seg in r2.Segments)
+                {
+                    segments.Add(new DiarizationSegment(
+                        seg.SpeakerId,
+                        seg.StartTime + TimeSpan.FromSeconds(halfOffsetSec),
+                        seg.EndTime + TimeSpan.FromSeconds(halfOffsetSec)));
+                }
+
+                Trace.TraceInformation(
+                    "[CallTranscriptionPipeline] Chunk {0}/{1} second half succeeded — {2} segments.",
+                    chunkLabel, totalChunks, r2.Segments.Count);
+            }
+            else
+            {
+                Trace.TraceWarning(
+                    "[CallTranscriptionPipeline] Chunk {0}/{1} second half also failed.",
+                    chunkLabel, totalChunks);
+            }
+        }
+
+        if (segments.Count == 0)
+            return null;
+
+        var speakerIds = new HashSet<int>(segments.Select(s => s.SpeakerId));
+        return new DiarizationResult(
+            segments, speakerIds.Count,
+            TimeSpan.FromSeconds((double)samples.Length / ExpectedSampleRate),
+            TimeSpan.Zero);
+    }
+
+    /// <summary>
     /// Validates a WAV file and attempts repair if the header is corrupted.
     /// Throws if the file is invalid and cannot be repaired.
     /// </summary>
@@ -560,7 +698,7 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
     /// Never holds more than one chunk (~120s) in memory at a time.
     /// Each chunk gets a fresh native diarizer to prevent memory accumulation.
     /// </summary>
-    private async Task<DiarizationResult> DiarizeFromFileAsync(
+    private async Task<(DiarizationResult Result, int SkippedChunks, int TotalChunks)> DiarizeFromFileAsync(
         string wavFilePath,
         int numSpeakers,
         Action<DiarizationProgress> onProgress,
@@ -576,7 +714,8 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
         {
             var samples = await Task.Run(() => LoadWavSamples(wavFilePath), cancellationToken);
             var result = await DiarizeChunkOutOfProcessAsync(samples, numSpeakers, cancellationToken);
-            return result ?? new DiarizationResult([], 0, TimeSpan.FromSeconds(totalSeconds), TimeSpan.Zero);
+            var singleChunkResult = result ?? new DiarizationResult([], 0, TimeSpan.FromSeconds(totalSeconds), TimeSpan.Zero);
+            return (singleChunkResult, SkippedChunks: result is null ? 1 : 0, TotalChunks: 1);
         }
 
         Trace.TraceInformation(
@@ -589,6 +728,7 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
         int stepSeconds = chunkSeconds - overlapSeconds;
         int totalChunks = (int)Math.Ceiling((totalSeconds - overlapSeconds) / stepSeconds);
         int chunkIndex = 0;
+        int skippedChunks = 0;
 
         for (double offsetSec = 0; offsetSec < totalSeconds; offsetSec += stepSeconds)
         {
@@ -615,13 +755,31 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
 
             if (chunkSamples.Length < ExpectedSampleRate)
             {
+                Trace.TraceWarning(
+                    "[CallTranscriptionPipeline] Chunk {0}/{1} (offset={2:F1}s) too short ({3} samples) — skipping.",
+                    chunkIndex + 1, totalChunks, offsetSec, chunkSamples.Length);
+                skippedChunks++;
+                chunkIndex++;
+                continue;
+            }
+
+            // Skip chunks that are mostly silence — sherpa-onnx's native diarization
+            // crashes (access violation) on low-energy audio because the segmentation
+            // model produces no speech frames, leading to empty embeddings and a null
+            // pointer during clustering.
+            double rms = ComputeRms(chunkSamples);
+            if (rms < SilenceRmsThreshold)
+            {
+                Trace.TraceInformation(
+                    "[CallTranscriptionPipeline] Chunk {0}/{1} (offset={2:F1}s) is silence (RMS={3:F6}) — skipping diarization.",
+                    chunkIndex + 1, totalChunks, offsetSec, rms);
                 chunkIndex++;
                 continue;
             }
 
             // Run diarization in a child process so native crashes (access violations
             // in sherpa-onnx) don't kill the main application. If the child crashes,
-            // we skip the chunk and continue with the rest of the recording.
+            // retry once with two half-size sub-chunks before giving up.
             var chunkResult = await DiarizeChunkOutOfProcessAsync(
                 chunkSamples, numSpeakers, cancellationToken);
 
@@ -629,8 +787,21 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
             {
                 Trace.TraceWarning(
                     "[CallTranscriptionPipeline] Diarization failed for chunk {0}/{1} " +
-                    "(offset={2:F1}s) — skipping.",
+                    "(offset={2:F1}s, RMS={3:F4}) — retrying as two half-chunks.",
+                    chunkIndex + 1, totalChunks, offsetSec, rms);
+
+                chunkResult = await RetryChunkAsHalvesAsync(
+                    chunkSamples, numSpeakers, chunkIndex + 1, totalChunks, offsetSec,
+                    cancellationToken);
+            }
+
+            if (chunkResult is null)
+            {
+                Trace.TraceWarning(
+                    "[CallTranscriptionPipeline] Diarization failed for chunk {0}/{1} " +
+                    "(offset={2:F1}s) after retry — skipping.",
                     chunkIndex + 1, totalChunks, offsetSec);
+                skippedChunks++;
                 chunkIndex++;
                 continue;
             }
@@ -696,12 +867,12 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
         var speakerIds = new HashSet<int>(allSegments.Select(s => s.SpeakerId));
 
         Trace.TraceInformation(
-            "[CallTranscriptionPipeline] File diarization complete: {0:F1}s in {1:F0}ms — {2} speakers, {3} segments ({4} chunks)",
-            totalSeconds, sw.Elapsed.TotalMilliseconds, speakerIds.Count, allSegments.Count, chunkIndex);
+            "[CallTranscriptionPipeline] File diarization complete: {0:F1}s in {1:F0}ms — {2} speakers, {3} segments ({4} chunks, {5} skipped)",
+            totalSeconds, sw.Elapsed.TotalMilliseconds, speakerIds.Count, allSegments.Count, chunkIndex, skippedChunks);
 
-        return new DiarizationResult(
+        return (new DiarizationResult(
             allSegments, speakerIds.Count,
-            TimeSpan.FromSeconds(totalSeconds), sw.Elapsed);
+            TimeSpan.FromSeconds(totalSeconds), sw.Elapsed), skippedChunks, totalChunks);
     }
 
     /// <summary>
@@ -1020,7 +1191,8 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
         IProgress<TranscriptionPipelineProgress>? progress,
         PipelineStage stage,
         double stagePercent,
-        string description)
+        string description,
+        string? warningMessage = null)
     {
         if (progress is null)
             return;
@@ -1033,6 +1205,7 @@ public sealed class CallTranscriptionPipeline : ICallTranscriptionPipeline
             StagePercent = stagePercent,
             OverallPercent = overallPercent,
             Description = description,
+            WarningMessage = warningMessage,
         });
     }
 

@@ -64,6 +64,10 @@
 
 | 2026-04-01 | TTS Voice Cloning Models 2026 | [tts-voice-cloning-models-2026.md](tts-voice-cloning-models-2026.md) | Voxtral (Mistral) blocked by CC BY-NC license; Chatterbox Turbo (MIT, 23 langs incl. German, ONNX) is best upgrade candidate; Pocket TTS German coming; ZipVoice is easiest sherpa-onnx swap |
 
+## Gemma 4 vs Qwen 2.5 for Transcript Analysis (2026-04-09)
+
+| 2026-04-09 | Gemma 4 vs Qwen 2.5 14B | [gemma-4-vs-qwen-2.5-for-transcript-analysis.md](gemma-4-vs-qwen-2.5-for-transcript-analysis.md) | Gemma 4 E4B fits on RTX 3080 10GB but scores ~10pts lower on MMLU (69.4% vs 79.7%) and much worse on instruction following; the competitive Gemma 4 models (26B/31B) need 15-18GB VRAM — stick with Qwen 2.5 14B |
+
 ## UI Framework (2026-03-21)
 
 - **WPF + WPF UI (lepoco/wpfui)**: Mica, Fluent controls, tray icon via WPF-UI.Tray. Best fit for Windows 11 tray app.

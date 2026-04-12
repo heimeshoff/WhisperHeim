@@ -44,6 +44,7 @@ public sealed class TranscriptionQueueItem : INotifyPropertyChanged
     private string? _errorMessage;
     private DateTimeOffset? _completedAt;
     private string _resultText = string.Empty;
+    private string? _warningMessage;
 
     public TranscriptionQueueItem(
         string title,
@@ -138,6 +139,21 @@ public sealed class TranscriptionQueueItem : INotifyPropertyChanged
         get => _completedAt;
         set { if (_completedAt != value) { _completedAt = value; OnPropertyChanged(); } }
     }
+
+    /// <summary>
+    /// Warning message about degraded results (e.g. skipped diarization chunks).
+    /// Non-null when the item completed but with issues.
+    /// </summary>
+    public string? WarningMessage
+    {
+        get => _warningMessage;
+        set { if (_warningMessage != value) { _warningMessage = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasWarning)); } }
+    }
+
+    /// <summary>
+    /// True when the item completed but with warnings (e.g. skipped diarization chunks).
+    /// </summary>
+    public bool HasWarning => _warningMessage is not null;
 
     /// <summary>
     /// For file transcriptions: the resulting text after transcription completes.
@@ -554,7 +570,9 @@ public sealed class TranscriptionQueueService : INotifyPropertyChanged
             {
                 item.Stage = QueueItemStage.Completed;
                 item.OverallPercent = 100;
-                item.StageDescription = "Complete";
+                item.StageDescription = item.WarningMessage is not null
+                    ? $"Complete (with warnings)"
+                    : "Complete";
                 item.CompletedAt = DateTimeOffset.Now;
                 Trace.TraceInformation("[TranscriptionQueue] Stage set to Completed on UI thread for '{0}'. Stage={1}", item.Title, item.Stage);
             });
@@ -614,6 +632,8 @@ public sealed class TranscriptionQueueService : INotifyPropertyChanged
                 item.StagePercent = p.StagePercent;
                 item.OverallPercent = p.OverallPercent;
                 item.StageDescription = p.Description;
+                if (p.WarningMessage is not null)
+                    item.WarningMessage = p.WarningMessage;
                 OnPropertyChanged(nameof(StatusText));
             });
         });
