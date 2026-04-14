@@ -193,6 +193,11 @@ public partial class MainWindow : FluentWindow
         var savedTop = Top;
         var savedWidth = Width;
         var savedHeight = Height;
+        var savedState = WindowState;
+
+        // WPF refuses to Show() a Maximized window when ShowActivated is false,
+        // so force Normal during the off-screen show and restore afterwards.
+        WindowState = WindowState.Normal;
 
         // Move off-screen at the WPF level BEFORE creating the HWND, so the
         // Win32 window is born off-screen and no gray rectangle flashes.
@@ -221,6 +226,7 @@ public partial class MainWindow : FluentWindow
         Top = savedTop;
         Width = savedWidth;
         Height = savedHeight;
+        WindowState = savedState;
     }
 
     private void SetupHotkeysAndOrchestration()

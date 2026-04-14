@@ -19,7 +19,7 @@ dotnet publish src/WhisperHeim/WhisperHeim.csproj -c Release -r win-x64 --self-c
 ```
 
 ```bash
-start "" "C:/src/heimeshoff/_tooling/WhisperHeim/publish/WhisperHeim.exe"
+start "" "C:/src/heimeshoff/tooling/WhisperHeim/publish/WhisperHeim.exe"
 ```
 
 If the publish fails, report the error. Do not launch the exe if the build failed.
