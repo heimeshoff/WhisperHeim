@@ -732,10 +732,16 @@ public partial class MainWindow : FluentWindow
 
     private void ShowWindow()
     {
+        // InitializeTrayAndHide() leaves ShowActivated=false; restore it before
+        // changing visibility, otherwise WPF refuses to show a Maximized window.
+        ShowActivated = true;
+
+        if (WindowState == WindowState.Minimized)
+            WindowState = WindowState.Normal;
+
         Visibility = Visibility.Visible;
         Show();
         ShowInTaskbar = true;
-        WindowState = WindowState.Normal;
         Activate();
         Topmost = true;
         Topmost = false;

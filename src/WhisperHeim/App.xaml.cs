@@ -58,7 +58,7 @@ public partial class App : Application
             try
             {
                 MessageBox.Show(
-                    $"WhisperHeim encountered an error:\n\n{args.Exception.Message}\n\n{args.Exception.StackTrace}",
+                    $"WhisperHeim encountered an error:\n\n{args.Exception}",
                     "WhisperHeim Error",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
@@ -90,7 +90,7 @@ public partial class App : Application
             try
             {
                 MessageBox.Show(
-                    $"WhisperHeim fatal error:\n\n{ex?.Message}\n\n{ex?.StackTrace}",
+                    $"WhisperHeim fatal error:\n\n{ex}",
                     "WhisperHeim Fatal Error",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
