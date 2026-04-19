@@ -65,6 +65,10 @@ class TranscriptionService:
 
         num_threads = min(self._settings.num_threads, os.cpu_count() or 4)
 
+        logger.info(
+            "[TranscriptionService] Loading Parakeet TDT 0.6B model (this may take 30-60s)..."
+        )
+
         recognizer = sherpa_onnx.OfflineRecognizer.from_transducer(
             encoder=encoder_path,
             decoder=decoder_path,
