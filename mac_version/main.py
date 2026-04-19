@@ -10,9 +10,29 @@ import argparse
 import logging
 import os
 import sys
+import traceback
 
-from whisperheim.services.model_manager import ModelManager
-from whisperheim.services.settings_service import SettingsService
+
+def _crash_log(msg: str) -> None:
+    """Write a crash message before logging is configured."""
+    try:
+        log_dir = os.path.expanduser(
+            "~/Library/Application Support/WhisperHeim"
+        )
+        os.makedirs(log_dir, exist_ok=True)
+        with open(os.path.join(log_dir, "crash.log"), "w") as f:
+            f.write(msg)
+    except Exception:
+        pass  # Nothing we can do
+
+
+# Guard top-level imports so crashes produce a log file
+try:
+    from whisperheim.services.model_manager import ModelManager
+    from whisperheim.services.settings_service import SettingsService
+except Exception as e:
+    _crash_log(f"Import error:\n{traceback.format_exc()}")
+    raise
 
 
 def setup_logging() -> None:
@@ -99,4 +119,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception:
+        _crash_log(f"Runtime error:\n{traceback.format_exc()}")
+        raise

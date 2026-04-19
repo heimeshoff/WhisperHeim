@@ -51,7 +51,6 @@ OPTIONS = {
     "frameworks": [],
     "resources": [],
     "excludes": [
-        "tkinter",
         "unittest",
         "email",
         "html",

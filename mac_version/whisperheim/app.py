@@ -17,7 +17,6 @@ from whisperheim.services.dictation_pipeline import DictationPipeline
 from whisperheim.services.hotkey_service import HotkeyService
 from whisperheim.services.model_manager import ModelManager
 from whisperheim.services.settings_service import SettingsService
-from whisperheim.services.templates.template_editor import TemplateEditorWindow
 from whisperheim.services.templates.template_orchestrator import TemplateOrchestrator
 from whisperheim.services.templates.template_service import TemplateService
 from whisperheim.services.text_inserter import TextInserter
@@ -132,7 +131,8 @@ class WhisperHeimApp:
     def _init_templates(self) -> None:
         """Initialize the template system."""
         self._template_service = TemplateService(self._settings_service)
-        self._template_editor = TemplateEditorWindow(self._template_service)
+        # Template editor is created lazily when opened (avoids tkinter import at startup)
+        self._template_editor = None
 
         if self._pipeline:
             self._template_orchestrator = TemplateOrchestrator(
@@ -175,8 +175,10 @@ class WhisperHeimApp:
                     ]
 
                 def _open_templates(self, _sender):
-                    if self.parent._template_editor:
-                        self.parent._template_editor.show()
+                    if self.parent._template_editor is None:
+                        from whisperheim.services.templates.template_editor import TemplateEditorWindow
+                        self.parent._template_editor = TemplateEditorWindow(self.parent._template_service)
+                    self.parent._template_editor.show()
 
                 def _open_settings(self, _sender):
                     path = str(self.parent._settings_service._path)
