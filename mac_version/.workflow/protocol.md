@@ -1,3 +1,20 @@
+## 2026-04-19 -- Task Completed: 002 - Mac Template System
+
+**Type:** Task Completion
+**Task:** 002 - Mac Template System — Voice-Triggered Text Expansion
+**Summary:** Ported the full template system from Windows WhisperHeim — fuzzy matcher (Levenshtein + containment), placeholder expander, template service with CRUD and system templates (Repeat), template orchestrator (Cmd+Alt+Shift hotkey), tkinter template editor GUI, and 38 passing tests.
+**Files changed:** 12 files
+
+---
+
+## 2026-04-19 -- Task Started: 002 - Mac Template System
+
+**Type:** Task Start
+**Task:** 002 - Mac Template System — Voice-Triggered Text Expansion
+**Milestone:** MVP
+
+---
+
 ## 2026-04-19 -- Task Completed: 001 - Mac Dictation Core
 
 **Type:** Task Completion

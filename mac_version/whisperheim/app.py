@@ -17,6 +17,9 @@ from whisperheim.services.dictation_pipeline import DictationPipeline
 from whisperheim.services.hotkey_service import HotkeyService
 from whisperheim.services.model_manager import ModelManager
 from whisperheim.services.settings_service import SettingsService
+from whisperheim.services.templates.template_editor import TemplateEditorWindow
+from whisperheim.services.templates.template_orchestrator import TemplateOrchestrator
+from whisperheim.services.templates.template_service import TemplateService
 from whisperheim.services.text_inserter import TextInserter
 from whisperheim.services.transcription_service import TranscriptionService
 from whisperheim.services.vad_service import VadService
@@ -54,6 +57,12 @@ class WhisperHeimApp:
         self._transcription: Optional[TranscriptionService] = None
         self._pipeline: Optional[DictationPipeline] = None
 
+        # Template system
+        self._template_service: Optional[TemplateService] = None
+        self._template_orchestrator: Optional[TemplateOrchestrator] = None
+        self._template_editor: Optional[TemplateEditorWindow] = None
+        self._last_dictation_text: Optional[str] = None
+
         self._rumps_app = None
 
     def run(self) -> None:
@@ -76,6 +85,9 @@ class WhisperHeimApp:
             on_deactivated=self._on_hotkey_deactivated,
         )
         self._hotkey_service.start()
+
+        # Initialize template system
+        self._init_templates()
 
         # Run the UI
         if platform.system() == "Darwin":
@@ -117,6 +129,32 @@ class WhisperHeimApp:
             on_transcription_error=self._on_transcription_error,
         )
 
+    def _init_templates(self) -> None:
+        """Initialize the template system."""
+        self._template_service = TemplateService(self._settings_service)
+        self._template_editor = TemplateEditorWindow(self._template_service)
+
+        if self._pipeline:
+            self._template_orchestrator = TemplateOrchestrator(
+                settings_service=self._settings_service,
+                pipeline=self._pipeline,
+                template_service=self._template_service,
+                text_inserter=self._text_inserter,
+                notify_callback=self._on_template_notification,
+                last_dictation_callback=self._get_last_dictation,
+            )
+            self._template_orchestrator.start()
+            logger.info("[App] Template system initialized.")
+
+    def _on_template_notification(self, message: str) -> None:
+        """Show a template-related notification."""
+        logger.info("[App] %s", message)
+        self._update_status("idle")
+
+    def _get_last_dictation(self) -> Optional[str]:
+        """Return the last dictation text for the Repeat system template."""
+        return self._last_dictation_text
+
     def _run_menubar(self) -> None:
         """Run as a macOS menu bar app using rumps."""
         try:
@@ -132,8 +170,13 @@ class WhisperHeimApp:
                     self.menu = [
                         rumps.MenuItem("Status: Idle"),
                         None,  # separator
+                        rumps.MenuItem("Edit Templates...", callback=self._open_templates),
                         rumps.MenuItem("Settings...", callback=self._open_settings),
                     ]
+
+                def _open_templates(self, _sender):
+                    if self.parent._template_editor:
+                        self.parent._template_editor.show()
 
                 def _open_settings(self, _sender):
                     path = str(self.parent._settings_service._path)
@@ -186,6 +229,7 @@ class WhisperHeimApp:
     def _on_transcription_result(self, text: str) -> None:
         """Pipeline produced a transcription result — insert into active app."""
         logger.info("[App] Inserting text: \"%s\"", text)
+        self._last_dictation_text = text
         self._text_inserter.insert_text(text)
         self._update_status("idle")
 
@@ -213,6 +257,8 @@ class WhisperHeimApp:
 
     def _shutdown(self) -> None:
         """Clean shutdown of all services."""
+        if self._template_orchestrator:
+            self._template_orchestrator.stop()
         self._hotkey_service.stop()
         if self._pipeline:
             self._pipeline.dispose()

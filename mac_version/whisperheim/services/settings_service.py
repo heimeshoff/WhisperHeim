@@ -50,12 +50,39 @@ class DictationSettings:
 
 
 @dataclass
+class TemplateItem:
+    """A named text template triggered by voice command."""
+    name: str = ""
+    text: str = ""
+    group: Optional[str] = None
+
+
+@dataclass
+class TemplateGroup:
+    """A named group for organizing templates."""
+    name: str = ""
+    is_expanded: bool = True
+    order: int = 0
+
+
+@dataclass
+class TemplateSettings:
+    """Template system configuration."""
+    items: list[TemplateItem] = field(default_factory=list)
+    groups: list[TemplateGroup] = field(default_factory=list)
+
+
+@dataclass
 class Settings:
     """Top-level application settings."""
     hotkey: HotkeySettings = field(default_factory=HotkeySettings)
+    template_hotkey: HotkeySettings = field(
+        default_factory=lambda: HotkeySettings(key="shift", modifiers=["cmd", "alt"])
+    )
     vad: VadSettings = field(default_factory=VadSettings)
     transcription: TranscriptionSettings = field(default_factory=TranscriptionSettings)
     dictation: DictationSettings = field(default_factory=DictationSettings)
+    templates: TemplateSettings = field(default_factory=TemplateSettings)
 
 
 class SettingsService:
@@ -97,12 +124,25 @@ class SettingsService:
 
             if "hotkey" in data:
                 self._settings.hotkey = HotkeySettings(**data["hotkey"])
+            if "template_hotkey" in data:
+                self._settings.template_hotkey = HotkeySettings(**data["template_hotkey"])
             if "vad" in data:
                 self._settings.vad = VadSettings(**data["vad"])
             if "transcription" in data:
                 self._settings.transcription = TranscriptionSettings(**data["transcription"])
             if "dictation" in data:
                 self._settings.dictation = DictationSettings(**data["dictation"])
+            if "templates" in data:
+                tdata = data["templates"]
+                items = [
+                    TemplateItem(**item) for item in tdata.get("items", [])
+                ]
+                groups = [
+                    TemplateGroup(**grp) for grp in tdata.get("groups", [])
+                ]
+                self._settings.templates = TemplateSettings(
+                    items=items, groups=groups
+                )
 
             logger.info("Settings loaded from %s", self._path)
         except Exception as e:
