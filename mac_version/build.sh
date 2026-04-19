@@ -114,6 +114,47 @@ fi
 info "Building ${APP_NAME}.app..."
 python3 setup.py py2app 2>&1 | tail -5
 
+# --- Post-build: fix native libraries ---
+
+if [[ -d "dist/${APP_NAME}.app" ]]; then
+    RESOURCES="dist/${APP_NAME}.app/Contents/Resources"
+    FRAMEWORKS="dist/${APP_NAME}.app/Contents/Frameworks"
+    mkdir -p "$FRAMEWORKS"
+
+    # Extract PortAudio dylib — sounddevice needs it as a real file, not inside a zip
+    info "Fixing PortAudio library bundling..."
+    PORTAUDIO_SRC=$(python3 -c "
+import _sounddevice_data
+import os, glob
+base = os.path.dirname(_sounddevice_data.__file__)
+libs = glob.glob(os.path.join(base, 'portaudio-binaries', 'libportaudio.*'))
+print(libs[0] if libs else '')
+" 2>/dev/null || true)
+
+    if [[ -n "$PORTAUDIO_SRC" && -f "$PORTAUDIO_SRC" ]]; then
+        cp "$PORTAUDIO_SRC" "$FRAMEWORKS/"
+        info "Copied PortAudio to Frameworks/"
+    else
+        warn "Could not locate PortAudio dylib — sounddevice may not work."
+    fi
+
+    # Also copy any sherpa-onnx dylibs into Frameworks
+    info "Fixing sherpa-onnx library bundling..."
+    python3 -c "
+import sherpa_onnx, os, shutil
+lib_dir = os.path.dirname(sherpa_onnx.__file__)
+fw = 'dist/${APP_NAME}.app/Contents/Frameworks'
+for root, dirs, files in os.walk(lib_dir):
+    for f in files:
+        if f.endswith('.dylib') or f.endswith('.so'):
+            src = os.path.join(root, f)
+            dst = os.path.join(fw, f)
+            if not os.path.exists(dst):
+                shutil.copy2(src, dst)
+                print(f'  Copied {f}')
+" 2>/dev/null || warn "Could not copy sherpa-onnx libraries."
+fi
+
 if [[ -d "dist/${APP_NAME}.app" ]]; then
     echo ""
     info "Build successful!"

@@ -38,11 +38,12 @@ OPTIONS = {
         "rumps",
         "pynput",
         "sounddevice",
+        "_sounddevice_data",
         "numpy",
         "requests",
+        "sherpa_onnx",
     ],
     "includes": [
-        "sherpa_onnx",
         "AppKit",
         "Foundation",
         "Quartz",

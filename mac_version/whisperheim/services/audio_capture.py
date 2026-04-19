@@ -1,8 +1,23 @@
 """Audio capture service — 16kHz mono via sounddevice."""
 
+import glob
 import logging
+import os
+import sys
 import threading
 from typing import Callable, Optional
+
+# When running inside a .app bundle, PortAudio dylib is in Frameworks/.
+# Pre-load it via ctypes before sounddevice tries to find it.
+if getattr(sys, "frozen", False):
+    import ctypes
+    _fw_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(sys.executable))),
+        "Frameworks",
+    )
+    _pa_libs = glob.glob(os.path.join(_fw_dir, "libportaudio*"))
+    if _pa_libs:
+        ctypes.cdll.LoadLibrary(_pa_libs[0])
 
 import numpy as np
 import sounddevice as sd
