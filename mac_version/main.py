@@ -8,6 +8,7 @@ Usage:
 
 import argparse
 import logging
+import os
 import sys
 
 from whisperheim.services.model_manager import ModelManager
@@ -15,13 +16,29 @@ from whisperheim.services.settings_service import SettingsService
 
 
 def setup_logging() -> None:
-    """Configure logging to stderr with timestamps."""
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(message)s",
-        datefmt="%H:%M:%S",
-        stream=sys.stderr,
-    )
+    """Configure logging with timestamps.
+
+    When running inside a .app bundle, logs go to a file in
+    ~/Library/Application Support/WhisperHeim/whisperheim.log
+    since there's no terminal. Otherwise, logs go to stderr.
+    """
+    log_kwargs = {
+        "level": logging.INFO,
+        "format": "%(asctime)s [%(levelname)s] %(message)s",
+        "datefmt": "%H:%M:%S",
+    }
+
+    if _is_app_bundle():
+        log_dir = os.path.expanduser(
+            "~/Library/Application Support/WhisperHeim"
+        )
+        os.makedirs(log_dir, exist_ok=True)
+        log_kwargs["filename"] = os.path.join(log_dir, "whisperheim.log")
+        log_kwargs["filemode"] = "w"  # overwrite each launch
+    else:
+        log_kwargs["stream"] = sys.stderr
+
+    logging.basicConfig(**log_kwargs)
 
 
 def download_models() -> None:
@@ -40,7 +57,19 @@ def download_models() -> None:
     print("Models downloaded successfully.")
 
 
+def _is_app_bundle() -> bool:
+    """Check if running inside a .app bundle (py2app)."""
+    return getattr(sys, "frozen", False) or ".app/Contents" in (
+        os.path.abspath(sys.argv[0]) if sys.argv else ""
+    )
+
+
 def main() -> None:
+    # When launched from a .app bundle, macOS may inject extra argv
+    # (e.g., -psn_* process serial number). Filter those out.
+    if _is_app_bundle():
+        sys.argv = [a for a in sys.argv if not a.startswith("-psn")]
+
     parser = argparse.ArgumentParser(description="WhisperHeim — macOS dictation app")
     parser.add_argument(
         "--download", action="store_true",

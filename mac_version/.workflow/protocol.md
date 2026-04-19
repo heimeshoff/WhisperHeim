@@ -1,3 +1,20 @@
+## 2026-04-19 -- Task Completed: 003 - Mac App Packaging
+
+**Type:** Task Completion
+**Task:** 003 - Package as macOS .app Bundle via py2app
+**Summary:** Created py2app packaging with setup.py, build.sh script, placeholder icon generator, LSUIElement=true (no Dock icon), sherpa-onnx bundling, and updated README with build instructions.
+**Files changed:** 7 files
+
+---
+
+## 2026-04-19 -- Task Started: 003 - Mac App Packaging
+
+**Type:** Task Start
+**Task:** 003 - Package as macOS .app Bundle via py2app
+**Milestone:** MVP
+
+---
+
 ## 2026-04-19 -- Task Completed: 002 - Mac Template System
 
 **Type:** Task Completion

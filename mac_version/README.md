@@ -11,7 +11,30 @@ Uses NVIDIA Parakeet TDT 0.6B v3 (int8) via sherpa-onnx for fast, accurate speec
 - Microphone access
 - Accessibility permissions (for hotkey capture and text insertion)
 
-## Setup
+## Quick Start — Build the App
+
+```bash
+# Clone the repo and build the .app bundle
+./build.sh
+
+# Launch the app
+open dist/WhisperHeim.app
+```
+
+This produces `dist/WhisperHeim.app` — a standalone macOS app bundle. Double-click to run.
+
+On first launch, models download automatically (~670 MB) to `~/Library/Application Support/WhisperHeim/models/`.
+
+### Build Options
+
+```bash
+./build.sh          # Full build (install deps + create .app)
+./build.sh --clean  # Remove previous build artifacts first
+```
+
+## Development Setup
+
+For development without building the .app:
 
 ```bash
 # Create virtual environment
