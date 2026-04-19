@@ -52,9 +52,6 @@ OPTIONS = {
     "resources": [],
     "excludes": [
         "unittest",
-        "email",
-        "html",
-        "http",
         "xmlrpc",
         "doctest",
         "pydoc",
