@@ -35,12 +35,21 @@ if [[ "$(uname)" != "Darwin" ]]; then
     exit 1
 fi
 
-if ! command -v python3 &>/dev/null; then
-    error "python3 not found. Install Python 3.10+ first."
+# Find the best Python version (prefer 3.12, then 3.11, then 3.10, avoid 3.14+)
+PYTHON=""
+for candidate in python3.12 python3.11 python3.10 python3.13 python3; do
+    if command -v "$candidate" &>/dev/null; then
+        PYTHON="$candidate"
+        break
+    fi
+done
+
+if [[ -z "$PYTHON" ]]; then
+    error "Python 3.10+ not found. Install Python 3.12 from python.org/downloads"
     exit 1
 fi
 
-PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+PYTHON_VERSION=$($PYTHON -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
 PYTHON_MAJOR=$(echo "$PYTHON_VERSION" | cut -d. -f1)
 PYTHON_MINOR=$(echo "$PYTHON_VERSION" | cut -d. -f2)
 
@@ -49,7 +58,12 @@ if [[ "$PYTHON_MAJOR" -lt 3 ]] || [[ "$PYTHON_MAJOR" -eq 3 && "$PYTHON_MINOR" -l
     exit 1
 fi
 
-info "Using Python $PYTHON_VERSION"
+if [[ "$PYTHON_MINOR" -ge 14 ]]; then
+    warn "Python $PYTHON_VERSION detected — sherpa-onnx may not support it yet."
+    warn "Recommended: install Python 3.12 from python.org/downloads"
+fi
+
+info "Using $PYTHON (Python $PYTHON_VERSION)"
 
 # --- Clean if requested ---
 
@@ -62,7 +76,7 @@ fi
 
 if [[ ! -d "$VENV_DIR" ]]; then
     info "Creating virtual environment..."
-    python3 -m venv "$VENV_DIR"
+    $PYTHON -m venv "$VENV_DIR"
 fi
 
 info "Activating virtual environment..."
