@@ -4,7 +4,9 @@ using WhisperHeim.Models;
 using WhisperHeim.Services.Audio;
 using WhisperHeim.Services.Hotkey;
 using WhisperHeim.Services.Input;
+using WhisperHeim.Services.Settings;
 using WhisperHeim.Services.Templates;
+using WhisperHeim.Services.TextProcessing;
 using WhisperHeim.Services.Transcription;
 
 namespace WhisperHeim.Services.Orchestration;
@@ -29,6 +31,7 @@ public sealed class DictationOrchestrator : IDisposable
     private readonly ITranscriptionService _transcription;
     private readonly IInputSimulator _inputSimulator;
     private readonly ITemplateService? _templateService;
+    private readonly SettingsService? _settingsService;
     private readonly Action<bool> _onDictationStateChanged;
 
     private readonly object _lock = new();
@@ -64,7 +67,8 @@ public sealed class DictationOrchestrator : IDisposable
         ITranscriptionService transcription,
         IInputSimulator inputSimulator,
         Action<bool> onDictationStateChanged,
-        ITemplateService? templateService = null)
+        ITemplateService? templateService = null,
+        SettingsService? settingsService = null)
     {
         _hotkeyService = hotkeyService ?? throw new ArgumentNullException(nameof(hotkeyService));
         _audioCapture = audioCapture ?? throw new ArgumentNullException(nameof(audioCapture));
@@ -72,6 +76,7 @@ public sealed class DictationOrchestrator : IDisposable
         _inputSimulator = inputSimulator ?? throw new ArgumentNullException(nameof(inputSimulator));
         _onDictationStateChanged = onDictationStateChanged ?? throw new ArgumentNullException(nameof(onDictationStateChanged));
         _templateService = templateService;
+        _settingsService = settingsService;
     }
 
     public void Start()
@@ -234,17 +239,18 @@ public sealed class DictationOrchestrator : IDisposable
         try
         {
             var result = await _transcription.TranscribeAsync(samples, SampleRate);
-            var text = result.Text.Trim();
-            if (string.IsNullOrEmpty(text)) return;
+            var rawText = result.Text.Trim();
+            if (string.IsNullOrEmpty(rawText)) return;
 
             Trace.TraceInformation(
                 "[DictationOrchestrator] Final: \"{0}\" (audio={1:F2}s, transcribe={2:F0}ms, RTF={3:F3}, template={4})",
-                text, result.AudioDuration.TotalSeconds,
+                rawText, result.AudioDuration.TotalSeconds,
                 result.TranscriptionDuration.TotalMilliseconds, result.RealTimeFactor, templateMode);
 
             if (templateMode && _templateService is not null)
             {
-                var match = _templateService.MatchAndExpand(text);
+                // Template matching runs on raw text — templates match spoken phrases as-is.
+                var match = _templateService.MatchAndExpand(rawText);
                 if (match is not null)
                 {
                     if (match.IsSystemTemplate)
@@ -264,20 +270,56 @@ public sealed class DictationOrchestrator : IDisposable
                 }
 
                 Trace.TraceInformation(
-                    "[DictationOrchestrator] No template match for \"{0}\".", text);
-                TemplateNoMatch?.Invoke(text);
+                    "[DictationOrchestrator] No template match for \"{0}\".", rawText);
+                TemplateNoMatch?.Invoke(rawText);
                 return;
             }
 
-            // Store last normal dictation for the Repeat command
-            _lastNormalDictation = text;
-            await TypeTextSafe(text);
+            // Run the deterministic clean-text pipeline before typing, unless
+            // the user has opted into Raw mode.
+            var textToType = ApplyCleanPipeline(rawText);
+            if (string.IsNullOrEmpty(textToType))
+            {
+                Trace.TraceInformation(
+                    "[DictationOrchestrator] Clean pipeline produced empty result, nothing to type.");
+                return;
+            }
+
+            // Store last normal dictation (cleaned) for the Repeat command.
+            _lastNormalDictation = textToType;
+            await TypeTextSafe(textToType);
         }
         catch (Exception ex)
         {
             Trace.TraceError("[DictationOrchestrator] Final transcription error: {0}", ex.Message);
             PipelineError?.Invoke(ex);
         }
+    }
+
+    /// <summary>
+    /// Runs the deterministic clean-text pipeline (filler removal + whitespace
+    /// normalization) on <paramref name="rawText"/> unless the user has set
+    /// dictation to Raw mode. Returns the text that should be typed.
+    /// </summary>
+    private string ApplyCleanPipeline(string rawText)
+    {
+        var settings = _settingsService?.Current.Dictation;
+        var mode = settings?.TextMode ?? DictationTextMode.Clean;
+
+        if (mode == DictationTextMode.Raw)
+        {
+            return rawText;
+        }
+
+        var sw = Stopwatch.StartNew();
+        var cleaned = FillerRemovalService.Clean(rawText, settings?.Language);
+        sw.Stop();
+
+        Trace.TraceInformation(
+            "[DictationOrchestrator] Clean pipeline: \"{0}\" -> \"{1}\" ({2:F2}ms)",
+            rawText, cleaned, sw.Elapsed.TotalMilliseconds);
+
+        return cleaned;
     }
 
     private async Task HandleSystemAction(string? actionId)

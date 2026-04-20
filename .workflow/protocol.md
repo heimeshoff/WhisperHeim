@@ -2,6 +2,47 @@
 
 ---
 
+## 2026-04-20 12:55 -- Task Completed: 101 - Deterministic Clean-Text Pipeline (Filler Word Removal)
+
+**Type:** Task Completion
+**Task:** 101 - Deterministic Clean-Text Pipeline (Filler Word Removal)
+**Summary:** Implemented `FillerRemovalService` stripping English multi-word + single-word fillers and German single-word fillers (de/de-DE), wired into `DictationOrchestrator` between ASR and SendInput, added persisted Raw/Clean toggle (default Clean) in Dictation settings, 42 unit tests passing (74/74 total).
+**Files changed:** 7 files
+
+---
+
+## 2026-04-20 12:48 -- Task Started: 101 - Deterministic Clean-Text Pipeline (Filler Word Removal)
+
+**Type:** Task Start
+**Task:** 101 - Deterministic Clean-Text Pipeline (Filler Word Removal)
+**Milestone:** M1 - Live Dictation + Core App (post-launch polish)
+
+---
+
+## 2026-04-20 -- Task Promoted: 101 - Deterministic Clean-Text Pipeline (Filler Word Removal)
+
+**Type:** Task Promotion
+**From:** backlog
+**To:** todo
+**Summary:** Refined scope after inspecting MacParakeet's actual code (vs their spec): dropped sentence-start-only tier 3, confirmed clean-only pipeline return, hardcoded word lists. Size reduced Medium→Small. German list locked to single-word unconditional (äh, ähm, hm, hmm, öh, öhm); multi-word German excluded because discourse particles carry meaning.
+
+---
+
+## 2026-04-20 -- Research: MacParakeet Feature Comparison
+
+**Type:** Research
+**Topic:** Compare MacParakeet (moona3k/macparakeet) to WhisperHeim and identify behaviors not yet implemented
+**File:** research/macparakeet-feature-comparison.md
+**Key findings:**
+- WhisperHeim already has YouTube transcription, dual-capture call recording, speaker diarization, transcript viewer/playback, local-LLM transcript analysis, templates, plus TTS + voice cloning + Read Aloud (which MacParakeet does not)
+- Biggest gap: deterministic clean-text pipeline (filler removal, custom word replacements, in-dictation snippet expansion, whitespace cleanup, Raw/Clean toggle) — research already done but not implemented
+- Second gap: per-utterance dictation history log (unlocks private dictation mode, voice stats, favorites)
+- Third gap: export depth (SRT/VTT/JSON with word-level timestamps, DOCX/PDF) — Parakeet already provides the word timestamps
+- Fourth gap: LLM layer expansion — prompt library, multi-summary per transcript, multi-conversation transcript chat (on top of existing Ollama integration)
+- Polish gaps: soft-cancel undo window, first-run onboarding flow, push-to-talk vs latched hotkey modes, CLI tool for batch automation, synced playback word-highlighting
+
+---
+
 ## 2026-04-09 14:00 -- Research: Gemma 4 vs Qwen 2.5 14B for Transcript Analysis
 
 **Type:** Research

@@ -56,11 +56,45 @@ public partial class DictationPage : UserControl
 
         InitializeComponent();
         PopulateMicrophoneList();
+        InitializeTextModeToggle();
         _isInitializing = false;
 
         TestTextBox.TextChanged += (_, _) => UpdateWatermark();
         UpdateWatermark();
         RefreshTemplateList();
+    }
+
+    /// <summary>
+    /// Reflects the persisted <see cref="DictationTextMode"/> on the Raw/Clean
+    /// radio buttons. Called during construction, before <see cref="_isInitializing"/>
+    /// is flipped, so the programmatic selection does not trigger a Save.
+    /// </summary>
+    private void InitializeTextModeToggle()
+    {
+        var mode = _settingsService.Current.Dictation.TextMode;
+        if (mode == DictationTextMode.Raw)
+        {
+            RawModeRadio.IsChecked = true;
+        }
+        else
+        {
+            CleanModeRadio.IsChecked = true;
+        }
+    }
+
+    private void TextMode_Checked(object sender, RoutedEventArgs e)
+    {
+        if (_isInitializing) return;
+
+        var newMode = RawModeRadio.IsChecked == true
+            ? DictationTextMode.Raw
+            : DictationTextMode.Clean;
+
+        if (_settingsService.Current.Dictation.TextMode == newMode)
+            return;
+
+        _settingsService.Current.Dictation.TextMode = newMode;
+        _settingsService.Save();
     }
 
     // ────────────────────────────────────────────────

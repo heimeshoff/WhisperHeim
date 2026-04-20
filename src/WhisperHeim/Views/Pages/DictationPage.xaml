@@ -107,6 +107,29 @@
                         <ComboBox x:Name="MicrophoneCombo"
                                   HorizontalAlignment="Stretch"
                                   SelectionChanged="MicrophoneCombo_SelectionChanged" />
+
+                        <!-- Raw / Clean text mode toggle -->
+                        <TextBlock Text="TEXT MODE"
+                                   Style="{StaticResource SectionLabel}"
+                                   Margin="0,20,0,8" />
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton x:Name="CleanModeRadio"
+                                         Content="Clean"
+                                         GroupName="DictationTextMode"
+                                         Margin="0,0,16,0"
+                                         Checked="TextMode_Checked"
+                                         ToolTip="Strip filler words (um, uh, you know...) and normalize whitespace before typing." />
+                            <RadioButton x:Name="RawModeRadio"
+                                         Content="Raw"
+                                         GroupName="DictationTextMode"
+                                         Checked="TextMode_Checked"
+                                         ToolTip="Type the raw ASR output untouched (useful for debugging or verbatim capture)." />
+                        </StackPanel>
+                        <TextBlock x:Name="TextModeHint"
+                                   Text="Clean: removes fillers like “um”, “uh”, “you know”. Raw: types exactly what was heard."
+                                   Style="{StaticResource SubtleText}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,6,0,0" />
                     </StackPanel>
                 </Border>
 

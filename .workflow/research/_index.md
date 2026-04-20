@@ -68,6 +68,10 @@
 
 | 2026-04-09 | Gemma 4 vs Qwen 2.5 14B | [gemma-4-vs-qwen-2.5-for-transcript-analysis.md](gemma-4-vs-qwen-2.5-for-transcript-analysis.md) | Gemma 4 E4B fits on RTX 3080 10GB but scores ~10pts lower on MMLU (69.4% vs 79.7%) and much worse on instruction following; the competitive Gemma 4 models (26B/31B) need 15-18GB VRAM — stick with Qwen 2.5 14B |
 
+## MacParakeet Feature Comparison (2026-04-20)
+
+| 2026-04-20 | MacParakeet Feature Comparison | [macparakeet-feature-comparison.md](macparakeet-feature-comparison.md) | Main gaps vs MacParakeet: deterministic clean-text pipeline (fillers + custom words + snippet expansion), per-utterance dictation history (unlocks private mode/stats/favorites), export depth (SRT/VTT/JSON/DOCX/PDF), and LLM layer expansion (prompt library + multi-summary + multi-conversation chat); WhisperHeim already has YouTube, dual-capture, diarization, and TTS/voice cloning which MacParakeet lacks |
+
 ## UI Framework (2026-03-21)
 
 - **WPF + WPF UI (lepoco/wpfui)**: Mica, Fluent controls, tray icon via WPF-UI.Tray. Best fit for Windows 11 tray app.

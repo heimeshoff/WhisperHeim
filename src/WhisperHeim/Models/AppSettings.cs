@@ -68,6 +68,28 @@ public sealed class DictationSettings
     /// <summary>Whisper language code (e.g. "en", "de"). Null = auto-detect.</summary>
     [JsonPropertyName("language")]
     public string? Language { get; set; }
+
+    /// <summary>
+    /// Text processing mode for dictation output. <c>Clean</c> (default) runs
+    /// the deterministic filler-removal and whitespace-normalization pipeline
+    /// before typing the text into the focused window. <c>Raw</c> ships the
+    /// ASR output verbatim (useful for debugging and verbatim use cases).
+    /// </summary>
+    [JsonPropertyName("textMode")]
+    public DictationTextMode TextMode { get; set; } = DictationTextMode.Clean;
+}
+
+/// <summary>
+/// Selects whether dictation output is cleaned by the text-processing pipeline
+/// before being typed, or shipped as the raw ASR output.
+/// </summary>
+public enum DictationTextMode
+{
+    /// <summary>Run the deterministic clean-text pipeline (filler removal, whitespace).</summary>
+    Clean = 0,
+
+    /// <summary>Ship raw ASR output untouched.</summary>
+    Raw = 1,
 }
 
 public sealed class TemplateSettings

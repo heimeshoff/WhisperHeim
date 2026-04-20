@@ -247,7 +247,8 @@ public partial class MainWindow : FluentWindow
             _transcriptionService,
             _inputSimulator,
             OnDictationStateChanged,
-            _templateService);
+            _templateService,
+            _settingsService);
 
         // Wire up audio amplitude for overlay RMS visualization
         _orchestrator.AudioAmplitudeChanged += OnAudioAmplitudeChanged;
