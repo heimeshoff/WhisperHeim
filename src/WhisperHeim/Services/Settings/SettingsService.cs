@@ -172,7 +172,6 @@ public sealed class SettingsService : IDisposable
         _current.Window = bootstrap.Window;
         _current.Overlay = bootstrap.Overlay;
         _current.Dictation.AudioDevice = bootstrap.AudioDevice;
-        _current.Tts.PlaybackDeviceId = bootstrap.TtsPlaybackDeviceId;
         _current.Ollama.Endpoint = bootstrap.OllamaEndpoint;
         _current.Ollama.Model = bootstrap.OllamaModel;
     }
@@ -186,7 +185,6 @@ public sealed class SettingsService : IDisposable
         bootstrap.Window = _current.Window;
         bootstrap.Overlay = _current.Overlay;
         bootstrap.AudioDevice = _current.Dictation.AudioDevice;
-        bootstrap.TtsPlaybackDeviceId = _current.Tts.PlaybackDeviceId;
         bootstrap.OllamaEndpoint = _current.Ollama.Endpoint;
         bootstrap.OllamaModel = _current.Ollama.Model;
         _dataPathService.Save();

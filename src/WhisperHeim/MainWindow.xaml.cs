@@ -21,8 +21,6 @@ using WhisperHeim.Services.Models;
 using WhisperHeim.Services.Orchestration;
 using WhisperHeim.Services.Settings;
 using WhisperHeim.Services.Templates;
-using WhisperHeim.Services.SelectedText;
-using WhisperHeim.Services.TextToSpeech;
 using WhisperHeim.Services.Analysis;
 using WhisperHeim.Services.Streams;
 using WhisperHeim.Converters;
@@ -59,17 +57,11 @@ public partial class MainWindow : FluentWindow
     // High-quality loopback for voice cloning from system audio
     private readonly IHighQualityLoopbackService _highQualityLoopbackService;
 
-    // High-quality mic recorder for voice cloning
+    // High-quality mic recorder (shared infra for recording flows)
     private readonly IHighQualityRecorderService _highQualityRecorderService;
-
-    // Text-to-speech for the TTS page
-    private readonly ITextToSpeechService _textToSpeechService;
 
     // Data path service for resolving user-configured data directory
     private readonly DataPathService _dataPathService;
-
-    // Read-aloud hotkey service (captures selected text and signals navigation)
-    private readonly ReadAloudHotkeyService _readAloudHotkeyService;
 
     // Transcription queue — replaces the old TranscriptionBusyService
     private readonly TranscriptionQueueService _transcriptionQueueService;
@@ -117,9 +109,7 @@ public partial class MainWindow : FluentWindow
         ITranscriptStorageService transcriptStorageService,
         IHighQualityLoopbackService highQualityLoopbackService,
         IHighQualityRecorderService highQualityRecorderService,
-        ITextToSpeechService textToSpeechService,
         DataPathService dataPathService,
-        ReadAloudHotkeyService readAloudHotkeyService,
         TranscriptionQueueService transcriptionQueueService,
         OllamaService ollamaService,
         StreamTranscriptionService streamTranscriptionService,
@@ -138,9 +128,7 @@ public partial class MainWindow : FluentWindow
         _transcriptStorageService = transcriptStorageService;
         _highQualityLoopbackService = highQualityLoopbackService;
         _highQualityRecorderService = highQualityRecorderService;
-        _textToSpeechService = textToSpeechService;
         _dataPathService = dataPathService;
-        _readAloudHotkeyService = readAloudHotkeyService;
         _transcriptionQueueService = transcriptionQueueService;
         _ollamaService = ollamaService;
         _streamTranscriptionService = streamTranscriptionService;
@@ -265,9 +253,6 @@ public partial class MainWindow : FluentWindow
         // Initialize the dictation overlay if enabled in settings
         InitializeOverlay();
 
-        // Wire up read-aloud hotkey: captures text and navigates to TTS page
-        _readAloudHotkeyService.TextCaptured += OnReadAloudTextCaptured;
-
         Trace.TraceInformation(
             "[MainWindow] Orchestrator started. Dictation hotkey: {0}",
             registered);
@@ -307,40 +292,6 @@ public partial class MainWindow : FluentWindow
         _overlayWindow.ApplySettings(overlaySettings);
 
         Trace.TraceInformation("[MainWindow] Overlay initialized (pill mode, follows last click).");
-    }
-
-    /// <summary>
-    /// Handles the read-aloud hotkey: brings window to foreground, navigates to TTS page,
-    /// and pastes the captured text into the input workspace.
-    /// </summary>
-    private void OnReadAloudTextCaptured(object? sender, ReadAloudTextCapturedEventArgs e)
-    {
-        Application.Current?.Dispatcher?.BeginInvoke(() =>
-        {
-            // Bring the window to the foreground, restoring from minimized if needed
-            ShowWindow();
-
-            // Navigate to the Text to Speech page
-            NavigateTo("TextToSpeech");
-
-            // Select the TTS nav item to keep sidebar in sync
-            foreach (var item in NavList.Items.OfType<System.Windows.Controls.ListBoxItem>())
-            {
-                if (item.Tag is string tag && tag == "TextToSpeech")
-                {
-                    NavList.SelectedItem = item;
-                    break;
-                }
-            }
-
-            // Set the captured text into the TTS input workspace
-            if (_pageCache.TryGetValue("TextToSpeech", out var page) && page is TextToSpeechPage ttsPage)
-            {
-                ttsPage.SetInputText(e.Text);
-            }
-
-            Trace.TraceInformation("[MainWindow] Read-aloud: navigated to TTS page with {0} chars of text.", e.Text.Length);
-        });
     }
 
     /// <summary>
@@ -683,9 +634,6 @@ public partial class MainWindow : FluentWindow
             _callRecordingService.DurationUpdated -= OnCallRecordingDurationUpdated;
             _callRecordingService.StreamFailed -= OnCallRecordingStreamFailed;
 
-            // Unsubscribe from read-aloud events
-            _readAloudHotkeyService.TextCaptured -= OnReadAloudTextCaptured;
-
             // Clean up orchestrator, overlay, hotkey, and call recording services on actual exit
             _overlayWindow?.Close();
             _orchestrator?.Dispose();
@@ -797,12 +745,6 @@ public partial class MainWindow : FluentWindow
                 "Dictation" => new DictationPage(_settingsService, _audioCaptureService, _templateService),
                 "Recordings" => GetOrCreateTranscriptsPage(),
                 "Streams" => new StreamsPage(_streamTranscriptionService, _streamStorageService),
-                "TextToSpeech" => new TextToSpeechPage(
-                    _textToSpeechService,
-                    _highQualityRecorderService,
-                    _highQualityLoopbackService,
-                    _settingsService,
-                    _dataPathService),
                 "Settings" => new GeneralPage(_settingsService, _ollamaService),
                 "About" => new AboutPage(_modelManager),
                 _ => null
@@ -849,7 +791,6 @@ public partial class MainWindow : FluentWindow
         NavLabelDictation.Visibility = labelVisibility;
         NavLabelRecordings.Visibility = labelVisibility;
         NavLabelStreams.Visibility = labelVisibility;
-        NavLabelTextToSpeech.Visibility = labelVisibility;
         NavLabelSettings.Visibility = labelVisibility;
         NavLabelAbout.Visibility = labelVisibility;
 

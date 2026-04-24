@@ -2,6 +2,23 @@
 
 ---
 
+## 2026-04-24 14:54 -- Task Completed: 103 - Remove Text-to-Speech Feature
+
+**Type:** Task Completion
+**Task:** 103 - Remove Text-to-Speech Feature
+**Summary:** Removed TTS end-to-end — deleted `TextToSpeechPage`, `Services/TextToSpeech/`, `Services/SelectedText/` (incl. `ReadAloudHotkeyService`), Pocket TTS model defs, `TtsSettings`, and `TtsPlaybackDeviceId`. Added a one-shot `TtsCleanupDone` bootstrap-flag migration in `DataPathService` that purges Pocket TTS model files, `{DataPath}/voices/`, and the `"tts"` key from `settings.json`. Build clean, 74/74 tests pass.
+**Files changed:** 17 files
+
+---
+
+## 2026-04-24 14:46 -- Task Started: 103 - Remove Text-to-Speech Feature
+
+**Type:** Task Start
+**Task:** 103 - Remove Text-to-Speech Feature
+**Note:** Includes cleanup of `SettingsChanged` subscription added to TextToSpeechPage by task 102 (sequencing inverted from capture note).
+
+---
+
 ## 2026-04-24 14:26 -- Task Completed: 102 - Hot-Reload Settings from Disk (Multi-Machine Sync)
 
 **Type:** Task Completion

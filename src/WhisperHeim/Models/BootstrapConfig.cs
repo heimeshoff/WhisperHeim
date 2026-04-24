@@ -28,9 +28,14 @@ public sealed class BootstrapConfig
     [JsonPropertyName("audioDevice")]
     public string? AudioDevice { get; set; }
 
-    /// <summary>Machine-local TTS playback device.</summary>
-    [JsonPropertyName("ttsPlaybackDeviceId")]
-    public string? TtsPlaybackDeviceId { get; set; }
+    /// <summary>
+    /// One-shot flag: set to <c>true</c> after the post-TTS-removal cleanup has run
+    /// (deleting Pocket TTS models, the voices folder, and the <c>tts</c> block in
+    /// <c>settings.json</c>). When <c>false</c> on startup, <see cref="WhisperHeim.Services.Settings.DataPathService.MigrateIfNeeded"/>
+    /// performs the cleanup and sets this to <c>true</c>.
+    /// </summary>
+    [JsonPropertyName("ttsCleanupDone")]
+    public bool TtsCleanupDone { get; set; }
 
     /// <summary>
     /// Machine-local Ollama API endpoint URL. Different machines may run

@@ -5,7 +5,7 @@ using NAudio.Wave;
 namespace WhisperHeim.Services.Audio;
 
 /// <summary>
-/// Records microphone audio at high quality (44.1kHz 16-bit mono) for TTS voice cloning.
+/// Records microphone audio at high quality (44.1kHz 16-bit mono).
 /// This is separate from <see cref="AudioCaptureService"/> which records at 16kHz for Whisper.
 /// </summary>
 public sealed class HighQualityRecorderService : IHighQualityRecorderService

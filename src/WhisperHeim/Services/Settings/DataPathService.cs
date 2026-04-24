@@ -157,6 +157,111 @@ public sealed class DataPathService
         MigrateSettingsLocalFields();
         MigrateOllamaEndpointAndModel();
         MigrateTranscriptsToRecordings();
+        CleanupTextToSpeechArtifacts();
+    }
+
+    /// <summary>
+    /// One-shot cleanup that runs on the first launch after the Text-to-Speech
+    /// feature was removed (task 103). Deletes the Pocket TTS model directories
+    /// (FP32 and int8), the user's custom voices folder, and strips the
+    /// <c>"tts"</c> key from <c>settings.json</c> so it does not linger in the
+    /// synced settings file. Gated by
+    /// <see cref="BootstrapConfig.TtsCleanupDone"/> so it runs exactly once.
+    /// </summary>
+    private void CleanupTextToSpeechArtifacts()
+    {
+        if (_bootstrap.TtsCleanupDone)
+            return;
+
+        var removed = new List<string>();
+
+        // 1. Delete Pocket TTS model directories (both FP32 and int8 variants).
+        var modelsRoot = ModelsPath;
+        foreach (var subDir in new[] { "pocket-tts-fp32", "pocket-tts-int8" })
+        {
+            var dir = Path.Combine(modelsRoot, subDir);
+            if (TryDeleteDirectory(dir))
+                removed.Add($"models/{subDir}");
+        }
+
+        // 2. Delete the custom voices folder.
+        var voicesDir = VoicesPath;
+        if (TryDeleteDirectory(voicesDir))
+            removed.Add("voices/");
+
+        // 3. Strip the "tts" key from settings.json so the synced file no longer
+        //    carries it. Safe to do even if the key is absent.
+        var settingsPath = SettingsPath;
+        if (File.Exists(settingsPath))
+        {
+            try
+            {
+                var json = File.ReadAllText(settingsPath);
+                using var doc = JsonDocument.Parse(json);
+                if (doc.RootElement.ValueKind == JsonValueKind.Object &&
+                    doc.RootElement.TryGetProperty("tts", out _))
+                {
+                    // Rebuild the object without the "tts" property.
+                    using var ms = new MemoryStream();
+                    using (var writer = new Utf8JsonWriter(ms, new JsonWriterOptions { Indented = true }))
+                    {
+                        writer.WriteStartObject();
+                        foreach (var property in doc.RootElement.EnumerateObject())
+                        {
+                            if (property.NameEquals("tts"))
+                                continue;
+                            property.WriteTo(writer);
+                        }
+                        writer.WriteEndObject();
+                    }
+                    File.WriteAllBytes(settingsPath, ms.ToArray());
+                    removed.Add("settings.json:tts");
+                }
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceWarning(
+                    "[DataPathService] TTS cleanup: failed to strip 'tts' from settings.json: {0}",
+                    ex.Message);
+            }
+        }
+
+        _bootstrap.TtsCleanupDone = true;
+        Save();
+
+        if (removed.Count > 0)
+        {
+            Trace.TraceInformation(
+                "[DataPathService] TTS cleanup complete. Removed: {0}",
+                string.Join(", ", removed));
+        }
+        else
+        {
+            Trace.TraceInformation(
+                "[DataPathService] TTS cleanup complete. Nothing to remove.");
+        }
+    }
+
+    /// <summary>
+    /// Best-effort recursive directory delete. Returns <c>true</c> if the directory
+    /// existed and was deleted (or could not be deleted — in which case a warning
+    /// is logged), <c>false</c> if it didn't exist.
+    /// </summary>
+    private static bool TryDeleteDirectory(string path)
+    {
+        if (!Directory.Exists(path))
+            return false;
+
+        try
+        {
+            Directory.Delete(path, recursive: true);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Trace.TraceWarning("[DataPathService] Failed to delete {0}: {1}", path, ex.Message);
+            return false;
+        }
     }
 
     /// <summary>
@@ -186,7 +291,6 @@ public sealed class DataPathService
             _bootstrap.Window = settings.Window;
             _bootstrap.Overlay = settings.Overlay;
             _bootstrap.AudioDevice = settings.Dictation.AudioDevice;
-            _bootstrap.TtsPlaybackDeviceId = settings.Tts.PlaybackDeviceId;
 
             Save();
             Trace.TraceInformation("[DataPathService] Migrated machine-local settings to bootstrap config.");

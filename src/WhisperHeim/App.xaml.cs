@@ -10,8 +10,6 @@ using WhisperHeim.Services.Settings;
 using WhisperHeim.Services.Startup;
 using WhisperHeim.Services.FileTranscription;
 using WhisperHeim.Services.Templates;
-using WhisperHeim.Services.SelectedText;
-using WhisperHeim.Services.TextToSpeech;
 using WhisperHeim.Services.Transcription;
 using WhisperHeim.Services.Analysis;
 using WhisperHeim.Services.Streams;
@@ -29,7 +27,6 @@ public partial class App : Application
     private SettingsService? _settingsService;
     private readonly AudioCaptureService _audioCaptureService = new();
     private readonly ModelManagerService _modelManager = new();
-    private ReadAloudHotkeyService? _readAloudHotkeyService;
     private bool _isShowingError;
 
     private void OnStartup(object sender, StartupEventArgs e)
@@ -136,7 +133,6 @@ public partial class App : Application
 
         // Initialize path-dependent static services
         ModelManagerService.Initialize(_dataPathService);
-        TextToSpeechService.Initialize(_dataPathService);
         HighQualityLoopbackService.Initialize(_dataPathService);
 
         // Load settings (creates file with defaults on first run)
@@ -194,20 +190,11 @@ public partial class App : Application
             transcriptStorageService,
             () => _settingsService!.Current.General.DefaultSpeakerName);
 
-        // Create text-to-speech service (lazy-loaded: model loads on first use)
-        var textToSpeechService = new TextToSpeechService();
-
-        // Create high-quality loopback service for voice cloning from system audio
+        // Create high-quality loopback service (shared infra: used by call recording / voice cloning flows)
         var highQualityLoopbackService = new HighQualityLoopbackService();
 
-        // Create high-quality mic recorder for voice cloning
+        // Create high-quality mic recorder (shared infra)
         var highQualityRecorderService = new HighQualityRecorderService();
-
-        // Create read-aloud services (selected text capture + hotkey)
-        // NOTE: must be stored in a field to prevent GC from collecting the keyboard hook delegate
-        var selectedTextService = new SelectedTextService();
-        _readAloudHotkeyService = new ReadAloudHotkeyService(selectedTextService, _settingsService);
-        _readAloudHotkeyService.Register();
 
         // Create Ollama analysis service (local LLM transcript analysis)
         var ollamaService = new OllamaService(_settingsService);
@@ -235,9 +222,7 @@ public partial class App : Application
             transcriptStorageService,
             highQualityLoopbackService,
             highQualityRecorderService,
-            textToSpeechService,
             _dataPathService,
-            _readAloudHotkeyService,
             transcriptionQueueService,
             ollamaService,
             streamTranscriptionService,
@@ -253,21 +238,5 @@ public partial class App : Application
         {
             mainWindow.ShowSettingsWindow();
         }
-
-        // Warm up TTS voice in the background after UI is ready.
-        // This pre-loads the model and runs a dummy generation to cache the
-        // default voice's embedding, so the first read-aloud hotkey press is instant.
-        var defaultVoiceId = _settingsService.Current.Tts.DefaultVoiceId;
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                await textToSpeechService.WarmUpAsync(defaultVoiceId);
-            }
-            catch (Exception ex)
-            {
-                Trace.TraceWarning("[App] TTS warm-up failed (non-fatal): {0}", ex.Message);
-            }
-        });
     }
 }

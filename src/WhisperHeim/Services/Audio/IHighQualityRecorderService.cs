@@ -1,8 +1,7 @@
 namespace WhisperHeim.Services.Audio;
 
 /// <summary>
-/// Service for recording high-quality microphone audio (44.1/48kHz)
-/// suitable for TTS voice cloning reference samples.
+/// Service for recording high-quality microphone audio (44.1/48kHz).
 /// </summary>
 public interface IHighQualityRecorderService : IDisposable
 {

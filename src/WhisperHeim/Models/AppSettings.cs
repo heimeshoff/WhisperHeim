@@ -23,10 +23,6 @@ public sealed class AppSettings
     [JsonPropertyName("overlay")]
     public OverlaySettings Overlay { get; set; } = new();
 
-    /// <summary>Text-to-speech settings.</summary>
-    [JsonPropertyName("tts")]
-    public TtsSettings Tts { get; set; } = new();
-
     /// <summary>Ollama / LLM analysis settings.</summary>
     [JsonPropertyName("ollama")]
     public OllamaSettings Ollama { get; set; } = new();
@@ -182,32 +178,6 @@ public sealed class WindowSettings
     /// <summary>Whether the sidebar was collapsed to icons-only mode.</summary>
     [JsonPropertyName("sidebarCollapsed")]
     public bool SidebarCollapsed { get; set; }
-}
-
-/// <summary>
-/// Settings for text-to-speech (TTS) features.
-/// </summary>
-public sealed class TtsSettings
-{
-    /// <summary>
-    /// Default voice ID for TTS. Null means use the first available voice.
-    /// Value corresponds to <see cref="WhisperHeim.Services.TextToSpeech.TtsVoice.Id"/>.
-    /// </summary>
-    [JsonPropertyName("defaultVoiceId")]
-    public string? DefaultVoiceId { get; set; }
-
-    /// <summary>
-    /// Read-aloud hotkey combination as a string like "Ctrl+Win+T".
-    /// Null means use the default (Ctrl+Win+T).
-    /// </summary>
-    [JsonPropertyName("readAloudHotkey")]
-    public string? ReadAloudHotkey { get; set; }
-
-    /// <summary>
-    /// Playback device ID (NAudio device number as string). Null means system default (-1).
-    /// </summary>
-    [JsonPropertyName("playbackDeviceId")]
-    public string? PlaybackDeviceId { get; set; }
 }
 
 /// <summary>
