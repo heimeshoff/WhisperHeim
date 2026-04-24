@@ -255,23 +255,6 @@
                                            VerticalAlignment="Center" HorizontalAlignment="Right" />
                             </DockPanel>
 
-                            <!-- Shortcut: Read Aloud -->
-                            <DockPanel Margin="0,0,0,14">
-                                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                                    <Border Style="{StaticResource KbdPill}">
-                                        <TextBlock Text="Ctrl" Style="{StaticResource KbdText}" />
-                                    </Border>
-                                    <Border Style="{StaticResource KbdPill}">
-                                        <TextBlock Text="Win" Style="{StaticResource KbdText}" />
-                                    </Border>
-                                    <Border Style="{StaticResource KbdPill}">
-                                        <TextBlock Text="T" Style="{StaticResource KbdText}" />
-                                    </Border>
-                                </StackPanel>
-                                <TextBlock Text="Read Aloud" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                           VerticalAlignment="Center" HorizontalAlignment="Right" />
-                            </DockPanel>
-
                             <!-- Shortcut: Template Dictation -->
                             <DockPanel Margin="0,0,0,14">
                                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">

@@ -1,14 +1,14 @@
 # WhisperHeim
 
-A local-first, privacy-focused voice toolkit for Windows. Dictate text, record and transcribe calls, clone voices, and read selected text aloud -- all powered by on-device AI models. No cloud, no subscriptions, no data leaves your machine.
+A local-first, privacy-focused voice toolkit for Windows. Dictate text and record and transcribe calls -- all powered by on-device AI models. No cloud, no subscriptions, no data leaves your machine.
 
 ## Features
 
 - **Voice Dictation** -- speak and have text typed into any application (Ctrl+Win)
 - **Call Recording & Transcription** -- record system audio with speaker diarization (Ctrl+Win+R)
-- **Text-to-Speech** -- synthesize speech with built-in or cloned voices
-- **Read Aloud** -- select text in any app and have it read back to you (Ctrl+Win+T)
 - **Templates** -- reusable text snippets triggered by voice (Ctrl+Win+Alt)
+- **File Transcription** -- drop in existing audio files and get diarized transcripts
+- **AI Analysis (optional)** -- summarize and analyze transcripts via a local Ollama model
 - **Cloud Sync** -- optionally store your data in a synced folder (Google Drive, OneDrive, Dropbox)
 
 ## Prerequisites
@@ -25,7 +25,7 @@ dotnet build src/WhisperHeim/WhisperHeim.csproj
 dotnet run --project src/WhisperHeim/WhisperHeim.csproj
 ```
 
-On first launch the app will download the required AI models (~500 MB total). This is a one-time process.
+On first launch the app will download the required AI models (~800 MB total). This is a one-time process.
 
 ## Publish as Standalone Exe
 
@@ -42,7 +42,7 @@ The output will be in `publish/`.
 ```
 src/WhisperHeim/
   Models/          # Data models and settings
-  Services/        # Core services (ASR, TTS, hotkeys, recording, ...)
+  Services/        # Core services (ASR, hotkeys, recording, diarization, ...)
   Views/           # WPF pages and windows
   Assets/          # Icons, images, branding
 ```

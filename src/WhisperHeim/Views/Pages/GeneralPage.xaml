@@ -141,7 +141,7 @@
                     <TextBlock Text="Data folder"
                                FontSize="15" FontWeight="SemiBold"
                                Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                    <TextBlock Text="Choose where your recordings, settings, and voice samples are stored. Use a cloud-synced folder (Google Drive, OneDrive) to share data across devices."
+                    <TextBlock Text="Choose where your recordings and settings are stored. Use a cloud-synced folder (Google Drive, OneDrive) to share data across devices."
                                FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                Margin="0,4,0,16"
                                TextWrapping="Wrap" />
@@ -175,7 +175,7 @@
                 <StackPanel>
                     <TextBlock FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}">
                         <Run FontWeight="SemiBold">Synced:</Run>
-                        <Run>settings, recordings, voice samples</Run>
+                        <Run>settings, recordings</Run>
                     </TextBlock>
                     <TextBlock FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="0,4,0,0">
                         <Run FontWeight="SemiBold">Local only:</Run>
