@@ -74,6 +74,29 @@ public partial class TextToSpeechPage : UserControl
         _loopbackService.CaptureStopped += OnLoopbackCaptureStopped;
 
         Loaded += OnLoaded;
+
+        // Re-render when settings change underneath us (disk reload from another
+        // machine, or a local Save() via another page).
+        _settingsService.SettingsChanged += OnSettingsChanged;
+        Unloaded += (_, _) => _settingsService.SettingsChanged -= OnSettingsChanged;
+    }
+
+    private void OnSettingsChanged(object? sender, SettingsChangedEventArgs e)
+    {
+        // Re-select the saved voice if it still exists in the combo.
+        var savedVoiceId = _settingsService.Current.Tts.DefaultVoiceId;
+        if (!string.IsNullOrEmpty(savedVoiceId))
+        {
+            for (int i = 0; i < VoiceCombo.Items.Count; i++)
+            {
+                if (VoiceCombo.Items[i] is VoiceComboItem item && item.VoiceId == savedVoiceId)
+                {
+                    if (VoiceCombo.SelectedIndex != i)
+                        VoiceCombo.SelectedIndex = i;
+                    break;
+                }
+            }
+        }
     }
 
     // ════════════════════════════════════════════════════════════════

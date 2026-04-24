@@ -54,6 +54,19 @@ public sealed class OllamaService
     {
         _settingsService = settingsService;
         EnsureDefaultTemplates();
+
+        // After a disk reload swapped AppSettings underneath us, built-in templates
+        // may be missing if another machine's file didn't have them yet. Re-ensure
+        // them on every change so the analysis UI always shows the defaults.
+        _settingsService.SettingsChanged += OnSettingsChanged;
+    }
+
+    private void OnSettingsChanged(object? sender, SettingsChangedEventArgs e)
+    {
+        // Only on disk reloads — local saves go through AddTemplate/UpdateTemplate
+        // and already have the right state.
+        if (e.Source != SettingsChangeSource.DiskReload) return;
+        EnsureDefaultTemplates();
     }
 
     /// <summary>
@@ -184,9 +197,12 @@ public sealed class OllamaService
 
     /// <summary>
     /// Adds a new user-defined template and saves settings.
+    /// Reloads from disk first so concurrent additions from another machine
+    /// are preserved through the merge in <see cref="SettingsService.Save"/>.
     /// </summary>
     public void AddTemplate(AnalysisPromptTemplate template)
     {
+        _settingsService.ReloadFromDiskForMutation();
         _settingsService.Current.Ollama.AnalysisTemplates.Add(template);
         _settingsService.Save();
     }
@@ -196,6 +212,7 @@ public sealed class OllamaService
     /// </summary>
     public void UpdateTemplate(AnalysisPromptTemplate template)
     {
+        _settingsService.ReloadFromDiskForMutation();
         var templates = _settingsService.Current.Ollama.AnalysisTemplates;
         var index = templates.FindIndex(t => t.Id == template.Id);
         if (index >= 0)
@@ -210,6 +227,7 @@ public sealed class OllamaService
     /// </summary>
     public bool DeleteTemplate(string id)
     {
+        _settingsService.ReloadFromDiskForMutation();
         var templates = _settingsService.Current.Ollama.AnalysisTemplates;
         var template = templates.FirstOrDefault(t => t.Id == id);
         if (template is null || template.IsBuiltIn)

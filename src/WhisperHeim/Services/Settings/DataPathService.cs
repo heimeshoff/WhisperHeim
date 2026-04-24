@@ -26,6 +26,13 @@ public sealed class DataPathService
 
     private BootstrapConfig _bootstrap = new();
 
+    /// <summary>
+    /// Raised after <see cref="SetDataPath"/> successfully changes the data path
+    /// at runtime. Subscribers (e.g. <see cref="SettingsService"/>) can use this to
+    /// recreate path-dependent watchers.
+    /// </summary>
+    public event EventHandler<string>? DataPathChanged;
+
     /// <summary>The current bootstrap configuration (machine-local settings + data path pointer).</summary>
     public BootstrapConfig Bootstrap => _bootstrap;
 
@@ -124,6 +131,7 @@ public sealed class DataPathService
             _bootstrap.DataPath = null;
             Save();
             Trace.TraceInformation("[DataPathService] Data path reset to default: {0}", LocalRoot);
+            DataPathChanged?.Invoke(this, DataPath);
             return true;
         }
 
@@ -136,6 +144,7 @@ public sealed class DataPathService
         _bootstrap.DataPath = newPath;
         Save();
         Trace.TraceInformation("[DataPathService] Data path changed to: {0}", newPath);
+        DataPathChanged?.Invoke(this, DataPath);
         return true;
     }
 
@@ -146,6 +155,7 @@ public sealed class DataPathService
     public void MigrateIfNeeded()
     {
         MigrateSettingsLocalFields();
+        MigrateOllamaEndpointAndModel();
         MigrateTranscriptsToRecordings();
     }
 
@@ -184,6 +194,72 @@ public sealed class DataPathService
         catch (Exception ex)
         {
             Trace.TraceWarning("[DataPathService] Failed to migrate local settings: {0}", ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Migrates the Ollama endpoint + model out of the synced <c>settings.json</c>
+    /// into the machine-local <c>bootstrap.json</c>. Runs on first launch with the
+    /// new split so existing installs don't lose their configured endpoint/model.
+    /// Idempotent: once bootstrap holds a non-default endpoint or a model, we
+    /// skip. We read the raw JSON because the new <see cref="AppSettings"/> no
+    /// longer deserializes those two fields.
+    /// </summary>
+    private void MigrateOllamaEndpointAndModel()
+    {
+        // If bootstrap already carries a non-default endpoint or any model,
+        // the user has already been on the new schema at least once.
+        const string DefaultEndpoint = "http://localhost:11434";
+        if (!string.IsNullOrEmpty(_bootstrap.OllamaModel) ||
+            (!string.IsNullOrEmpty(_bootstrap.OllamaEndpoint) && _bootstrap.OllamaEndpoint != DefaultEndpoint))
+        {
+            return;
+        }
+
+        var settingsPath = Path.Combine(DataPath, "settings.json");
+        if (!File.Exists(settingsPath))
+            return;
+
+        try
+        {
+            var json = File.ReadAllText(settingsPath);
+            using var doc = JsonDocument.Parse(json);
+            if (!doc.RootElement.TryGetProperty("ollama", out var ollamaElement))
+                return;
+
+            var migrated = false;
+            if (ollamaElement.TryGetProperty("endpoint", out var endpointElement) &&
+                endpointElement.ValueKind == JsonValueKind.String)
+            {
+                var endpoint = endpointElement.GetString();
+                if (!string.IsNullOrWhiteSpace(endpoint))
+                {
+                    _bootstrap.OllamaEndpoint = endpoint;
+                    migrated = true;
+                }
+            }
+
+            if (ollamaElement.TryGetProperty("model", out var modelElement) &&
+                modelElement.ValueKind == JsonValueKind.String)
+            {
+                var model = modelElement.GetString();
+                if (!string.IsNullOrWhiteSpace(model))
+                {
+                    _bootstrap.OllamaModel = model;
+                    migrated = true;
+                }
+            }
+
+            if (migrated)
+            {
+                Save();
+                Trace.TraceInformation(
+                    "[DataPathService] Migrated Ollama endpoint/model to bootstrap config.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Trace.TraceWarning("[DataPathService] Failed to migrate Ollama settings: {0}", ex.Message);
         }
     }
 

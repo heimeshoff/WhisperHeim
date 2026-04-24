@@ -28,6 +28,30 @@ public partial class GeneralPage : UserControl
         // Highlight the active theme card once the visual tree is ready,
         // so that Background assignments are applied after layout.
         Loaded += (_, _) => HighlightActiveTheme();
+
+        // Re-render when settings change underneath us (disk reload from
+        // another machine, or a local Save() via another page).
+        _settingsService.SettingsChanged += OnSettingsChanged;
+        Unloaded += (_, _) => _settingsService.SettingsChanged -= OnSettingsChanged;
+    }
+
+    private void OnSettingsChanged(object? sender, SettingsChangedEventArgs e)
+    {
+        // General.* instance may have been swapped on DiskReload; rebind and redraw.
+        DataContext = _settingsService.Current.General;
+
+        // Refresh Ollama endpoint/model (bootstrap fields mirrored into AppSettings).
+        OllamaEndpointBox.Text = _settingsService.Current.Ollama.Endpoint;
+        var currentModel = _settingsService.Current.Ollama.Model;
+        if (!string.IsNullOrEmpty(currentModel))
+        {
+            // Ensure the combo contains the (possibly newly-loaded) model and is selected.
+            if (!OllamaModelCombo.Items.Contains(currentModel))
+                OllamaModelCombo.Items.Add(currentModel);
+            OllamaModelCombo.SelectedItem = currentModel;
+        }
+
+        HighlightActiveTheme();
     }
 
     private void OnSettingChanged(object sender, RoutedEventArgs e)

@@ -2,6 +2,41 @@
 
 ---
 
+## 2026-04-24 14:26 -- Task Completed: 102 - Hot-Reload Settings from Disk (Multi-Machine Sync)
+
+**Type:** Task Completion
+**Task:** 102 - Hot-Reload Settings from Disk (Multi-Machine Sync)
+**Summary:** Implemented hot-reload of `settings.json` via a debounced `FileSystemWatcher` with 5s self-write suppression and pre-save list-merge; moved Ollama endpoint/model to machine-local `bootstrap.json` with a first-run migrator; added a UI-thread `SettingsChanged` event with subscribers on Templates/General/TTS/Dictation pages; watcher disposes on shutdown and recreates on `DataPath` change.
+**Files changed:** 10 files
+
+---
+
+## 2026-04-24 -- Idea Captured: Remove Text-to-Speech Feature
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/103-remove-text-to-speech-feature.md
+**Summary:** Remove TTS in its entirety — page, services (`TextToSpeechService`, `AudioExportService`), Pocket TTS model definitions (FP32 + int8), voice cloning, `ReadAloudHotkeyService`, `TtsSettings`, `TtsPlaybackDeviceId` in bootstrap, and navigation. Add one-time first-run cleanup to delete downloaded Pocket TTS model files, `%APPDATA%\WhisperHeim\voices`, and strip the `"tts"` key from users' `settings.json`. Shared infra (NAudio, sherpa-onnx, Concentus, shared recorder services) stays — used by dictation/recording. Coordinate with task 102: land 103 first so 102 doesn't need to subscribe TextToSpeechPage to `SettingsChanged`.
+
+---
+
+## 2026-04-24 14:16 -- Task Started: 102 - Hot-Reload Settings from Disk (Multi-Machine Sync)
+
+**Type:** Task Start
+**Task:** 102 - Hot-Reload Settings from Disk (Multi-Machine Sync)
+**Milestone:** Post-M1 polish (multi-machine sync)
+
+---
+
+## 2026-04-24 -- Idea Captured: Hot-Reload Settings from Disk (Multi-Machine Sync)
+
+**Type:** Idea Capture
+**Mode:** Deep
+**Filed to:** tasks/todo/102-hot-reload-settings-from-disk.md
+**Summary:** When another WhisperHeim instance edits `settings.json` on a shared cloud-synced `DataPath`, the running instance should detect and hot-reload the change. FileSystemWatcher + 500ms debounce, 5s self-write suppression, pre-save reload+merge to protect concurrent list-field additions, `SettingsChanged` event for live UI refresh. Ollama endpoint + model move to machine-local `bootstrap.json`; `AnalysisTemplates` stays synced.
+
+---
+
 ## 2026-04-20 12:55 -- Task Completed: 101 - Deterministic Clean-Text Pipeline (Filler Word Removal)
 
 **Type:** Task Completion

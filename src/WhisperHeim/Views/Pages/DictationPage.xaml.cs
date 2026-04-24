@@ -62,6 +62,27 @@ public partial class DictationPage : UserControl
         TestTextBox.TextChanged += (_, _) => UpdateWatermark();
         UpdateWatermark();
         RefreshTemplateList();
+
+        // Re-render when settings change underneath us (e.g. disk reload from
+        // another machine, or a local Save() via another page).
+        _settingsService.SettingsChanged += OnSettingsChanged;
+        Unloaded += (_, _) => _settingsService.SettingsChanged -= OnSettingsChanged;
+    }
+
+    private void OnSettingsChanged(object? sender, SettingsChangedEventArgs e)
+    {
+        // Refresh language + text-mode toggle and the template list.
+        _isInitializing = true;
+        try
+        {
+            InitializeTextModeToggle();
+        }
+        finally
+        {
+            _isInitializing = false;
+        }
+
+        RefreshTemplateList();
     }
 
     /// <summary>

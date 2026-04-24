@@ -692,6 +692,9 @@ public partial class MainWindow : FluentWindow
             _hotkeyService.Dispose();
             _callRecordingHotkeyService.Dispose();
             (_callRecordingService as IDisposable)?.Dispose();
+
+            // Stop watching settings.json for external changes.
+            _settingsService.Dispose();
         }
 
         base.OnClosing(e);

@@ -31,4 +31,18 @@ public sealed class BootstrapConfig
     /// <summary>Machine-local TTS playback device.</summary>
     [JsonPropertyName("ttsPlaybackDeviceId")]
     public string? TtsPlaybackDeviceId { get; set; }
+
+    /// <summary>
+    /// Machine-local Ollama API endpoint URL. Different machines may run
+    /// different Ollama servers, so this setting is not synced.
+    /// </summary>
+    [JsonPropertyName("ollamaEndpoint")]
+    public string OllamaEndpoint { get; set; } = "http://localhost:11434";
+
+    /// <summary>
+    /// Machine-local Ollama model name (e.g. "qwen2.5:14b"). Different machines
+    /// may have different models pulled, so this setting is not synced.
+    /// </summary>
+    [JsonPropertyName("ollamaModel")]
+    public string? OllamaModel { get; set; }
 }

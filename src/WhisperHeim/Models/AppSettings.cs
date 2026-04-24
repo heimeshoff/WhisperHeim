@@ -212,15 +212,25 @@ public sealed class TtsSettings
 
 /// <summary>
 /// Settings for Ollama-based local LLM transcript analysis.
+/// The machine-local endpoint and model live in <see cref="BootstrapConfig"/>;
+/// only the synced fields (analysis prompt templates) are stored here.
 /// </summary>
 public sealed class OllamaSettings
 {
-    /// <summary>Ollama API endpoint URL.</summary>
-    [JsonPropertyName("endpoint")]
+    /// <summary>
+    /// Ollama API endpoint URL. Mirrored from <see cref="BootstrapConfig.OllamaEndpoint"/>
+    /// by <see cref="WhisperHeim.Services.Settings.SettingsService"/> so existing
+    /// read-sites on <c>AppSettings</c> keep working; writes go back to bootstrap.
+    /// </summary>
+    [JsonIgnore]
     public string Endpoint { get; set; } = "http://localhost:11434";
 
-    /// <summary>Selected model name (e.g. "qwen2.5:14b").</summary>
-    [JsonPropertyName("model")]
+    /// <summary>
+    /// Selected model name (e.g. "qwen2.5:14b"). Mirrored from
+    /// <see cref="BootstrapConfig.OllamaModel"/> by
+    /// <see cref="WhisperHeim.Services.Settings.SettingsService"/>; machine-local.
+    /// </summary>
+    [JsonIgnore]
     public string? Model { get; set; }
 
     /// <summary>User-defined and built-in analysis prompt templates.</summary>

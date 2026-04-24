@@ -95,6 +95,9 @@ public sealed class TemplateService : ITemplateService
     /// <inheritdoc />
     public void AddTemplate(string name, string text, string? group = null)
     {
+        // Reload from disk first so a concurrent addition from another machine
+        // is not clobbered when we save. See SettingsService merge logic.
+        _settingsService.ReloadFromDiskForMutation();
         _settingsService.Current.Templates.Items.Add(new TemplateItem
         {
             Name = name,
@@ -107,6 +110,7 @@ public sealed class TemplateService : ITemplateService
     /// <inheritdoc />
     public void UpdateTemplate(int index, string name, string text)
     {
+        _settingsService.ReloadFromDiskForMutation();
         var items = _settingsService.Current.Templates.Items;
         if (index < 0 || index >= items.Count)
             return;
@@ -119,6 +123,7 @@ public sealed class TemplateService : ITemplateService
     /// <inheritdoc />
     public void RemoveTemplate(int index)
     {
+        _settingsService.ReloadFromDiskForMutation();
         var items = _settingsService.Current.Templates.Items;
         if (index < 0 || index >= items.Count)
             return;
@@ -130,6 +135,7 @@ public sealed class TemplateService : ITemplateService
     /// <inheritdoc />
     public void MoveTemplateToGroup(int templateIndex, string? groupName)
     {
+        _settingsService.ReloadFromDiskForMutation();
         var items = _settingsService.Current.Templates.Items;
         if (templateIndex < 0 || templateIndex >= items.Count)
             return;
@@ -157,6 +163,8 @@ public sealed class TemplateService : ITemplateService
     public void AddGroup(string name)
     {
         if (string.IsNullOrWhiteSpace(name)) return;
+
+        _settingsService.ReloadFromDiskForMutation();
         var groups = _settingsService.Current.Templates.Groups;
 
         // No duplicates
@@ -175,6 +183,7 @@ public sealed class TemplateService : ITemplateService
         if (string.Equals(oldName, SystemTemplateDefinitions.SystemGroupName, StringComparison.OrdinalIgnoreCase)) return;
         if (string.IsNullOrWhiteSpace(newName)) return;
 
+        _settingsService.ReloadFromDiskForMutation();
         var groups = _settingsService.Current.Templates.Groups;
         var group = groups.FirstOrDefault(g => string.Equals(g.Name, oldName, StringComparison.OrdinalIgnoreCase));
         if (group is null) return;
@@ -196,6 +205,7 @@ public sealed class TemplateService : ITemplateService
         if (string.Equals(name, UngroupedName, StringComparison.OrdinalIgnoreCase)) return false;
         if (string.Equals(name, SystemTemplateDefinitions.SystemGroupName, StringComparison.OrdinalIgnoreCase)) return false;
 
+        _settingsService.ReloadFromDiskForMutation();
         var templates = _settingsService.Current.Templates.Items;
         var hasTemplates = templates.Any(t =>
             string.Equals(t.Group, name, StringComparison.OrdinalIgnoreCase));
@@ -212,6 +222,7 @@ public sealed class TemplateService : ITemplateService
     /// <inheritdoc />
     public void ReorderGroups(IReadOnlyList<string> groupNamesInOrder)
     {
+        _settingsService.ReloadFromDiskForMutation();
         var groups = _settingsService.Current.Templates.Groups;
         for (var i = 0; i < groupNamesInOrder.Count; i++)
         {
@@ -228,6 +239,7 @@ public sealed class TemplateService : ITemplateService
     /// <inheritdoc />
     public void SetGroupExpanded(string groupName, bool isExpanded)
     {
+        _settingsService.ReloadFromDiskForMutation();
         var groups = _settingsService.Current.Templates.Groups;
         var group = groups.FirstOrDefault(g =>
             string.Equals(g.Name, groupName, StringComparison.OrdinalIgnoreCase));
