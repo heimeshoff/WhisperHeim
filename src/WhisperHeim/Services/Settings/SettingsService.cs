@@ -280,9 +280,16 @@ public sealed class SettingsService : IDisposable
         {
             Directory.CreateDirectory(dir);
 
+            // FileName is required for Created/Renamed to fire — many editors and
+            // cloud-sync daemons (Google Drive, OneDrive, VS Code) write atomically
+            // via a temp file that is then renamed over the target, which only
+            // surfaces as Created/Renamed, not as an in-place Changed.
             _watcher = new FileSystemWatcher(dir, "settings.json")
             {
-                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.CreationTime,
+                NotifyFilter = NotifyFilters.FileName
+                             | NotifyFilters.LastWrite
+                             | NotifyFilters.Size
+                             | NotifyFilters.CreationTime,
                 EnableRaisingEvents = true,
             };
             _watcher.Changed += OnWatcherEvent;

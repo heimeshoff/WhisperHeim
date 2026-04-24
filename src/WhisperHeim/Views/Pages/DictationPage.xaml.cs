@@ -65,13 +65,32 @@ public partial class DictationPage : UserControl
 
         // Re-render when settings change underneath us (e.g. disk reload from
         // another machine, or a local Save() via another page).
+        // Subscribe on Loaded / unsubscribe on Unloaded so the hook survives
+        // navigation cycles (pages are cached in MainWindow._pageCache and get
+        // re-Loaded when the user navigates back).
+        Loaded += OnPageLoaded;
+        Unloaded += OnPageUnloaded;
+    }
+
+    private void OnPageLoaded(object sender, RoutedEventArgs e)
+    {
         _settingsService.SettingsChanged += OnSettingsChanged;
-        Unloaded += (_, _) => _settingsService.SettingsChanged -= OnSettingsChanged;
+        // Catch up on any disk reload that happened while we were unloaded.
+        RefreshFromSettings();
+    }
+
+    private void OnPageUnloaded(object sender, RoutedEventArgs e)
+    {
+        _settingsService.SettingsChanged -= OnSettingsChanged;
     }
 
     private void OnSettingsChanged(object? sender, SettingsChangedEventArgs e)
     {
-        // Refresh language + text-mode toggle and the template list.
+        RefreshFromSettings();
+    }
+
+    private void RefreshFromSettings()
+    {
         _isInitializing = true;
         try
         {

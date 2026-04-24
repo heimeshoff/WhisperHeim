@@ -25,17 +25,33 @@ public partial class GeneralPage : UserControl
         UpdateDataPathDisplay();
         InitializeOllamaSettings();
 
-        // Highlight the active theme card once the visual tree is ready,
-        // so that Background assignments are applied after layout.
-        Loaded += (_, _) => HighlightActiveTheme();
-
         // Re-render when settings change underneath us (disk reload from
         // another machine, or a local Save() via another page).
+        // Subscribe on Loaded / unsubscribe on Unloaded so the hook survives
+        // navigation cycles (pages are cached in MainWindow._pageCache).
+        Loaded += OnPageLoaded;
+        Unloaded += OnPageUnloaded;
+    }
+
+    private void OnPageLoaded(object sender, RoutedEventArgs e)
+    {
         _settingsService.SettingsChanged += OnSettingsChanged;
-        Unloaded += (_, _) => _settingsService.SettingsChanged -= OnSettingsChanged;
+        // Catch up on any disk reload that landed while we were unloaded,
+        // and highlight the active theme now that the visual tree is ready.
+        RefreshFromSettings();
+    }
+
+    private void OnPageUnloaded(object sender, RoutedEventArgs e)
+    {
+        _settingsService.SettingsChanged -= OnSettingsChanged;
     }
 
     private void OnSettingsChanged(object? sender, SettingsChangedEventArgs e)
+    {
+        RefreshFromSettings();
+    }
+
+    private void RefreshFromSettings()
     {
         // General.* instance may have been swapped on DiskReload; rebind and redraw.
         DataContext = _settingsService.Current.General;
