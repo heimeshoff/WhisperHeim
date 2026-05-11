@@ -50,4 +50,15 @@ public sealed class BootstrapConfig
     /// </summary>
     [JsonPropertyName("ollamaModel")]
     public string? OllamaModel { get; set; }
+
+    /// <summary>
+    /// Stable machine identifier used to stamp recordings with their origin
+    /// machine, so multi-machine deployments sharing a cloud-synced
+    /// <see cref="DataPath"/> can coordinate transcription ownership.
+    /// Populated on first run from a sanitised <see cref="System.Environment.MachineName"/>
+    /// (falling back to a short Guid). Immutable after first generation: changing
+    /// it would orphan all recordings on this machine. Never synced.
+    /// </summary>
+    [JsonPropertyName("machineId")]
+    public string? MachineId { get; set; }
 }

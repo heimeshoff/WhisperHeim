@@ -80,6 +80,7 @@ public sealed class CallRecordingService : ICallRecordingService
 
             var startTimestamp = DateTimeOffset.UtcNow;
             var sessionId = $"{startTimestamp:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}";
+            var machineId = _dataPathService?.MachineId;
 
             // Resolve the final (potentially cloud-synced) destination first so
             // collision-suffix numbering uses the shared dir other machines see.
@@ -87,7 +88,10 @@ public sealed class CallRecordingService : ICallRecordingService
             // staging — only the final dir is shared.
             if (_dataPathService is not null)
             {
-                var sessionName = startTimestamp.LocalDateTime.ToString("yyyyMMdd_HHmmss");
+                // {yyyyMMdd_HHmmss}_{machineId} (per task 105) — directory name
+                // itself carries the origin so it's human-scannable in Drive.
+                var sessionName =
+                    $"{startTimestamp.LocalDateTime:yyyyMMdd_HHmmss}_{machineId}";
                 _finalDir = Path.Combine(_dataPathService.RecordingsPath, sessionName);
                 if (Directory.Exists(_finalDir))
                 {
@@ -113,6 +117,18 @@ public sealed class CallRecordingService : ICallRecordingService
                 _stagingDir = _finalDir;
             }
             Directory.CreateDirectory(_stagingDir);
+
+            // Write session.json inside the staging dir at recording start so it
+            // moves atomically with the WAV files. Captures the origin machine
+            // as a stable structured field (the directory-name suffix is the
+            // fallback for older recordings — see SessionMetadataStore).
+            SessionMetadataStore.Write(_stagingDir, new SessionMetadata
+            {
+                SessionId = sessionId,
+                MachineId = machineId ?? string.Empty,
+                StartedAt = startTimestamp,
+                SchemaVersion = 1,
+            });
 
             // WAV writers open against the staging dir so NAudio's exclusive
             // write handle never sits inside a synced folder.

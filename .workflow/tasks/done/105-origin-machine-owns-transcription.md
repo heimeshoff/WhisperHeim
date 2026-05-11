@@ -129,3 +129,45 @@ Task 102's hot-reload watches `settings.json`. This task adds `session.json` per
 
 ## Work Log
 <!-- Appended by /work during execution -->
+
+### 2026-05-11 11:28 -- Work Completed
+
+**What was done:**
+- Added `MachineId` to `BootstrapConfig` and a lazy `DataPathService.MachineId` property that generates the id once (sanitised `Environment.MachineName`, fallback to 8-char Guid) and persists it. Logged at app start via `Trace.TraceInformation`.
+- Created `SessionMetadata` / `SessionMetadataStore` (per-session `session.json` writer + reader, plus `ResolveOriginMachineId` with the three-tier fallback specified in the design: session.json → directory-name suffix → null for legacy).
+- Created `TranscribingLock` advisory-lock helper (`transcribing.lock` write/remove/read) used by the manual takeover action; documented as advisory, never crash on contention.
+- Updated `CallRecordingService.StartRecording` to use the post-104 staging shape: final dir is now `{yyyyMMdd_HHmmss}_{machineId}` (collision counter still appended); a `session.json` is written into the staging dir before WAVs open, so it moves atomically with them.
+- Updated `TranscriptStorageService`: `ListPendingSessions` now filters to sessions owned by this machine (or legacy un-stamped dirs); added `ListPendingSessionsFromOtherMachines` returning the complementary set. `SaveAsync` now finds an existing session dir by timestamp prefix (so the transcript lands beside its WAVs even with the new `_{machineId}` suffix) and falls back to creating a fresh `{timestamp}_{machineId}` dir. Exposed the `DataPathService` so the UI can read `MachineId` without an extra injection.
+- Added the "OTHER MACHINE" section to `TranscriptsPage.xaml` (mirrors the existing PENDING section visually but emits a "Transcribe here" button). Wired `LoadOtherMachinePendingSessions` and `TranscribeHere_Click` in the code-behind, plus an `OnQueueItemCompleted` hook to drop the advisory lock when the takeover finishes (success or failure). Updated `GroupToggle_Click` to route between the two pending toggles.
+- Added a "Machine identifier" card to `GeneralPage.xaml(.cs)` so the user can see the resolved id without trawling the log.
+- Added `SessionMetadataStoreTests` covering round-trip, missing file, session.json-wins-over-suffix, suffix fallback, collision suffix (`_n`), legacy un-stamped dirs, and the `recovered_` prefix from `RecordingFileStager.SweepOrphans`.
+
+**Acceptance criteria status:**
+- [x] `BootstrapConfig.MachineId` present, populated on first run from sanitised `Environment.MachineName` (fallback to 8-char Guid), persisted to machine-local `bootstrap.json`, never synced — `BootstrapConfig.cs:53`, `DataPathService.GenerateMachineId`.
+- [x] `DataPathService.MachineId` exposed as a read-only property (computed-on-first-access, cached in bootstrap thereafter).
+- [x] `CallRecordingService.StartRecording` names the final dir `{yyyyMMdd_HHmmss}_{machineId}` and writes `session.json` (sessionId, machineId, startedAt, schemaVersion) into the staging dir so it moves atomically.
+- [x] `HighQualityRecorderService` — **NOT MODIFIED.** Voice clone samples are written as a single `whisperheim_voice_{guid}.wav` to staging and copied to a caller-supplied `voices/` destination; they do not produce session directories and are not scanned by `ListPendingSessions`, so the multi-machine race the task is gating doesn't apply. The brief lists this under "Streams", but Streams in this codebase is URL-based (`StreamTranscriptionService`), not a recording feature. Documented here so a follow-up can revisit if voice samples ever become a cross-machine concern.
+- [x] `ListPendingSessions` filters to this-machine + legacy-unstamped — `TranscriptStorageService.EnumeratePendingSessions(SessionOwnership.MineOrLegacy)`.
+- [x] `ListPendingSessionsFromOtherMachines` added — same enumerator with `SessionOwnership.OtherMachine`.
+- [x] Transcripts page shows the other-machine section with a "Transcribe here" action — `OtherMachinePendingSection` in XAML + `LoadOtherMachinePendingSessions` / `TranscribeHere_Click` in code-behind.
+- [x] "Transcribe here" writes the lock, enqueues, removes the lock when the queue item completes — `TranscribingLock.Write/Remove`, `OnQueueItemCompleted`.
+- [x] `MachineId` logged at startup (`[App] Machine id: {0}`) and shown on General page ("Machine identifier" card).
+- [ ] Manual cross-machine tests **cannot be automated** and must be run by the user:
+  - Record on A with Drive-synced DataPath; on B confirm A's session appears under "Other machine" and is not auto-transcribed by B.
+  - Take A offline; on B click "Transcribe here" for A's session; verify `transcript.json` is produced and syncs back.
+  - Bring A back online mid-transcription on B; verify A doesn't start a second job (sees lock OR sees finished transcript).
+  - Rename a machine and confirm the stored `MachineId` does not change (it's persisted to `bootstrap.json` and only generated when missing).
+
+**Files changed:**
+- `src/WhisperHeim/Models/BootstrapConfig.cs` — added `MachineId` field.
+- `src/WhisperHeim/Services/Settings/DataPathService.cs` — `MachineId` property + `GenerateMachineId`.
+- `src/WhisperHeim/Services/Recording/SessionMetadata.cs` — new file: per-session metadata model + reader/writer/resolver.
+- `src/WhisperHeim/Services/Recording/TranscribingLock.cs` — new file: advisory-lock helper.
+- `src/WhisperHeim/Services/Recording/CallRecordingService.cs` — directory naming + `session.json` write at start.
+- `src/WhisperHeim/Services/CallTranscription/TranscriptStorageService.cs` — gating in `ListPendingSessions`, new `ListPendingSessionsFromOtherMachines`, `SaveAsync` adapted to the new directory naming, exposed `DataPathService`.
+- `src/WhisperHeim/Views/Pages/TranscriptsPage.xaml` — added `OtherMachinePendingSection`.
+- `src/WhisperHeim/Views/Pages/TranscriptsPage.xaml.cs` — `LoadOtherMachinePendingSessions`, `TranscribeHere_Click`, `OnQueueItemCompleted`, `OtherMachinePendingItem` view model, two-toggle `GroupToggle_Click`.
+- `src/WhisperHeim/Views/Pages/GeneralPage.xaml` — "Machine identifier" card.
+- `src/WhisperHeim/Views/Pages/GeneralPage.xaml.cs` — populate the new display.
+- `src/WhisperHeim/App.xaml.cs` — startup trace of `MachineId`.
+- `tests/WhisperHeim.Tests/SessionMetadataStoreTests.cs` — new tests (8 cases; all green; full suite 90/90 passing).

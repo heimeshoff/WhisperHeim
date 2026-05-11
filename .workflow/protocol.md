@@ -2,6 +2,23 @@
 
 ---
 
+## 2026-05-11 11:29 -- Task Completed: 105 - Origin-Machine Owns Transcription
+
+**Type:** Task Completion
+**Task:** 105 - Origin-Machine Owns Transcription (Multi-Machine Coordination)
+**Summary:** Added per-machine `MachineId` (sanitised `Environment.MachineName`, persisted in bootstrap.json), stamped recording session directories with `_{machineId}` and an in-session `session.json`, gated `TranscriptStorageService.ListPendingSessions` to this machine's origin (with directory-suffix and legacy fallback), added `ListPendingSessionsFromOtherMachines`, built an "Other machine" pending section in TranscriptsPage with an advisory-lock "Transcribe here" takeover, surfaced MachineId in General page + startup trace. `HighQualityRecorderService` deliberately not modified (voice-clone samples aren't auto-transcribed; Streams pipeline is URL-based) — flagged in the work log. Build clean, 90/90 tests pass. Manual cross-machine verification remains for the user.
+**Files changed:** 12 files
+
+---
+
+## 2026-05-11 11:18 -- Batch Started: [105]
+
+**Type:** Batch Start
+**Tasks:** 105 - Origin-Machine Owns Transcription (Multi-Machine Coordination)
+**Mode:** Parallel (batch of 1; only remaining todo task)
+
+---
+
 ## 2026-05-11 11:24 -- Task Completed: 104 - Stage WAV Writes Outside the Synced Data Folder
 
 **Type:** Task Completion

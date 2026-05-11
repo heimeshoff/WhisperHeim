@@ -135,6 +135,28 @@ public partial class TranscriptsPage : UserControl
         {
             Dispatcher.BeginInvoke(LoadPendingSessions);
         };
+
+        // Clean up the advisory `transcribing.lock` after takeover items finish.
+        _queueService.ItemCompleted += OnQueueItemCompleted;
+    }
+
+    /// <summary>
+    /// Drops the advisory <c>transcribing.lock</c> when a queue item finishes
+    /// (success or failure). Best-effort: failures are logged inside
+    /// <see cref="Services.Recording.TranscribingLock.Remove"/>.
+    /// </summary>
+    private void OnQueueItemCompleted(object? sender, TranscriptionQueueItem item)
+    {
+        string? sessionDir = item.SessionDir;
+        if (sessionDir is null && item.Session is not null)
+        {
+            sessionDir = Path.GetDirectoryName(item.Session.MicWavFilePath);
+        }
+
+        if (sessionDir is not null)
+        {
+            Services.Recording.TranscribingLock.Remove(sessionDir);
+        }
     }
 
     /// <summary>
@@ -694,10 +716,12 @@ public partial class TranscriptsPage : UserControl
         {
             PendingSection.Visibility = Visibility.Collapsed;
             TranscribingSection.Visibility = Visibility.Collapsed;
+            OtherMachinePendingSection.Visibility = Visibility.Collapsed;
             return;
         }
 
         var pendingDirs = concreteStorage.ListPendingSessions();
+        LoadOtherMachinePendingSessions(concreteStorage);
 
         // Separate currently-transcribing items from truly pending ones
         var transcribingItems = new List<PendingRecordingItem>();
@@ -811,6 +835,148 @@ public partial class TranscriptsPage : UserControl
         {
             PendingSection.Visibility = Visibility.Collapsed;
         }
+    }
+
+    /// <summary>
+    /// Loads pending sessions originated by other machines (cross-machine sync
+    /// via Drive) into the "Other machine" section. Each entry includes a
+    /// "Transcribe here" action that takes over the work locally.
+    /// </summary>
+    private void LoadOtherMachinePendingSessions(TranscriptStorageService concreteStorage)
+    {
+        var otherDirs = concreteStorage.ListPendingSessionsFromOtherMachines();
+
+        if (otherDirs.Count == 0)
+        {
+            OtherMachinePendingSection.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        var items = new List<OtherMachinePendingItem>(otherDirs.Count);
+        foreach (var dir in otherDirs)
+        {
+            var origin =
+                Services.Recording.SessionMetadataStore.ResolveOriginMachineId(dir)
+                ?? "unknown";
+
+            var dirName = Path.GetFileName(dir);
+            string name;
+            if (TryLoadPendingName(dir, out var saved))
+            {
+                name = saved;
+            }
+            else if (dirName.Length >= 15 &&
+                DateTime.TryParseExact(
+                    dirName[..15],
+                    "yyyyMMdd_HHmmss",
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.None,
+                    out var date))
+            {
+                name = $"Call {date:yyyy-MM-dd HH:mm}";
+            }
+            else
+            {
+                name = dirName;
+            }
+
+            var audioFiles = CountAudioFiles(dir);
+            var detail = $"{audioFiles} audio file{(audioFiles != 1 ? "s" : "")}";
+
+            var existingLock = Services.Recording.TranscribingLock.TryRead(dir);
+            string machineLabel = existingLock is not null
+                ? $"{origin} → {existingLock.MachineId}"
+                : origin;
+
+            items.Add(new OtherMachinePendingItem(dir, name, detail, machineLabel));
+        }
+
+        OtherMachinePendingList.ItemsSource = items;
+        OtherMachinePendingCountText.Text = $"({items.Count})";
+        OtherMachinePendingSection.Visibility = Visibility.Visible;
+    }
+
+    /// <summary>
+    /// "Transcribe here" — manual takeover of another machine's pending recording.
+    /// Writes an advisory <c>transcribing.lock</c>, enqueues the session in this
+    /// machine's transcription queue, and the lock is removed when the queue item
+    /// completes or fails (see <see cref="OnQueueItemCompleted"/>).
+    /// </summary>
+    private void TranscribeHere_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement fe || fe.Tag is not string sessionDir)
+            return;
+        if (!Directory.Exists(sessionDir))
+            return;
+
+        // Resolve origin so we can keep showing it in the queue title.
+        var origin =
+            Services.Recording.SessionMetadataStore.ResolveOriginMachineId(sessionDir)
+            ?? "unknown";
+
+        // Best-effort advisory lock; failures here are non-fatal (see TranscribingLock).
+        var myMachineId =
+            (_storageService as TranscriptStorageService)?.DataPathService.MachineId
+            ?? Environment.MachineName;
+        Services.Recording.TranscribingLock.Write(sessionDir, myMachineId);
+
+        // Build the same kind of session object QueueTranscription_Click does.
+        var micPath = Path.Combine(sessionDir, "mic.wav");
+        var systemPath = Path.Combine(sessionDir, "system.wav");
+        var dirName = Path.GetFileName(sessionDir);
+
+        DateTimeOffset startTimestamp;
+        if (dirName.Length >= 15 &&
+            DateTime.TryParseExact(
+                dirName[..15],
+                "yyyyMMdd_HHmmss",
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None,
+                out var date))
+        {
+            startTimestamp = new DateTimeOffset(date, TimeZoneInfo.Local.GetUtcOffset(date));
+        }
+        else
+        {
+            startTimestamp = DateTimeOffset.UtcNow;
+        }
+
+        if (File.Exists(micPath))
+        {
+            var session = new CallRecordingSession(
+                micPath,
+                File.Exists(systemPath) ? systemPath : micPath,
+                startTimestamp);
+
+            var lastWrite = File.GetLastWriteTimeUtc(micPath);
+            session.EndTimestamp = new DateTimeOffset(lastWrite, TimeSpan.Zero);
+            session.Title = $"Call {startTimestamp.LocalDateTime:yyyy-MM-dd HH:mm} (from {origin})";
+
+            _queueService.Enqueue(session.Title!, session);
+        }
+        else
+        {
+            var audioFile = Directory.GetFiles(sessionDir)
+                .FirstOrDefault(f => _fileTranscriptionService.IsSupported(f));
+            if (audioFile is null)
+            {
+                Trace.TraceWarning(
+                    "[TranscriptsPage] Other-machine session has no supported audio files: {0}",
+                    sessionDir);
+                Services.Recording.TranscribingLock.Remove(sessionDir);
+                return;
+            }
+
+            var title = $"{Path.GetFileNameWithoutExtension(audioFile)} (from {origin})";
+            _queueService.EnqueueFileImport(title, audioFile, sessionDir);
+        }
+
+        Trace.TraceInformation(
+            "[TranscriptsPage] User took over transcription for {0} (origin {1})",
+            sessionDir, origin);
+
+        // Refresh now; ItemCompleted will fire later to drop the lock and refresh again.
+        LoadPendingSessions();
     }
 
     /// <summary>
@@ -964,12 +1130,20 @@ public partial class TranscriptsPage : UserControl
 
     private void GroupToggle_Click(object sender, RoutedEventArgs e)
     {
-        // Pending group toggle
-        if (sender is ToggleButton toggle)
+        if (sender is not ToggleButton toggle)
+            return;
+
+        // The pending / other-machine groups share this handler; route by sender.
+        if (ReferenceEquals(toggle, OtherMachinePendingGroupToggle))
         {
-            PendingList.Visibility = toggle.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-            PendingGroupChevron.Text = toggle.IsChecked == true ? "\uE70D" : "\uE70E";
+            OtherMachinePendingList.Visibility = toggle.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+            OtherMachinePendingGroupChevron.Text = toggle.IsChecked == true ? "\uE70D" : "\uE70E";
+            return;
         }
+
+        // Default: pending (mine) group toggle.
+        PendingList.Visibility = toggle.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        PendingGroupChevron.Text = toggle.IsChecked == true ? "\uE70D" : "\uE70E";
     }
 
     private void TranscriptGroupToggle_Click(object sender, RoutedEventArgs e)
@@ -2859,6 +3033,28 @@ internal sealed class PendingRecordingItem
     public int FailureCount { get; }
     /// <summary>True when transcription has failed at least once.</summary>
     public bool HasFailed => FailureCount > 0;
+}
+
+/// <summary>
+/// View model for a pending recording that originated on a different machine
+/// (cross-machine sync). Shows the originating machine and offers a
+/// "Transcribe here" action that takes over the work locally.
+/// </summary>
+internal sealed class OtherMachinePendingItem
+{
+    public OtherMachinePendingItem(string sessionDir, string name, string detail, string machineLabel)
+    {
+        SessionDir = sessionDir;
+        Name = name;
+        Detail = detail;
+        MachineLabel = machineLabel;
+    }
+
+    public string SessionDir { get; }
+    public string Name { get; }
+    public string Detail { get; }
+    /// <summary>Originating machine id (and possible takeover indicator).</summary>
+    public string MachineLabel { get; }
 }
 
 /// <summary>

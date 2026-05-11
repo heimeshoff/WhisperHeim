@@ -417,6 +417,68 @@
                         </ItemsControl>
                     </StackPanel>
 
+                    <!-- Other machines' pending recordings (cross-machine sync) -->
+                    <StackPanel x:Name="OtherMachinePendingSection" Visibility="Collapsed">
+                        <ToggleButton IsChecked="True"
+                                      Style="{StaticResource GroupToggleButton}"
+                                      x:Name="OtherMachinePendingGroupToggle"
+                                      Click="GroupToggle_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock x:Name="OtherMachinePendingGroupChevron" Text="&#xE70D;"
+                                           FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           VerticalAlignment="Center" Margin="0,0,8,0" />
+                                <TextBlock Text="OTHER MACHINE" Style="{StaticResource SectionLabel}" VerticalAlignment="Center" />
+                                <TextBlock x:Name="OtherMachinePendingCountText" Style="{StaticResource SectionLabel}"
+                                           VerticalAlignment="Center" Margin="6,0,0,0" />
+                            </StackPanel>
+                        </ToggleButton>
+                        <ItemsControl x:Name="OtherMachinePendingList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Padding="12,8" Margin="0,1,0,1"
+                                            CornerRadius="6"
+                                            Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="140" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Name}"
+                                                           FontWeight="SemiBold"
+                                                           FontSize="13"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           TextWrapping="NoWrap"
+                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                                <TextBlock Text="{Binding Detail}"
+                                                           FontSize="11"
+                                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding MachineLabel}"
+                                                       FontSize="11"
+                                                       VerticalAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                            <Button Grid.Column="2"
+                                                    Content="Transcribe here"
+                                                    Click="TranscribeHere_Click"
+                                                    Tag="{Binding SessionDir}"
+                                                    Padding="12,4"
+                                                    Cursor="Hand"
+                                                    BorderThickness="0"
+                                                    VerticalAlignment="Center"
+                                                    Foreground="#FF25abfe"
+                                                    Background="Transparent" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
                     <!-- Transcript groups (populated dynamically) -->
                     <ItemsControl x:Name="TranscriptGroupList">
                         <ItemsControl.ItemTemplate>

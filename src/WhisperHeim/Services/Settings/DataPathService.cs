@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using WhisperHeim.Models;
 
 namespace WhisperHeim.Services.Settings;
@@ -45,6 +46,54 @@ public sealed class DataPathService
 
     /// <summary>The current bootstrap configuration (machine-local settings + data path pointer).</summary>
     public BootstrapConfig Bootstrap => _bootstrap;
+
+    /// <summary>
+    /// Stable per-machine identifier (origin stamp for recordings). Resolved
+    /// lazily from <see cref="BootstrapConfig.MachineId"/>; populated on first
+    /// access if missing. Sanitised from <see cref="System.Environment.MachineName"/>
+    /// (falling back to a short Guid) so it is safe to embed in directory names
+    /// and human-readable in Drive. Never re-generated once written — changing
+    /// it would orphan every existing recording from this machine.
+    /// </summary>
+    public string MachineId
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(_bootstrap.MachineId))
+            {
+                _bootstrap.MachineId = GenerateMachineId();
+                try
+                {
+                    Save();
+                }
+                catch (Exception ex)
+                {
+                    Trace.TraceWarning(
+                        "[DataPathService] Failed to persist newly generated MachineId: {0}", ex.Message);
+                }
+                Trace.TraceInformation(
+                    "[DataPathService] Generated MachineId: {0}", _bootstrap.MachineId);
+            }
+            return _bootstrap.MachineId!;
+        }
+    }
+
+    /// <summary>
+    /// Builds a stable machine identifier from <see cref="System.Environment.MachineName"/>
+    /// by replacing any character outside <c>[A-Za-z0-9-]</c> with <c>-</c>. Falls back to
+    /// an 8-character Guid prefix when the sanitised name is empty or unreasonably long
+    /// (&gt; 32 chars) so we don't smuggle weird chars into directory names.
+    /// </summary>
+    private static string GenerateMachineId()
+    {
+        var raw = Environment.MachineName ?? string.Empty;
+        var sanitized = Regex.Replace(raw, "[^A-Za-z0-9-]", "-").Trim('-');
+        if (string.IsNullOrWhiteSpace(sanitized) || sanitized.Length > 32)
+        {
+            sanitized = Guid.NewGuid().ToString("N").Substring(0, 8);
+        }
+        return sanitized;
+    }
 
     /// <summary>
     /// The resolved data path. If the bootstrap config has a custom dataPath set,

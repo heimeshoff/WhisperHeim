@@ -165,6 +165,7 @@ public partial class App : Application
         Trace.AutoFlush = true;
         Trace.TraceInformation("[App] WhisperHeim starting...");
         Trace.TraceInformation("[App] Data path: {0}", _dataPathService.DataPath);
+        Trace.TraceInformation("[App] Machine id: {0}", _dataPathService.MachineId);
 
         // Run migration from old flat structure to new per-session structure
         _dataPathService.MigrateIfNeeded();

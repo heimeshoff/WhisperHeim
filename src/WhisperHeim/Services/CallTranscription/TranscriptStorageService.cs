@@ -27,6 +27,13 @@ public sealed class TranscriptStorageService : ITranscriptStorageService
         _dataPathService = dataPathService;
     }
 
+    /// <summary>
+    /// Exposes the underlying <see cref="DataPathService"/> so UI callers can
+    /// read the machine id and other path-derived values without having to
+    /// inject the service into every view.
+    /// </summary>
+    public DataPathService DataPathService => _dataPathService;
+
     /// <inheritdoc />
     public string TranscriptsDirectory => _dataPathService.RecordingsPath;
 
@@ -61,24 +68,60 @@ public sealed class TranscriptStorageService : ITranscriptStorageService
         CallTranscript transcript,
         CancellationToken cancellationToken = default)
     {
-        // Determine the session directory
+        // Determine the session directory. Since task 105, session directories
+        // include a `_{machineId}` suffix (and optionally a `_{n}` collision
+        // counter), so we can't reconstruct the exact name purely from the
+        // start timestamp. Prefer:
+        //   1. An existing directory whose WAVs the in-memory transcript was
+        //      built from (look up via `AudioFilePath` if it was set absolutely).
+        //   2. Otherwise, the first existing directory whose name starts with
+        //      the timestamp (handles both `_{machineId}` and legacy un-suffixed
+        //      dirs).
+        //   3. Otherwise, create a new `{timestamp}_{machineId}` dir for this machine.
         var sessionName = transcript.RecordingStartedUtc.LocalDateTime.ToString("yyyyMMdd_HHmmss");
-        var sessionDir = Path.Combine(_dataPathService.RecordingsPath, sessionName);
+        var recordingsRoot = _dataPathService.RecordingsPath;
+        Directory.CreateDirectory(recordingsRoot);
 
-        // If session dir doesn't exist yet, create it (may already exist from recording)
-        Directory.CreateDirectory(sessionDir);
+        string? sessionDir = null;
+
+        // (1) AudioFilePath might be absolute and point inside the real session dir.
+        if (!string.IsNullOrEmpty(transcript.AudioFilePath) && Path.IsPathRooted(transcript.AudioFilePath))
+        {
+            var parent = Path.GetDirectoryName(transcript.AudioFilePath);
+            if (!string.IsNullOrEmpty(parent) && Directory.Exists(parent))
+                sessionDir = parent;
+        }
+
+        // (2) Scan for an existing dir whose name starts with the timestamp prefix.
+        if (sessionDir is null)
+        {
+            foreach (var dir in Directory.GetDirectories(recordingsRoot, $"{sessionName}*"))
+            {
+                sessionDir = dir;
+                break;
+            }
+        }
+
+        // (3) Brand-new directory — happen for re-transcribed file imports.
+        if (sessionDir is null)
+        {
+            sessionDir = Path.Combine(
+                recordingsRoot, $"{sessionName}_{_dataPathService.MachineId}");
+            Directory.CreateDirectory(sessionDir);
+        }
 
         var filePath = Path.Combine(sessionDir, "transcript.json");
 
         // Avoid overwriting: append a suffix if the file already exists in a different session
         if (File.Exists(filePath))
         {
+            var baseDirName = Path.GetFileName(sessionDir);
             var suffix = 1;
             string candidateDir;
             do
             {
                 candidateDir = Path.Combine(
-                    _dataPathService.RecordingsPath, $"{sessionName}_{suffix}");
+                    recordingsRoot, $"{baseDirName}_{suffix}");
                 suffix++;
             } while (Directory.Exists(candidateDir));
 
@@ -183,16 +226,46 @@ public sealed class TranscriptStorageService : ITranscriptStorageService
     };
 
     /// <summary>
-    /// Returns session directories that contain audio files but no transcript.json.
-    /// Each entry is the full path to the session directory.
+    /// Returns session directories owned by this machine that contain audio files
+    /// but no <c>transcript.json</c>. Ownership is determined by the origin
+    /// machineId (see <see cref="Recording.SessionMetadataStore.ResolveOriginMachineId"/>).
+    /// Un-stamped legacy sessions are treated as owned-by-this-machine for
+    /// backward compatibility.
     /// </summary>
     public IReadOnlyList<string> ListPendingSessions()
     {
+        return EnumeratePendingSessions(ownerFilter: SessionOwnership.MineOrLegacy)
+            .OrderByDescending(d => d)
+            .ToArray();
+    }
+
+    /// <summary>
+    /// Returns pending session directories whose origin machineId is a different
+    /// machine than this one (i.e. recorded elsewhere, synced in via the shared
+    /// data folder). Drives the "Other machines" section of the Transcripts page
+    /// pending UI, and powers the manual "Transcribe here" takeover action.
+    /// </summary>
+    public IReadOnlyList<string> ListPendingSessionsFromOtherMachines()
+    {
+        return EnumeratePendingSessions(ownerFilter: SessionOwnership.OtherMachine)
+            .OrderByDescending(d => d)
+            .ToArray();
+    }
+
+    private enum SessionOwnership
+    {
+        MineOrLegacy,
+        OtherMachine,
+    }
+
+    private IEnumerable<string> EnumeratePendingSessions(SessionOwnership ownerFilter)
+    {
         var recordingsDir = _dataPathService.RecordingsPath;
         if (!Directory.Exists(recordingsDir))
-            return Array.Empty<string>();
+            yield break;
 
-        var pending = new List<string>();
+        var myMachineId = _dataPathService.MachineId;
+
         foreach (var sessionDir in Directory.GetDirectories(recordingsDir))
         {
             var hasTranscript = File.Exists(Path.Combine(sessionDir, "transcript.json"));
@@ -204,14 +277,30 @@ public sealed class TranscriptStorageService : ITranscriptStorageService
             if (!hasAudio)
                 continue;
 
-            // Skip sessions that have exhausted all retry attempts
-            if (Transcription.TranscriptionQueueService.HasExceededRetryLimit(sessionDir))
+            // Skip sessions that have exhausted all retry attempts (only applies
+            // to this machine's queue; other-machine listings show every pending
+            // candidate so the user can still take over after a failure).
+            if (ownerFilter == SessionOwnership.MineOrLegacy &&
+                Transcription.TranscriptionQueueService.HasExceededRetryLimit(sessionDir))
+            {
                 continue;
+            }
 
-            pending.Add(sessionDir);
+            var origin = Recording.SessionMetadataStore.ResolveOriginMachineId(sessionDir);
+            bool isMineOrLegacy =
+                origin is null ||
+                string.Equals(origin, myMachineId, StringComparison.OrdinalIgnoreCase);
+
+            switch (ownerFilter)
+            {
+                case SessionOwnership.MineOrLegacy when isMineOrLegacy:
+                    yield return sessionDir;
+                    break;
+                case SessionOwnership.OtherMachine when !isMineOrLegacy:
+                    yield return sessionDir;
+                    break;
+            }
         }
-
-        return pending.OrderByDescending(d => d).ToArray();
     }
 
     /// <summary>

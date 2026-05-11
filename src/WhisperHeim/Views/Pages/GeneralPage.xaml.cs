@@ -109,6 +109,7 @@ public partial class GeneralPage : UserControl
     {
         var dataPath = _settingsService.DataPathService.DataPath;
         DataPathDisplay.Text = dataPath;
+        MachineIdDisplay.Text = _settingsService.DataPathService.MachineId;
     }
 
     private void BrowseDataPath_Click(object sender, RoutedEventArgs e)

@@ -171,7 +171,7 @@
                 </StackPanel>
             </Border>
 
-            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" CornerRadius="12" Padding="24" Margin="0,0,0,40">
+            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" CornerRadius="12" Padding="24" Margin="0,0,0,12">
                 <StackPanel>
                     <TextBlock FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}">
                         <Run FontWeight="SemiBold">Synced:</Run>
@@ -181,6 +181,27 @@
                         <Run FontWeight="SemiBold">Local only:</Run>
                         <Run>AI models (~800 MB), window position, audio devices, logs</Run>
                     </TextBlock>
+                </StackPanel>
+            </Border>
+
+            <!-- Machine identifier card -->
+            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" CornerRadius="12" Padding="24" Margin="0,0,0,40">
+                <StackPanel>
+                    <TextBlock Text="Machine identifier"
+                               FontSize="15" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                    <TextBlock Text="Recordings made on this machine are stamped with this id, so when two machines share a synced data folder only the origin auto-transcribes each session. Stable per machine — not synced."
+                               FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               Margin="0,4,0,16"
+                               TextWrapping="Wrap" />
+                    <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                            CornerRadius="8" Padding="12,8"
+                            HorizontalAlignment="Left">
+                        <TextBlock x:Name="MachineIdDisplay"
+                                   FontSize="12"
+                                   FontFamily="Consolas"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                    </Border>
                 </StackPanel>
             </Border>
 
