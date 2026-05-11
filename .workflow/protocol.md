@@ -2,6 +2,49 @@
 
 ---
 
+## 2026-05-11 10:58 -- Task Completed: 106 - No Window Frame Flash When Start-Minimized
+
+**Type:** Task Completion
+**Task:** 106 - No Window Frame Flash When Start-Minimized
+**Summary:** Hoisted the tray icon, global hotkeys, dictation orchestrator, dictation overlay, and call-recording → transcription-queue plumbing out of MainWindow into App-owned services (`TrayIconHost`, `AutoTranscriptionService`) so MainWindow can be constructed lazily on first user request. Start-minimized path no longer instantiates a window at all, structurally eliminating the empty-frame flash. Build green, 74 tests pass; manual cold-launch verification still required.
+**Files changed:** 7 files
+
+---
+
+## 2026-05-11 10:42 -- Task Started: 106 - No Window Frame Flash When Start-Minimized
+
+**Type:** Task Start
+**Task:** 106 - No Window Frame Flash When Start-Minimized
+**Milestone:** Polish / UX
+
+---
+
+## 2026-05-11 -- Model / Promoted: 106 - No window frame flash when start-minimized
+
+**Type:** Model / Promote
+**BC:** WhisperHeim (single-context project — `.workflow/tasks/`)
+**From → To:** backlog → todo
+
+---
+
+## 2026-05-11 -- Model / Refined: 106 - No window frame flash when start-minimized
+
+**Type:** Model / Refine
+**BC:** WhisperHeim (single-context project — `.workflow/tasks/`)
+**Status after:** backlog (ready for promotion)
+**Summary:** Committed to Approach A (move tray icon out of MainWindow's visual tree, lazy MainWindow construction); rejected B (AllowsTransparency risks) and C (the current racy `Show()`/`Hide()` dance). Grounded the plan in actual code: produced an inventory of what stays in MainWindow vs. moves to App / new `TrayIconHost`. Surfaced a hidden coupling — `TranscriptsPage` itself subscribes to `RecordingStopped` and drives the transcription queue, so MainWindow eagerly constructs it. Under lazy MainWindow that breaks call-recording auto-transcription; refinement adds an extraction step for a headless `AutoTranscriptionService` as step 1 of the plan. Added six ordered implementation steps, expanded acceptance criteria to cover hotkeys/overlay/auto-transcription working before any window is opened, and listed risks (first-open latency, settings hot-reload subscriber timing, overlay disposal). Size firmed up from "Small-Medium (depends on approach)" to **Medium**.
+
+---
+
+## 2026-05-11 -- Model / Captured: 106 - No window frame flash when start-minimized
+
+**Type:** Model / Capture
+**BC:** WhisperHeim (single-context project — `.workflow/tasks/`)
+**Filed to:** backlog
+**Summary:** Bug: when StartMinimized is on, an empty window frame sometimes paints on the desktop before the tray icon takes over. Root cause is the Show()/Hide() race in `MainWindow.InitializeTrayAndHide()` — the tray icon is declared inside MainWindow.xaml, so the current workaround calls Show() to force visual-tree load. Task proposes moving the NotifyIcon out of MainWindow's visual tree into App.xaml so no window ever has to be shown on the start-minimized path.
+
+---
+
 ## 2026-04-24 14:54 -- Task Completed: 103 - Remove Text-to-Speech Feature
 
 **Type:** Task Completion

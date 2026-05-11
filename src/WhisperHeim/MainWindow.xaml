@@ -2,7 +2,6 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-        xmlns:tray="clr-namespace:Wpf.Ui.Tray.Controls;assembly=Wpf.Ui.Tray"
         xmlns:controls="clr-namespace:WhisperHeim.Views.Controls"
         Title="WhisperHeim"
         Height="800" Width="1200"
@@ -54,36 +53,8 @@
         <!-- TitleBar -->
         <ui:TitleBar Grid.Row="0" Title="WhisperHeim" />
 
-        <!-- Tray Icon -->
-        <tray:NotifyIcon
-            x:Name="TrayIcon"
-            Grid.Row="0"
-            FocusOnLeftClick="False"
-            MenuOnRightClick="True"
-            TooltipText="WhisperHeim"
-            LeftClick="NotifyIcon_LeftClick">
-            <tray:NotifyIcon.Menu>
-                <ContextMenu>
-                    <ui:MenuItem x:Name="CallRecordingMenuItem" Header="Start Call Recording" Click="TrayCallRecording_Click">
-                        <ui:MenuItem.Icon>
-                            <ui:SymbolIcon Symbol="Record24" />
-                        </ui:MenuItem.Icon>
-                    </ui:MenuItem>
-                    <Separator />
-                    <ui:MenuItem Header="Settings" Click="TraySettings_Click">
-                        <ui:MenuItem.Icon>
-                            <ui:SymbolIcon Symbol="Settings24" />
-                        </ui:MenuItem.Icon>
-                    </ui:MenuItem>
-                    <Separator />
-                    <ui:MenuItem Header="Exit" Click="TrayExit_Click">
-                        <ui:MenuItem.Icon>
-                            <ui:SymbolIcon Symbol="ArrowExit20" />
-                        </ui:MenuItem.Icon>
-                    </ui:MenuItem>
-                </ContextMenu>
-            </tray:NotifyIcon.Menu>
-        </tray:NotifyIcon>
+        <!-- Tray icon now lives in App-owned TrayIconHost (see Services/Tray/TrayIconHost.cs)
+             so it can register before any window is shown on start-minimized launches. -->
 
         <!-- Main Layout -->
         <Grid Grid.Row="1">

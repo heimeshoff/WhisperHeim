@@ -207,7 +207,7 @@ public partial class TranscriptsPage : UserControl
 
             if (e.Exception is not null)
             {
-                Trace.TraceWarning("[TranscriptsPage] Recording stopped with error, skipping auto-enqueue: {0}",
+                Trace.TraceWarning("[TranscriptsPage] Recording stopped with error: {0}",
                     e.Exception.Message);
 
                 if (_isActiveRecordingDrawerOpen)
@@ -218,22 +218,19 @@ public partial class TranscriptsPage : UserControl
                 return;
             }
 
-            // Auto-enqueue for transcription
+            // Push the drawer's title / speaker edits onto the session BEFORE
+            // AutoTranscriptionService (subscribed at Background priority) runs.
+            // AutoTranscriptionService reads session.Title and session.RemoteSpeakerNames
+            // when it enqueues — the actual Enqueue call lives there now, not here.
             var session = e.Session;
 
-            // Apply speaker names from the active recording UI
             session.RemoteSpeakerNames = _activeRecordingSpeakerNames
                 .Select(i => i.Name ?? "")
                 .Where(n => !string.IsNullOrWhiteSpace(n))
                 .ToList();
 
-            // Derive a title
-            var title = !string.IsNullOrWhiteSpace(_activeRecordingTitle)
-                ? _activeRecordingTitle
-                : $"Call {session.StartTimestamp.LocalDateTime:yyyy-MM-dd HH:mm}";
-
-            _queueService.Enqueue(title, session);
-            Trace.TraceInformation("[TranscriptsPage] Auto-enqueued recording for transcription: {0}", title);
+            if (!string.IsNullOrWhiteSpace(_activeRecordingTitle))
+                session.Title = _activeRecordingTitle;
 
             // Transition the drawer from recording state to "waiting for transcription" state
             if (_isActiveRecordingDrawerOpen)
@@ -256,7 +253,8 @@ public partial class TranscriptsPage : UserControl
                 _currentlyTranscribingSessionDir = Path.GetDirectoryName(session.MicWavFilePath);
             }
 
-            // Refresh to show it moved from pending state
+            // Refresh to show it moved from pending state. AutoTranscriptionService
+            // will enqueue at Background priority right after this completes.
             LoadTranscriptList();
         });
     }

@@ -1,41 +1,44 @@
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
 using System.Windows.Media.Animation;
-using System.Windows.Media.Imaging;
 using WhisperHeim.Services.Audio;
 using WhisperHeim.Services.CallTranscription;
-using WhisperHeim.Services.Dictation;
 using WhisperHeim.Services.FileTranscription;
 using WhisperHeim.Services.Recording;
 using WhisperHeim.Services.Transcription;
-using WhisperHeim.Views.Controls;
 using WhisperHeim.Services.Hotkey;
 using WhisperHeim.Services.Input;
 using WhisperHeim.Services.Models;
-using WhisperHeim.Services.Orchestration;
 using WhisperHeim.Services.Settings;
 using WhisperHeim.Services.Templates;
 using WhisperHeim.Services.Analysis;
 using WhisperHeim.Services.Streams;
+using WhisperHeim.Services.Tray;
 using WhisperHeim.Converters;
-using WhisperHeim.Views;
 using WhisperHeim.Views.Pages;
 using Wpf.Ui.Controls;
 
 namespace WhisperHeim;
 
 /// <summary>
-/// Main settings window that lives in the system tray.
+/// Settings window — navigation, page hosting, and queue UI. Constructed
+/// lazily on first user request (tray-icon click or non-minimized startup).
+///
+/// <para>
+/// The tray icon, global hotkeys, dictation orchestrator, dictation overlay,
+/// and the call-recording → transcription-queue plumbing all live in App and
+/// run independently of this window. As of task 106, MainWindow is no longer
+/// constructed at startup when the user has Start Minimized enabled — which
+/// removed the rare empty-window flash that the previous off-screen Show/Hide
+/// dance was trying (and intermittently failing) to suppress.
+/// </para>
 /// </summary>
 public partial class MainWindow : FluentWindow
 {
-    private bool _isExiting;
     private readonly SettingsService _settingsService;
     private readonly IAudioCaptureService _audioCaptureService;
     private readonly ModelManagerService _modelManager;
@@ -43,52 +46,22 @@ public partial class MainWindow : FluentWindow
     private readonly IInputSimulator _inputSimulator;
     private readonly ITemplateService _templateService;
 
-    // Call recording services (wired in App.xaml.cs, used by call recording UI)
     private readonly ICallRecordingService _callRecordingService;
     private readonly ICallTranscriptionPipeline _callTranscriptionPipeline;
     private readonly CallRecordingHotkeyService _callRecordingHotkeyService;
 
-    // Transcript storage for the Transcripts page
     private readonly ITranscriptStorageService _transcriptStorageService;
-
-    // File transcription for imported audio files on the Recordings page
     private readonly IFileTranscriptionService _fileTranscriptionService;
-
-    // High-quality loopback for voice cloning from system audio
     private readonly IHighQualityLoopbackService _highQualityLoopbackService;
-
-    // High-quality mic recorder (shared infra for recording flows)
     private readonly IHighQualityRecorderService _highQualityRecorderService;
-
-    // Data path service for resolving user-configured data directory
     private readonly DataPathService _dataPathService;
-
-    // Transcription queue — replaces the old TranscriptionBusyService
     private readonly TranscriptionQueueService _transcriptionQueueService;
-
-    // Ollama LLM analysis service
     private readonly OllamaService _ollamaService;
-
-    // Stream transcription services
     private readonly StreamTranscriptionService _streamTranscriptionService;
     private readonly StreamStorageService _streamStorageService;
 
-    // Hotkey and orchestration
-    private readonly GlobalHotkeyService _hotkeyService = new();
-    private DictationOrchestrator? _orchestrator;
-
-    // Tray icon images
-    private ImageSource? _idleIcon;
-    private ImageSource? _recordingIcon;
-    private ImageSource? _callRecordingIcon;
-
-    // Dictation overlay indicator
-    private DictationOverlayWindow? _overlayWindow;
-
     // Cache pages so they are not recreated on every navigation
     private readonly Dictionary<string, object> _pageCache = new();
-
-    // (Queue is now managed by TranscriptionQueueService)
 
     // Sidebar collapsed state
     private bool _isSidebarCollapsed;
@@ -153,285 +126,36 @@ public partial class MainWindow : FluentWindow
         // Load the initial page now that InitializeComponent has set up PageContent
         NavigateTo("Dictation");
 
-        // Generate tray icons for idle, dictation, and call recording states
-        _idleIcon = CreateTwoToneTrayIcon();
-        _recordingIcon = CreateMicrophoneIcon(new SolidColorBrush(Color.FromRgb(0x44, 0xCC, 0x44)));
-        _callRecordingIcon = CreateMicrophoneIcon(Brushes.Orange);
-        TrayIcon.Icon = _idleIcon;
-
-        // Set the window/taskbar icon to the two-tone logo
-        Icon = CreateTwoToneLogoIcon();
-
-        // Start minimized to tray - don't show the window
-        Visibility = Visibility.Hidden;
-        ShowInTaskbar = false;
-
-        // Low-level keyboard hooks don't need an HWND, so we can set up immediately
-        SetupHotkeysAndOrchestration();
+        // The window/taskbar icon is the two-tone logo
+        Icon = TrayIcons.CreateTwoToneLogoIcon();
     }
 
     /// <summary>
-    /// Shows the window off-screen so the visual tree renders (registering the tray
-    /// icon), then immediately hides it. Called from App.xaml.cs when starting minimized.
+    /// Shows this settings window. Called from App.ShowSettingsWindow().
     /// </summary>
-    public void InitializeTrayAndHide()
+    public void ShowWindow()
     {
-        // Remember the real position/size set by RestoreWindowPosition() in the constructor.
-        var savedLeft = Left;
-        var savedTop = Top;
-        var savedWidth = Width;
-        var savedHeight = Height;
-        var savedState = WindowState;
+        if (WindowState == WindowState.Minimized)
+            WindowState = WindowState.Normal;
 
-        // WPF refuses to Show() a Maximized window when ShowActivated is false,
-        // so force Normal during the off-screen show and restore afterwards.
-        WindowState = WindowState.Normal;
-
-        // Move off-screen at the WPF level BEFORE creating the HWND, so the
-        // Win32 window is born off-screen and no gray rectangle flashes.
-        Left = -32000;
-        Top = -32000;
-        Width = 0;
-        Height = 0;
-
-        // Create the Win32 HWND without showing the window at all.
-        var helper = new System.Windows.Interop.WindowInteropHelper(this);
-        helper.EnsureHandle();
-
-        // Also set at Win32 level for good measure.
-        SetWindowPos(helper.Handle, IntPtr.Zero, -32000, -32000, 0, 0,
-            SWP_NOZORDER | SWP_NOACTIVATE);
-
-        // Show (triggers visual tree load / tray icon registration) then hide.
-        // The window is zero-size and off-screen so nothing is visible.
-        ShowActivated = false;
-        ShowInTaskbar = false;
+        ShowActivated = true;
+        ShowInTaskbar = true;
+        Visibility = Visibility.Visible;
         Show();
-        Hide();
-
-        // Restore the real position/size so the next ShowWindow() opens correctly.
-        Left = savedLeft;
-        Top = savedTop;
-        Width = savedWidth;
-        Height = savedHeight;
-        WindowState = savedState;
-    }
-
-    private void SetupHotkeysAndOrchestration()
-    {
-        // Register the global dictation hotkey (low-level keyboard hook, no HWND needed)
-        bool registered = _hotkeyService.Register();
-        if (!registered)
-        {
-            Trace.TraceWarning(
-                "[MainWindow] Failed to register global hotkey. " +
-                "Another application may own the combination.");
-        }
-
-        // Wire up the hold-to-talk orchestrator (with template support via Alt modifier)
-        _orchestrator = new DictationOrchestrator(
-            _hotkeyService,
-            _audioCaptureService,
-            _transcriptionService,
-            _inputSimulator,
-            OnDictationStateChanged,
-            _templateService,
-            _settingsService);
-
-        // Wire up audio amplitude for overlay RMS visualization
-        _orchestrator.AudioAmplitudeChanged += OnAudioAmplitudeChanged;
-
-        // Wire up pipeline errors for overlay error state
-        _orchestrator.PipelineError += OnPipelineError;
-
-        // Show a toast when template mode doesn't find a match
-        _orchestrator.TemplateNoMatch += spokenText =>
-            Views.ToastWindow.Show($"No template match for: \"{spokenText}\"");
-
-        _orchestrator.Start();
-
-        // Initialize the dictation overlay if enabled in settings
-        InitializeOverlay();
-
-        Trace.TraceInformation(
-            "[MainWindow] Orchestrator started. Dictation hotkey: {0}",
-            registered);
-
-        // Register call recording hotkey: Ctrl+Win+R
-        var callHotkey = new HotkeyRegistration(
-            ModifierKeys.Control | ModifierKeys.Win,
-            VirtualKey: 0x52); // 'R' key
-        bool callHkRegistered = _callRecordingHotkeyService.Register(callHotkey);
-        Trace.TraceInformation(
-            "[MainWindow] Call recording hotkey registered: {0}", callHkRegistered);
-
-        // Subscribe to call recording events
-        _callRecordingService.RecordingStarted += OnCallRecordingStarted;
-        _callRecordingService.RecordingStopped += OnCallRecordingStopped;
-        _callRecordingService.DurationUpdated += OnCallRecordingDurationUpdated;
-        _callRecordingService.StreamFailed += OnCallRecordingStreamFailed;
-
-        // Eagerly create the Transcripts page so it receives recording events
-        // (start/stop) even before the user navigates to it.
-        GetOrCreateTranscriptsPage();
+        Activate();
+        Topmost = true;
+        Topmost = false;
     }
 
     /// <summary>
-    /// Creates and configures the dictation overlay window based on settings.
+    /// Persists the current window position to settings. Called from App.OnExit
+    /// so the position survives even when the user exits while the window is
+    /// still visible.
     /// </summary>
-    private void InitializeOverlay()
+    public void SaveOnExit()
     {
-        var overlaySettings = _settingsService.Current.Overlay;
-        if (!overlaySettings.Enabled)
-        {
-            Trace.TraceInformation("[MainWindow] Overlay disabled in settings.");
-            return;
-        }
-
-        _overlayWindow = new DictationOverlayWindow();
-        _overlayWindow.ApplySettings(overlaySettings);
-
-        Trace.TraceInformation("[MainWindow] Overlay initialized (pill mode, follows last click).");
-    }
-
-    /// <summary>
-    /// Callback from the orchestrator when dictation starts or stops.
-    /// Updates the tray icon and overlay to reflect the current state.
-    /// Called on the UI thread.
-    /// </summary>
-    private void OnDictationStateChanged(bool isActive)
-    {
-        if (isActive)
-        {
-            TrayIcon.Icon = _recordingIcon!;
-            TrayIcon.TooltipText = "WhisperHeim - Recording...";
-        }
-        else if (_callRecordingService.IsRecording)
-        {
-            // Dictation ended but call recording is still active -- restore call recording state
-            TrayIcon.Icon = _callRecordingIcon!;
-            var duration = _callRecordingService.CurrentSession?.Duration ?? TimeSpan.Zero;
-            TrayIcon.TooltipText = $"WhisperHeim - Recording call ({CallRecordingService.FormatDuration(duration)})";
-        }
-        else
-        {
-            TrayIcon.Icon = _idleIcon!;
-            TrayIcon.TooltipText = "WhisperHeim";
-        }
-
-        if (isActive)
-        {
-            _overlayWindow?.ShowOverlay();
-        }
-        else
-        {
-            _overlayWindow?.HideOverlay();
-        }
-
-        Trace.TraceInformation("[MainWindow] Tray icon updated. Active: {0}", isActive);
-    }
-
-    /// <summary>
-    /// Callback from the orchestrator with real-time audio RMS amplitude.
-    /// Called on a background thread -- dispatches to UI thread.
-    /// </summary>
-    private void OnAudioAmplitudeChanged(double rmsAmplitude)
-    {
-        Application.Current?.Dispatcher?.BeginInvoke(() =>
-        {
-            if (_overlayWindow is null) return;
-
-            // Stay in Speaking state the entire time dictation is active;
-            // bars animate based on amplitude (small when quiet, large when loud)
-            _overlayWindow.SetMicState(Views.OverlayMicState.Speaking);
-            _overlayWindow.UpdateAmplitude(rmsAmplitude);
-        });
-    }
-
-    /// <summary>
-    /// Callback from the orchestrator when a pipeline error occurs.
-    /// Called on a background thread -- dispatches to UI thread.
-    /// </summary>
-    private void OnPipelineError(Exception ex)
-    {
-        Application.Current?.Dispatcher?.BeginInvoke(() =>
-        {
-            _overlayWindow?.SetMicState(Views.OverlayMicState.Error);
-            Trace.TraceError("[MainWindow] Pipeline error reflected in overlay: {0}", ex.Message);
-        });
-    }
-
-    // ── Call Recording event handlers ────────────────────────────────────
-
-    private void TrayCallRecording_Click(object sender, RoutedEventArgs e)
-    {
-        _callRecordingService.ToggleRecording();
-    }
-
-    private void OnCallRecordingStarted(object? sender, CallRecordingSession session)
-    {
-        Application.Current?.Dispatcher?.BeginInvoke(() =>
-        {
-            TrayIcon.Icon = _callRecordingIcon!;
-            TrayIcon.TooltipText = "WhisperHeim - Recording call (00:00)";
-            CallRecordingMenuItem.Header = "Stop Call Recording (00:00)";
-            Trace.TraceInformation("[MainWindow] Call recording started.");
-        });
-    }
-
-    private void OnCallRecordingStopped(object? sender, CallRecordingStoppedEventArgs e)
-    {
-        Application.Current?.Dispatcher?.BeginInvoke(() =>
-        {
-            TrayIcon.Icon = _idleIcon!;
-            TrayIcon.TooltipText = "WhisperHeim";
-            CallRecordingMenuItem.Header = "Start Call Recording";
-            Trace.TraceInformation("[MainWindow] Call recording stopped.");
-
-            if (e.Exception is not null)
-            {
-                Trace.TraceWarning(
-                    "[MainWindow] Call recording stopped with error: {0}",
-                    e.Exception.Message);
-            }
-
-            // Auto-transcription is handled by TranscriptsPage via its recording
-            // service subscription. Just ensure the page cache is warm so the
-            // event handler is wired up.
-            GetOrCreateTranscriptsPage();
-        });
-    }
-
-    private void EnqueueTranscription(CallRecordingSession session)
-    {
-        // Use the session's title if set (e.g. from re-transcription or pending drawer),
-        // otherwise derive from the session directory name (e.g. "2026-03-25_14-30-00")
-        var title = session.Title;
-        if (string.IsNullOrWhiteSpace(title))
-        {
-            var sessionDir = Path.GetDirectoryName(session.MicWavFilePath);
-            title = Path.GetFileName(sessionDir) ?? "Recording";
-        }
-        _transcriptionQueueService.Enqueue(title, session);
-    }
-
-    private void OnTranscriptionItemCompleted(object? sender, TranscriptionQueueItem item)
-    {
-        Application.Current?.Dispatcher?.BeginInvoke(() =>
-        {
-            var transcriptsPage = GetOrCreateTranscriptsPage();
-            transcriptsPage.RefreshList();
-        });
-    }
-
-    private void OnTranscriptionItemFailed(object? sender, TranscriptionQueueItem item)
-    {
-        // Refresh pending list so cancelled/failed recordings move back to pending
-        Application.Current?.Dispatcher?.BeginInvoke(() =>
-        {
-            var transcriptsPage = GetOrCreateTranscriptsPage();
-            transcriptsPage.RefreshList();
-        });
+        if (IsLoaded)
+            SaveWindowPosition();
     }
 
     private TranscriptsPage GetOrCreateTranscriptsPage()
@@ -451,252 +175,53 @@ public partial class MainWindow : FluentWindow
         EnqueueTranscription(session);
     }
 
-    private void OnCallRecordingDurationUpdated(object? sender, TimeSpan duration)
+    private void EnqueueTranscription(CallRecordingSession session)
+    {
+        // Use the session's title if set (e.g. from re-transcription or pending drawer),
+        // otherwise derive from the session directory name (e.g. "2026-03-25_14-30-00")
+        var title = session.Title;
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            var sessionDir = Path.GetDirectoryName(session.MicWavFilePath);
+            title = Path.GetFileName(sessionDir) ?? "Recording";
+        }
+        _transcriptionQueueService.Enqueue(title, session);
+    }
+
+    private void OnTranscriptionItemCompleted(object? sender, TranscriptionQueueItem item)
     {
         Application.Current?.Dispatcher?.BeginInvoke(() =>
         {
-            var formatted = CallRecordingService.FormatDuration(duration);
-            CallRecordingMenuItem.Header = $"Stop Call Recording ({formatted})";
-            TrayIcon.TooltipText = $"WhisperHeim - Recording call ({formatted})";
+            // Only refresh the Recordings page if it has actually been opened.
+            if (_pageCache.TryGetValue("Recordings", out var cached) && cached is TranscriptsPage page)
+                page.RefreshList();
         });
     }
 
-    private void OnCallRecordingStreamFailed(object? sender, StreamFailedEventArgs e)
+    private void OnTranscriptionItemFailed(object? sender, TranscriptionQueueItem item)
     {
+        // Refresh pending list so cancelled/failed recordings move back to pending
         Application.Current?.Dispatcher?.BeginInvoke(() =>
         {
-            Trace.TraceWarning(
-                "[MainWindow] Call recording stream failed: {0} - {1}",
-                e.Stream, e.Exception?.Message);
+            if (_pageCache.TryGetValue("Recordings", out var cached) && cached is TranscriptsPage page)
+                page.RefreshList();
         });
     }
 
     /// <summary>
-    /// Renders a microphone glyph from Segoe Fluent Icons into a BitmapSource
-    /// suitable for use as a tray icon.
-    /// </summary>
-    private static ImageSource CreateMicrophoneIcon(Brush foreground)
-    {
-        const int size = 32;
-        // U+E720 = Microphone glyph in Segoe Fluent Icons / Segoe MDL2 Assets
-        const string microphoneGlyph = "\uE720";
-
-        var visual = new DrawingVisual();
-        using (var ctx = visual.RenderOpen())
-        {
-            var typeface = new Typeface(
-                new FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets"),
-                FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
-
-            var text = new FormattedText(
-                microphoneGlyph,
-                CultureInfo.InvariantCulture,
-                FlowDirection.LeftToRight,
-                typeface,
-                24,
-                foreground,
-                96);
-
-            // Center the glyph
-            var x = (size - text.Width) / 2;
-            var y = (size - text.Height) / 2;
-            ctx.DrawText(text, new System.Windows.Point(x, y));
-        }
-
-        var bitmap = new RenderTargetBitmap(size, size, 96, 96, PixelFormats.Pbgra32);
-        bitmap.Render(visual);
-        bitmap.Freeze();
-        return bitmap;
-    }
-
-    /// <summary>
-    /// Creates a two-tone (blue head + orange stand) tray icon using the custom mic paths.
-    /// </summary>
-    private static ImageSource CreateTwoToneTrayIcon()
-    {
-        const int size = 32;
-        var visual = new DrawingVisual();
-        using (var ctx = visual.RenderOpen())
-        {
-            // Mic paths actual bounds: x=[6,18] y=[2,22.5] → width=12, height=20.5
-            const double pathH = 20.5;
-            const double pathX = 6.0;
-            const double pathY = 2.0;
-            const double pathW = 12.0;
-            double scale = (size - 4) / pathH; // small padding for tray
-            double offsetX = (size - pathW * scale) / 2 - pathX * scale;
-            double offsetY = (size - pathH * scale) / 2 - pathY * scale;
-
-            var blueBrush = new SolidColorBrush(Color.FromRgb(0x25, 0xab, 0xfe));
-            var orangeBrush = new SolidColorBrush(Color.FromRgb(0xff, 0x8b, 0x00));
-
-            var headGeometry = Geometry.Parse("M12,2 C9.79,2 8,3.79 8,6 L8,12 C8,14.21 9.79,16 12,16 C14.21,16 16,14.21 16,12 L16,6 C16,3.79 14.21,2 12,2 Z");
-            var standGeometry = Geometry.Parse("M6,11 L6,12 C6,15.31 8.69,18 12,18 C15.31,18 18,15.31 18,12 L18,11 L16.5,11 L16.5,12 C16.5,14.49 14.49,16.5 12,16.5 C9.51,16.5 7.5,14.49 7.5,12 L7.5,11 Z M11.25,18.5 L11.25,21 L8.5,21 L8.5,22.5 L15.5,22.5 L15.5,21 L12.75,21 L12.75,18.5 Z");
-
-            ctx.PushTransform(new TranslateTransform(offsetX, offsetY));
-            ctx.PushTransform(new ScaleTransform(scale, scale));
-            ctx.DrawGeometry(blueBrush, null, headGeometry);
-            ctx.DrawGeometry(orangeBrush, null, standGeometry);
-            ctx.Pop();
-            ctx.Pop();
-        }
-
-        var bitmap = new RenderTargetBitmap(size, size, 96, 96, PixelFormats.Pbgra32);
-        bitmap.Render(visual);
-        bitmap.Freeze();
-        return bitmap;
-    }
-
-    /// <summary>
-    /// Creates the two-tone microphone logo for the window/taskbar icon.
-    /// Blue capsule head + orange stand, no background box.
-    /// </summary>
-    private static ImageSource CreateTwoToneLogoIcon()
-    {
-        const int size = 32;
-        var visual = new DrawingVisual();
-        using (var ctx = visual.RenderOpen())
-        {
-            // Mic paths actual bounds: x=[6,18] y=[2,22.5] → width=12, height=20.5
-            // Scale to fill the full 32x32 icon (fit height, center horizontally)
-            const double pathW = 12.0;
-            const double pathH = 20.5;
-            const double pathX = 6.0;
-            const double pathY = 2.0;
-            double scale = size / pathH;
-            double offsetX = (size - pathW * scale) / 2 - pathX * scale;
-            double offsetY = -pathY * scale;
-
-            var blueBrush = new SolidColorBrush(Color.FromRgb(0x25, 0xab, 0xfe));
-            var orangeBrush = new SolidColorBrush(Color.FromRgb(0xff, 0x8b, 0x00));
-
-            // Microphone head (capsule) - Blue
-            var headGeometry = Geometry.Parse("M12,2 C9.79,2 8,3.79 8,6 L8,12 C8,14.21 9.79,16 12,16 C14.21,16 16,14.21 16,12 L16,6 C16,3.79 14.21,2 12,2 Z");
-            // Microphone stand (arc + stem + base) - Orange
-            var standGeometry = Geometry.Parse("M6,11 L6,12 C6,15.31 8.69,18 12,18 C15.31,18 18,15.31 18,12 L18,11 L16.5,11 L16.5,12 C16.5,14.49 14.49,16.5 12,16.5 C9.51,16.5 7.5,14.49 7.5,12 L7.5,11 Z M11.25,18.5 L11.25,21 L8.5,21 L8.5,22.5 L15.5,22.5 L15.5,21 L12.75,21 L12.75,18.5 Z");
-
-            ctx.PushTransform(new TranslateTransform(offsetX, offsetY));
-            ctx.PushTransform(new ScaleTransform(scale, scale));
-            ctx.DrawGeometry(blueBrush, null, headGeometry);
-            ctx.DrawGeometry(orangeBrush, null, standGeometry);
-            ctx.Pop();
-            ctx.Pop();
-        }
-
-        var bitmap = new RenderTargetBitmap(size, size, 96, 96, PixelFormats.Pbgra32);
-        bitmap.Render(visual);
-        bitmap.Freeze();
-        return bitmap;
-    }
-
-    /// <summary>
-    /// Shows a brief notification when a template is matched (or not).
-    /// Called on the UI thread.
-    /// </summary>
-    private void ShowTemplateNotification(string message)
-    {
-        TrayIcon.TooltipText = message;
-        Trace.TraceInformation("[MainWindow] Template notification: {0}", message);
-
-        // Reset tooltip after a few seconds
-        var timer = new System.Windows.Threading.DispatcherTimer
-        {
-            Interval = TimeSpan.FromSeconds(3)
-        };
-        timer.Tick += (_, _) =>
-        {
-            timer.Stop();
-            TrayIcon.TooltipText = "WhisperHeim";
-        };
-        timer.Start();
-    }
-
-    /// <summary>
-    /// Intercept window closing to hide to tray instead of actually closing,
-    /// unless the user chose Exit from the tray menu.
+    /// Intercept window closing to hide to tray instead of actually closing.
+    /// Real exit is driven by App (tray menu "Exit" → Application.Shutdown).
     /// </summary>
     protected override void OnClosing(CancelEventArgs e)
     {
         // Save window position/size whenever the window is closed or hidden
         SaveWindowPosition();
 
-        if (!_isExiting)
-        {
-            e.Cancel = true;
-            Hide();
-            ShowInTaskbar = false;
-        }
-        else
-        {
-            // Unsubscribe from call recording events
-            _callRecordingService.RecordingStarted -= OnCallRecordingStarted;
-            _callRecordingService.RecordingStopped -= OnCallRecordingStopped;
-            _callRecordingService.DurationUpdated -= OnCallRecordingDurationUpdated;
-            _callRecordingService.StreamFailed -= OnCallRecordingStreamFailed;
-
-            // Clean up orchestrator, overlay, hotkey, and call recording services on actual exit
-            _overlayWindow?.Close();
-            _orchestrator?.Dispose();
-            _hotkeyService.Dispose();
-            _callRecordingHotkeyService.Dispose();
-            (_callRecordingService as IDisposable)?.Dispose();
-
-            // Stop watching settings.json for external changes.
-            _settingsService.Dispose();
-        }
+        e.Cancel = true;
+        Hide();
+        ShowInTaskbar = false;
 
         base.OnClosing(e);
-    }
-
-    private void NotifyIcon_LeftClick(object sender, RoutedEventArgs e)
-    {
-        ToggleWindowVisibility();
-    }
-
-    private void TraySettings_Click(object sender, RoutedEventArgs e)
-    {
-        ShowWindow();
-    }
-
-    private void TrayExit_Click(object sender, RoutedEventArgs e)
-    {
-        _isExiting = true;
-        Application.Current.Shutdown();
-    }
-
-    private void ToggleWindowVisibility()
-    {
-        if (IsVisible)
-        {
-            Hide();
-            ShowInTaskbar = false;
-        }
-        else
-        {
-            ShowWindow();
-        }
-    }
-
-    /// <summary>
-    /// Shows the settings window. Called from App.xaml.cs on manual (non-minimized) launch.
-    /// </summary>
-    public void ShowSettingsWindow() => ShowWindow();
-
-    private void ShowWindow()
-    {
-        // InitializeTrayAndHide() leaves ShowActivated=false; restore it before
-        // changing visibility, otherwise WPF refuses to show a Maximized window.
-        ShowActivated = true;
-
-        if (WindowState == WindowState.Minimized)
-            WindowState = WindowState.Normal;
-
-        Visibility = Visibility.Visible;
-        Show();
-        ShowInTaskbar = true;
-        Activate();
-        Topmost = true;
-        Topmost = false;
     }
 
     private bool _suppressNavSelectionSync;
@@ -912,15 +437,6 @@ public partial class MainWindow : FluentWindow
 
         return isOnScreen;
     }
-
-    // ── Win32 interop for off-screen window positioning ─────────────────
-
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter,
-        int X, int Y, int cx, int cy, uint uFlags);
-
-    private const uint SWP_NOZORDER = 0x0004;
-    private const uint SWP_NOACTIVATE = 0x0010;
 
     // ── Win32 interop for multi-monitor detection ───────────────────────
 

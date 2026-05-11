@@ -3,14 +3,18 @@ using System.Windows;
 using WhisperHeim.Services.Audio;
 using WhisperHeim.Services.CallTranscription;
 using WhisperHeim.Services.Diarization;
+using WhisperHeim.Services.Dictation;
+using WhisperHeim.Services.Hotkey;
 using WhisperHeim.Services.Input;
 using WhisperHeim.Services.Models;
+using WhisperHeim.Services.Orchestration;
 using WhisperHeim.Services.Recording;
 using WhisperHeim.Services.Settings;
 using WhisperHeim.Services.Startup;
 using WhisperHeim.Services.FileTranscription;
 using WhisperHeim.Services.Templates;
 using WhisperHeim.Services.Transcription;
+using WhisperHeim.Services.Tray;
 using WhisperHeim.Services.Analysis;
 using WhisperHeim.Services.Streams;
 using WhisperHeim.Views;
@@ -28,6 +32,38 @@ public partial class App : Application
     private readonly AudioCaptureService _audioCaptureService = new();
     private readonly ModelManagerService _modelManager = new();
     private bool _isShowingError;
+
+    // ── Long-lived services that used to live on MainWindow ────────────
+    // All of these are constructed eagerly in StartupCore so that hotkeys,
+    // tray icon, call-recording → auto-transcription, and dictation overlay
+    // all work even when the user has Start Minimized enabled and no
+    // window has ever been opened.
+
+    private TranscriptionService? _transcriptionService;
+    private InputSimulator? _inputSimulator;
+    private FileTranscriptionService? _fileTranscriptionService;
+    private TemplateService? _templateService;
+    private CallRecordingService? _callRecordingService;
+    private TranscriptStorageService? _transcriptStorageService;
+    private SpeakerDiarizationService? _speakerDiarizationService;
+    private CallTranscriptionPipeline? _callTranscriptionPipeline;
+    private CallRecordingHotkeyService? _callRecordingHotkeyService;
+    private TranscriptionQueueService? _transcriptionQueueService;
+    private HighQualityLoopbackService? _highQualityLoopbackService;
+    private HighQualityRecorderService? _highQualityRecorderService;
+    private OllamaService? _ollamaService;
+    private StreamStorageService? _streamStorageService;
+    private StreamTranscriptionService? _streamTranscriptionService;
+    private AutoTranscriptionService? _autoTranscriptionService;
+
+    private GlobalHotkeyService? _hotkeyService;
+    private DictationOrchestrator? _orchestrator;
+    private DictationOverlayWindow? _overlayWindow;
+    private TrayIconHost? _trayIconHost;
+
+    // Lazy-constructed settings window. Created on first open (tray click,
+    // menu item, or non-minimized startup).
+    private MainWindow? _settingsWindow;
 
     private void OnStartup(object sender, StartupEventArgs e)
     {
@@ -97,6 +133,8 @@ public partial class App : Application
                 _isShowingError = false;
             }
         };
+
+        Exit += OnAppExit;
 
         try
         {
@@ -168,75 +206,210 @@ public partial class App : Application
             }
         }
 
-        // Create services
-        var transcriptionService = new TranscriptionService();
-        transcriptionService.LoadModel();
-        var inputSimulator = new InputSimulator();
-        var fileTranscriptionService = new FileTranscriptionService(transcriptionService);
-        var templateService = new TemplateService(_settingsService);
+        // ── Services (all lifecycle-independent of MainWindow) ─────────
+        _transcriptionService = new TranscriptionService();
+        _transcriptionService.LoadModel();
+        _inputSimulator = new InputSimulator();
+        _fileTranscriptionService = new FileTranscriptionService(_transcriptionService);
+        _templateService = new TemplateService(_settingsService);
 
-        // Create call recording services — recordings go directly to the data path
-        var callRecordingService = new CallRecordingService(_dataPathService);
-        var transcriptStorageService = new TranscriptStorageService(_dataPathService);
-        var speakerDiarizationService = new SpeakerDiarizationService();
-        var callTranscriptionPipeline = new CallTranscriptionPipeline(
-            speakerDiarizationService, transcriptionService, transcriptStorageService);
-        var callRecordingHotkeyService = new CallRecordingHotkeyService(callRecordingService);
+        _callRecordingService = new CallRecordingService(_dataPathService);
+        _transcriptStorageService = new TranscriptStorageService(_dataPathService);
+        _speakerDiarizationService = new SpeakerDiarizationService();
+        _callTranscriptionPipeline = new CallTranscriptionPipeline(
+            _speakerDiarizationService, _transcriptionService, _transcriptStorageService);
+        _callRecordingHotkeyService = new CallRecordingHotkeyService(_callRecordingService);
 
-        // Create transcription queue service (replaces TranscriptionBusyService)
-        var transcriptionQueueService = new TranscriptionQueueService(
-            callTranscriptionPipeline,
-            fileTranscriptionService,
-            transcriptStorageService,
+        _transcriptionQueueService = new TranscriptionQueueService(
+            _callTranscriptionPipeline,
+            _fileTranscriptionService,
+            _transcriptStorageService,
             () => _settingsService!.Current.General.DefaultSpeakerName);
 
-        // Create high-quality loopback service (shared infra: used by call recording / voice cloning flows)
-        var highQualityLoopbackService = new HighQualityLoopbackService();
+        _highQualityLoopbackService = new HighQualityLoopbackService();
+        _highQualityRecorderService = new HighQualityRecorderService();
+        _ollamaService = new OllamaService(_settingsService);
 
-        // Create high-quality mic recorder (shared infra)
-        var highQualityRecorderService = new HighQualityRecorderService();
+        _streamStorageService = new StreamStorageService(_dataPathService);
+        _streamTranscriptionService = new StreamTranscriptionService(
+            _transcriptionService, _streamStorageService);
 
-        // Create Ollama analysis service (local LLM transcript analysis)
-        var ollamaService = new OllamaService(_settingsService);
+        // Headless auto-transcription: enqueues each completed recording even
+        // when no UI page is open to observe the recording-stopped event.
+        _autoTranscriptionService = new AutoTranscriptionService(
+            _callRecordingService, _transcriptionQueueService);
 
-        // Create stream transcription services
-        var streamStorageService = new StreamStorageService(_dataPathService);
-        var streamTranscriptionService = new StreamTranscriptionService(
-            transcriptionService, streamStorageService);
+        // ── Tray icon (registers a hidden host window as Application.MainWindow) ──
+        _trayIconHost = new TrayIconHost(
+            _callRecordingService,
+            onShowSettingsRequested: ShowSettingsWindow,
+            onExitRequested: RequestExit);
 
-        // Check the user's "Start Minimized" setting
+        // ── Hotkeys + dictation orchestrator + overlay ─────────────────
+        SetupHotkeysAndOrchestration();
+
+        // Either show the settings window now, or stay in the tray.
         var startMinimized = _settingsService.Current.General.StartMinimized;
-
-        // Create the main window with all services
-        var mainWindow = new MainWindow(
-            _settingsService,
-            _audioCaptureService,
-            _modelManager,
-            transcriptionService,
-            inputSimulator,
-            fileTranscriptionService,
-            templateService,
-            callRecordingService,
-            callTranscriptionPipeline,
-            callRecordingHotkeyService,
-            transcriptStorageService,
-            highQualityLoopbackService,
-            highQualityRecorderService,
-            _dataPathService,
-            transcriptionQueueService,
-            ollamaService,
-            streamTranscriptionService,
-            streamStorageService);
-        MainWindow = mainWindow;
-
         if (startMinimized)
         {
-            // Show the window off-screen so the tray icon renders, then hide it
-            mainWindow.InitializeTrayAndHide();
+            Trace.TraceInformation("[App] Start minimized -- MainWindow construction deferred.");
         }
         else
         {
-            mainWindow.ShowSettingsWindow();
+            ShowSettingsWindow();
         }
+    }
+
+    private void SetupHotkeysAndOrchestration()
+    {
+        _hotkeyService = new GlobalHotkeyService();
+
+        // Register the global dictation hotkey (low-level keyboard hook, no HWND needed)
+        bool registered = _hotkeyService.Register();
+        if (!registered)
+        {
+            Trace.TraceWarning(
+                "[App] Failed to register global dictation hotkey. " +
+                "Another application may own the combination.");
+        }
+
+        // Wire up the hold-to-talk orchestrator (with template support via Alt modifier)
+        _orchestrator = new DictationOrchestrator(
+            _hotkeyService,
+            _audioCaptureService,
+            _transcriptionService!,
+            _inputSimulator!,
+            OnDictationStateChanged,
+            _templateService!,
+            _settingsService!);
+
+        _orchestrator.AudioAmplitudeChanged += OnAudioAmplitudeChanged;
+        _orchestrator.PipelineError += OnPipelineError;
+        _orchestrator.TemplateNoMatch += spokenText =>
+            ToastWindow.Show($"No template match for: \"{spokenText}\"");
+
+        _orchestrator.Start();
+
+        // Initialize the dictation overlay if enabled in settings
+        InitializeOverlay();
+
+        Trace.TraceInformation(
+            "[App] Orchestrator started. Dictation hotkey registered: {0}",
+            registered);
+
+        // Register call recording hotkey: Ctrl+Win+R
+        var callHotkey = new HotkeyRegistration(
+            ModifierKeys.Control | ModifierKeys.Win,
+            VirtualKey: 0x52); // 'R' key
+        bool callHkRegistered = _callRecordingHotkeyService!.Register(callHotkey);
+        Trace.TraceInformation(
+            "[App] Call recording hotkey registered: {0}", callHkRegistered);
+    }
+
+    /// <summary>
+    /// Called by the orchestrator (on the UI thread) when dictation starts/stops.
+    /// Updates both the tray icon state machine and shows/hides the dictation overlay.
+    /// </summary>
+    private void OnDictationStateChanged(bool isActive)
+    {
+        _trayIconHost?.OnDictationStateChanged(isActive);
+
+        if (isActive)
+            _overlayWindow?.ShowOverlay();
+        else
+            _overlayWindow?.HideOverlay();
+    }
+
+    private void InitializeOverlay()
+    {
+        var overlaySettings = _settingsService!.Current.Overlay;
+        if (!overlaySettings.Enabled)
+        {
+            Trace.TraceInformation("[App] Overlay disabled in settings.");
+            return;
+        }
+
+        _overlayWindow = new DictationOverlayWindow();
+        _overlayWindow.ApplySettings(overlaySettings);
+
+        Trace.TraceInformation("[App] Overlay initialized (pill mode, follows last click).");
+    }
+
+    private void OnAudioAmplitudeChanged(double rmsAmplitude)
+    {
+        Application.Current?.Dispatcher?.BeginInvoke(() =>
+        {
+            if (_overlayWindow is null) return;
+            _overlayWindow.SetMicState(OverlayMicState.Speaking);
+            _overlayWindow.UpdateAmplitude(rmsAmplitude);
+        });
+    }
+
+    private void OnPipelineError(Exception ex)
+    {
+        Application.Current?.Dispatcher?.BeginInvoke(() =>
+        {
+            _overlayWindow?.SetMicState(OverlayMicState.Error);
+            Trace.TraceError("[App] Pipeline error reflected in overlay: {0}", ex.Message);
+        });
+    }
+
+    /// <summary>
+    /// Shows the settings window, constructing it lazily on first call.
+    /// Wired to the tray icon left-click and "Settings" menu item.
+    /// </summary>
+    public void ShowSettingsWindow()
+    {
+        if (_settingsWindow is null)
+        {
+            Trace.TraceInformation("[App] Showing MainWindow lazily on first request.");
+            _settingsWindow = new MainWindow(
+                _settingsService!,
+                _audioCaptureService,
+                _modelManager,
+                _transcriptionService!,
+                _inputSimulator!,
+                _fileTranscriptionService!,
+                _templateService!,
+                _callRecordingService!,
+                _callTranscriptionPipeline!,
+                _callRecordingHotkeyService!,
+                _transcriptStorageService!,
+                _highQualityLoopbackService!,
+                _highQualityRecorderService!,
+                _dataPathService,
+                _transcriptionQueueService!,
+                _ollamaService!,
+                _streamTranscriptionService!,
+                _streamStorageService!);
+        }
+
+        _settingsWindow.ShowWindow();
+    }
+
+    /// <summary>
+    /// Called by the tray "Exit" menu item to shut down the app.
+    /// MainWindow's OnClosing always hides-to-tray; only this path actually exits.
+    /// </summary>
+    private static void RequestExit()
+    {
+        Application.Current.Shutdown();
+    }
+
+    private void OnAppExit(object sender, ExitEventArgs e)
+    {
+        Trace.TraceInformation("[App] Application exiting...");
+
+        // If the settings window was opened, persist its position/size.
+        _settingsWindow?.SaveOnExit();
+
+        _overlayWindow?.Close();
+        _orchestrator?.Dispose();
+        _hotkeyService?.Dispose();
+        _callRecordingHotkeyService?.Dispose();
+        _autoTranscriptionService?.Dispose();
+        (_callRecordingService as IDisposable)?.Dispose();
+        _trayIconHost?.Dispose();
+        _settingsService?.Dispose();
     }
 }
