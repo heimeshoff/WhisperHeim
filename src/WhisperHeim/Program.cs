@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.IO;
 using Velopack;
 
 namespace WhisperHeim;
@@ -44,6 +45,19 @@ public static class Program
                     // flag; App.OnStartup consumes it once WPF is alive.
                     IsFirstRun = true;
                 })
+                .OnBeforeUninstallFastCallback(_ =>
+                {
+                    // Drop a small "where is my data" note on the user's
+                    // desktop right before Velopack wipes the install
+                    // directory. Hook has a 30 s timeout and Velopack
+                    // forbids UI -- this is plain file IO only.
+                    //
+                    // We do NOT touch user data here (recordings, settings,
+                    // models all stay in %APPDATA%\WhisperHeim\ which
+                    // Velopack preserves). The note exists so a user who
+                    // uninstalled by accident can find their recordings.
+                    TryWriteUninstallDataNote();
+                })
                 .Run();
         }
         catch (Exception ex)
@@ -58,5 +72,57 @@ public static class Program
         var app = new App();
         app.InitializeComponent();
         app.Run();
+    }
+
+    /// <summary>
+    /// Writes a single plain-text note to the user's desktop with the
+    /// location of preserved user data. Called from the
+    /// <see cref="VelopackApp.OnBeforeUninstallFastCallback"/> hook, which
+    /// has a 30&#x202F;s timeout and forbids UI. We do not read the
+    /// configured DataPath (that would mean spinning up
+    /// <see cref="Services.Settings.DataPathService"/> here, which is
+    /// heavier than a hook should be) -- we point the user at
+    /// <c>%APPDATA%\WhisperHeim\</c> (the default + bootstrap location)
+    /// and let them follow <c>bootstrap.json</c> from there if they
+    /// configured a custom path. Best-effort: any failure is swallowed
+    /// so uninstall never aborts because of this note.
+    /// </summary>
+    private static void TryWriteUninstallDataNote()
+    {
+        try
+        {
+            var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+            if (string.IsNullOrWhiteSpace(desktop) || !Directory.Exists(desktop))
+                return;
+
+            var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            var roamingRoot = Path.Combine(appData, "WhisperHeim");
+
+            var notePath = Path.Combine(desktop, "WhisperHeim-data-location.txt");
+            var contents =
+                "Thanks for trying WhisperHeim." + Environment.NewLine +
+                Environment.NewLine +
+                "Your recordings, transcripts, and settings have NOT been deleted." + Environment.NewLine +
+                "They live in:" + Environment.NewLine +
+                "  " + roamingRoot + Environment.NewLine +
+                Environment.NewLine +
+                "If you configured a custom Data Folder in Settings, your recordings" + Environment.NewLine +
+                "live there instead -- the path is recorded in:" + Environment.NewLine +
+                "  " + Path.Combine(roamingRoot, "bootstrap.json") + Environment.NewLine +
+                Environment.NewLine +
+                "AI models (~800 MB) are also kept under the folder above so a" + Environment.NewLine +
+                "reinstall does not have to re-download them." + Environment.NewLine +
+                Environment.NewLine +
+                "Delete that folder manually for a fully clean removal." + Environment.NewLine +
+                Environment.NewLine +
+                "If WhisperHeim served you well, a star on GitHub would make our day:" + Environment.NewLine +
+                "  https://github.com/heimeshoff/WhisperHeim" + Environment.NewLine;
+
+            File.WriteAllText(notePath, contents);
+        }
+        catch
+        {
+            // Hook failures must never block uninstall. Swallow silently.
+        }
     }
 }

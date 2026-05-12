@@ -199,6 +199,80 @@ public sealed class DataPathService
     }
 
     /// <summary>
+    /// Returns <c>true</c> if <paramref name="path"/> sits inside either the
+    /// install directory (<see cref="AppContext.BaseDirectory"/>) or the
+    /// Velopack install root (<c>%LocalAppData%\WhisperHeim\</c>). Configuring
+    /// the user-data <c>DataPath</c> to point at either of these is a
+    /// foot-gun: Velopack wipes <c>%LocalAppData%\WhisperHeim\</c> on
+    /// uninstall, and the install dir is replaced wholesale on every update.
+    /// The caller (General page DataPath chooser) must reject such paths
+    /// with a clear error before calling <see cref="SetDataPath"/>.
+    /// </summary>
+    /// <param name="path">The candidate data-folder path.</param>
+    /// <returns>
+    /// <c>true</c> when the path resolves under the install dir or the
+    /// Velopack root; <c>false</c> otherwise (including when the path is
+    /// null / whitespace / unresolvable — those are not install-dir paths,
+    /// they're separately invalid and handled by <see cref="ValidatePath"/>).
+    /// </returns>
+    public static bool IsInsideInstallOrLocalAppDataRoot(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return false;
+
+        string normalizedCandidate;
+        try
+        {
+            normalizedCandidate = Path.GetFullPath(path)
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        }
+        catch
+        {
+            // Path is malformed; let ValidatePath handle the rejection.
+            return false;
+        }
+
+        // The two forbidden roots: the install dir (where WhisperHeim.exe
+        // lives) and the Velopack pack root (%LocalAppData%\WhisperHeim\).
+        // We compare as full paths with trailing separators stripped, then
+        // do a case-insensitive prefix check that also accepts equality.
+        var forbiddenRoots = new[]
+        {
+            AppContext.BaseDirectory,
+            LocalAppDataRoot,
+        };
+
+        foreach (var root in forbiddenRoots)
+        {
+            if (string.IsNullOrWhiteSpace(root))
+                continue;
+
+            string normalizedRoot;
+            try
+            {
+                normalizedRoot = Path.GetFullPath(root)
+                    .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            }
+            catch
+            {
+                continue;
+            }
+
+            if (normalizedCandidate.Equals(normalizedRoot, StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            // Prefix match must be on a directory boundary so that e.g.
+            // "C:\Users\X\AppData\Local\WhisperHeimNotes" does NOT match
+            // "C:\Users\X\AppData\Local\WhisperHeim".
+            var rootWithSep = normalizedRoot + Path.DirectorySeparatorChar;
+            if (normalizedCandidate.StartsWith(rootWithSep, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Changes the data path. Validates the new path is writable before accepting.
     /// Does NOT move existing data — the caller is responsible for migration if needed.
     /// </summary>
@@ -214,6 +288,18 @@ public sealed class DataPathService
             Trace.TraceInformation("[DataPathService] Data path reset to default: {0}", LocalRoot);
             DataPathChanged?.Invoke(this, DataPath);
             return true;
+        }
+
+        // Defence in depth: the General page already rejects install-dir
+        // paths with a UI message, but guard the service entry point too so
+        // programmatic callers (settings JSON edits, future test code) can't
+        // accidentally point DataPath at a Velopack-wiped location.
+        if (IsInsideInstallOrLocalAppDataRoot(newPath))
+        {
+            Trace.TraceWarning(
+                "[DataPathService] Rejected DataPath inside install / LocalAppData root: {0}",
+                newPath);
+            return false;
         }
 
         if (!ValidatePath(newPath))

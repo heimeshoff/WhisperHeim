@@ -124,6 +124,24 @@ public partial class GeneralPage : UserControl
         {
             var newPath = dialog.FolderName;
 
+            // Reject install-dir / Velopack root before the writability check.
+            // These paths would be wiped on uninstall (and possibly on update)
+            // — putting user recordings there would silently lose data.
+            if (DataPathService.IsInsideInstallOrLocalAppDataRoot(newPath))
+            {
+                MessageBox.Show(
+                    "This folder lives inside WhisperHeim's install directory.\n\n" +
+                    $"{newPath}\n\n" +
+                    "Storing your data here would cause Windows to delete it when " +
+                    "WhisperHeim is updated or uninstalled. Please choose a folder " +
+                    "outside the install directory — your Documents folder, a cloud-" +
+                    "synced folder (Google Drive, OneDrive), or any other location.",
+                    "Folder Inside Install Directory",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
             if (!DataPathService.ValidatePath(newPath))
             {
                 MessageBox.Show(
