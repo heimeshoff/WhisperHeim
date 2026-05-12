@@ -16,6 +16,7 @@ using WhisperHeim.Services.Templates;
 using WhisperHeim.Services.Transcription;
 using WhisperHeim.Services.Tray;
 using WhisperHeim.Services.Analysis;
+using WhisperHeim.Services.Ffmpeg;
 using WhisperHeim.Services.Streams;
 using WhisperHeim.Views;
 using Wpf.Ui.Appearance;
@@ -66,6 +67,23 @@ public partial class App : Application
     private StreamStorageService? _streamStorageService;
     private StreamTranscriptionService? _streamTranscriptionService;
     private AutoTranscriptionService? _autoTranscriptionService;
+    private FfmpegDetector? _ffmpegDetector;
+    private FfmpegPromptService? _ffmpegPromptService;
+
+    /// <summary>
+    /// Process-wide FFmpeg detector. Populated in <see cref="StartupCore"/>
+    /// before any UI is shown. Exposed publicly so UI bindings (e.g.
+    /// <c>GeneralPage</c>'s FFmpeg status card) can subscribe to
+    /// <see cref="FfmpegDetector.StateChanged"/> without taking a constructor
+    /// dependency through MainWindow.
+    /// </summary>
+    public FfmpegDetector? FfmpegDetector => _ffmpegDetector;
+
+    /// <summary>
+    /// UI-agnostic seam used by Services-tier code to surface the install
+    /// modal on the WPF dispatcher when FFmpeg is missing.
+    /// </summary>
+    public IFfmpegPromptService? FfmpegPromptService => _ffmpegPromptService;
 
     private GlobalHotkeyService? _hotkeyService;
     private DictationOrchestrator? _orchestrator;
@@ -339,9 +357,39 @@ public partial class App : Application
         _highQualityRecorderService = new HighQualityRecorderService(_dataPathService);
         _ollamaService = new OllamaService(_settingsService);
 
+        // FFmpeg detection + install-prompt seam. The detector is a process-wide
+        // singleton; the prompt service marshals to the WPF dispatcher to show
+        // the modal. Background services (StreamTranscriptionService,
+        // AudioFileDecoder) take only the IFfmpegPromptService abstraction so
+        // they stay UI-agnostic.
+        _ffmpegDetector = new FfmpegDetector();
+        _ffmpegPromptService = new FfmpegPromptService(_ffmpegDetector);
+        // AudioFileDecoder uses a static accessor (it's invoked from many call
+        // sites including pure-static decode paths). Wire it once at startup
+        // so the OGG fast-path uses the detector's resolved absolute path.
+        Services.FileTranscription.AudioFileDecoder.SetDetector(_ffmpegDetector);
+        // Kick off detection on a background thread once everything else has
+        // booted; fire-and-forget. UI binders (e.g. General page) subscribe to
+        // FfmpegDetector.StateChanged and react when the detection completes
+        // or flips after a user install.
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var info = await _ffmpegDetector.DetectAsync();
+                Trace.TraceInformation(
+                    "[App] FFmpeg detection: {0}",
+                    info is null ? "not found" : $"found ({info.VersionText}) at {info.ExecutablePath}");
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceWarning("[App] FFmpeg detection failed: {0}", ex.Message);
+            }
+        });
+
         _streamStorageService = new StreamStorageService(_dataPathService);
         _streamTranscriptionService = new StreamTranscriptionService(
-            _transcriptionService, _streamStorageService);
+            _transcriptionService, _streamStorageService, _ffmpegDetector, _ffmpegPromptService);
 
         // Headless auto-transcription: enqueues each completed recording even
         // when no UI page is open to observe the recording-stopped event.

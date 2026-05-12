@@ -5,6 +5,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using Wpf.Ui.Appearance;
 using WhisperHeim.Services.Analysis;
+using WhisperHeim.Services.Ffmpeg;
 using WhisperHeim.Services.Settings;
 using WhisperHeim.Services.Startup;
 
@@ -15,15 +16,19 @@ public partial class GeneralPage : UserControl
     private readonly SettingsService _settingsService;
     private readonly OllamaService _ollamaService;
     private readonly StartupService _startupService = new();
+    private readonly FfmpegDetector? _ffmpegDetector;
 
     public GeneralPage(SettingsService settingsService, OllamaService ollamaService)
     {
         _settingsService = settingsService;
         _ollamaService = ollamaService;
+        // App owns the detector singleton; resolve via the running Application.
+        _ffmpegDetector = (Application.Current as App)?.FfmpegDetector;
         DataContext = _settingsService.Current.General;
         InitializeComponent();
         UpdateDataPathDisplay();
         InitializeOllamaSettings();
+        RefreshFfmpegStatus();
 
         // Re-render when settings change underneath us (disk reload from
         // another machine, or a local Save() via another page).
@@ -36,14 +41,76 @@ public partial class GeneralPage : UserControl
     private void OnPageLoaded(object sender, RoutedEventArgs e)
     {
         _settingsService.SettingsChanged += OnSettingsChanged;
+        if (_ffmpegDetector is not null)
+            _ffmpegDetector.StateChanged += OnFfmpegStateChanged;
         // Catch up on any disk reload that landed while we were unloaded,
         // and highlight the active theme now that the visual tree is ready.
         RefreshFromSettings();
+        RefreshFfmpegStatus();
     }
 
     private void OnPageUnloaded(object sender, RoutedEventArgs e)
     {
         _settingsService.SettingsChanged -= OnSettingsChanged;
+        if (_ffmpegDetector is not null)
+            _ffmpegDetector.StateChanged -= OnFfmpegStateChanged;
+    }
+
+    private void OnFfmpegStateChanged(object? sender, EventArgs e)
+    {
+        // Detector raises from a worker thread; marshal to the UI.
+        Dispatcher.BeginInvoke(new Action(RefreshFfmpegStatus));
+    }
+
+    private void RefreshFfmpegStatus()
+    {
+        var info = _ffmpegDetector?.CachedInfo;
+        if (info is not null)
+        {
+            FfmpegStatusText.Text = $"Detected — {info.VersionText}";
+            FfmpegPathText.Text = info.ExecutablePath;
+            FfmpegPathText.Visibility = Visibility.Visible;
+            InstallFfmpegButton.Visibility = Visibility.Collapsed;
+        }
+        else if (_ffmpegDetector is null)
+        {
+            FfmpegStatusText.Text = "Detection unavailable.";
+            FfmpegPathText.Visibility = Visibility.Collapsed;
+            InstallFfmpegButton.Visibility = Visibility.Collapsed;
+        }
+        else
+        {
+            FfmpegStatusText.Text = "Not installed — needed for YouTube and Stream transcription.";
+            FfmpegPathText.Visibility = Visibility.Collapsed;
+            InstallFfmpegButton.Visibility = Visibility.Visible;
+        }
+    }
+
+    private async void InstallFfmpegButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_ffmpegDetector is null) return;
+        var promptService = (Application.Current as App)?.FfmpegPromptService;
+        if (promptService is null)
+        {
+            MessageBox.Show(
+                "FFmpeg install prompt is unavailable in this build.",
+                "WhisperHeim",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return;
+        }
+
+        InstallFfmpegButton.IsEnabled = false;
+        try
+        {
+            await promptService.PromptForInstallAsync(
+                "FFmpeg unlocks YouTube and Stream transcription. Install it once and WhisperHeim will find it automatically.");
+        }
+        finally
+        {
+            InstallFfmpegButton.IsEnabled = true;
+            RefreshFfmpegStatus();
+        }
     }
 
     private void OnSettingsChanged(object? sender, SettingsChangedEventArgs e)

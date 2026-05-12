@@ -3,6 +3,7 @@ using System.IO;
 using Concentus;
 using Concentus.Oggfile;
 using NAudio.Wave;
+using WhisperHeim.Services.Ffmpeg;
 
 namespace WhisperHeim.Services.FileTranscription;
 
@@ -70,22 +71,54 @@ internal static class AudioFileDecoder
 
     private static (float[] Samples, int SampleRate) DecodeOgg(string filePath, CancellationToken cancellationToken = default)
     {
-        // Try ffmpeg first (most reliable for OGG/Opus), fall back to Concentus
-        try
+        // Try ffmpeg first when available, but always fall back to Concentus
+        // silently if ffmpeg is missing or fails. OGG decode must NOT block on
+        // a UI dialog — file transcription has a working pure-managed path
+        // (Concentus) that handles the WhatsApp / common-OGG case fine.
+        //
+        // Resolution: prefer the FfmpegDetector's cached path if a detector
+        // was injected via SetDetector (App startup wires this up). Otherwise
+        // try plain "ffmpeg" on PATH. Either way, any failure short-circuits
+        // to Concentus.
+        var ffmpegPath = _detector?.CachedInfo?.ExecutablePath;
+        if (ffmpegPath is not null || _detector is null)
         {
-            var result = DecodeOggWithFfmpeg(filePath, cancellationToken);
-            if (result.Samples.Length > 0)
-                return result;
+            try
+            {
+                var result = DecodeOggWithFfmpeg(filePath, ffmpegPath ?? "ffmpeg", cancellationToken);
+                if (result.Samples.Length > 0)
+                    return result;
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceWarning("[AudioFileDecoder] ffmpeg OGG decode failed, falling back to Concentus: {0}", ex.Message);
+            }
         }
-        catch (Exception ex)
+        else
         {
-            Trace.TraceWarning("[AudioFileDecoder] ffmpeg OGG decode failed, falling back to Concentus: {0}", ex.Message);
+            Trace.TraceInformation("[AudioFileDecoder] FFmpeg not detected; using Concentus for OGG.");
         }
 
         return DecodeOggWithConcentus(filePath, cancellationToken);
     }
 
-    private static (float[] Samples, int SampleRate) DecodeOggWithFfmpeg(string filePath, CancellationToken cancellationToken)
+    /// <summary>
+    /// Optional process-wide FFmpeg detector. Set once at app startup so the
+    /// OGG decoder uses the detected absolute path (covering the
+    /// winget-installed location even when PATH hasn't refreshed).
+    ///
+    /// <para>
+    /// Per Task 110 contract: <see cref="DecodeOgg"/> keeps its Concentus
+    /// fallback ahead of any modal prompt. We never call
+    /// <see cref="IFfmpegPromptService"/> from here — file transcription
+    /// must not block on a UI dialog.
+    /// </para>
+    /// </summary>
+    private static FfmpegDetector? _detector;
+
+    public static void SetDetector(FfmpegDetector detector) => _detector = detector;
+
+    private static (float[] Samples, int SampleRate) DecodeOggWithFfmpeg(string filePath, string ffmpegExe, CancellationToken cancellationToken)
     {
         // Decode to 16kHz mono 16-bit PCM via ffmpeg
         var tempFile = Path.GetTempFileName();
@@ -93,7 +126,7 @@ internal static class AudioFileDecoder
         {
             var psi = new System.Diagnostics.ProcessStartInfo
             {
-                FileName = "ffmpeg",
+                FileName = ffmpegExe,
                 Arguments = $"-i \"{filePath}\" -ar {TargetSampleRate} -ac {TargetChannels} -f s16le -y \"{tempFile}\"",
                 UseShellExecute = false,
                 CreateNoWindow = true,

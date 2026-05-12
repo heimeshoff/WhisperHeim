@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using NAudio.Wave;
+using WhisperHeim.Services.Ffmpeg;
 using WhisperHeim.Services.FileTranscription;
 using WhisperHeim.Services.Transcription;
 
@@ -28,13 +29,19 @@ public sealed class StreamTranscriptionService
 {
     private readonly ITranscriptionService _transcriptionService;
     private readonly StreamStorageService _storageService;
+    private readonly FfmpegDetector? _ffmpegDetector;
+    private readonly IFfmpegPromptService? _ffmpegPrompt;
 
     public StreamTranscriptionService(
         ITranscriptionService transcriptionService,
-        StreamStorageService storageService)
+        StreamStorageService storageService,
+        FfmpegDetector? ffmpegDetector = null,
+        IFfmpegPromptService? ffmpegPrompt = null)
     {
         _transcriptionService = transcriptionService;
         _storageService = storageService;
+        _ffmpegDetector = ffmpegDetector;
+        _ffmpegPrompt = ffmpegPrompt;
     }
 
     /// <summary>
@@ -64,6 +71,18 @@ public sealed class StreamTranscriptionService
         IProgress<StreamBatchProgress>? progress = null,
         CancellationToken cancellationToken = default)
     {
+        // FFmpeg gate: yt-dlp's audio extraction (-x --audio-format wav) and
+        // the Instagram video → audio path both invoke ffmpeg. Surface the
+        // install prompt up-front rather than failing per-URL deep inside the
+        // pipeline. The detector cache is populated at app startup; only fall
+        // back to a live probe if it hasn't been initialized (e.g. tests).
+        if (!await EnsureFfmpegAvailableAsync(cancellationToken))
+        {
+            throw new InvalidOperationException(
+                "Stream transcription requires FFmpeg, but it is not installed. " +
+                "Install FFmpeg via the prompt and try again.");
+        }
+
         var results = new List<StreamTranscript>();
 
         for (int i = 0; i < urls.Count; i++)
@@ -193,7 +212,7 @@ public sealed class StreamTranscriptionService
 
     // ── YouTube: captions via yt-dlp ──────────────────────────────────
 
-    private static async Task<(string? Title, TimeSpan Duration, string? CaptionText)>
+    private async Task<(string? Title, TimeSpan Duration, string? CaptionText)>
         TryGetYouTubeCaptionsAsync(string url, CancellationToken cancellationToken)
     {
         string? title = null;
@@ -285,7 +304,7 @@ public sealed class StreamTranscriptionService
 
     // ── Instagram: captions via gallery-dl ────────────────────────────
 
-    private static async Task<(string? Title, TimeSpan Duration, string? CaptionText)>
+    private async Task<(string? Title, TimeSpan Duration, string? CaptionText)>
         TryGetInstagramCaptionsAsync(string url, CancellationToken cancellationToken)
     {
         string? title = null;
@@ -346,7 +365,7 @@ public sealed class StreamTranscriptionService
 
     // ── Audio download ────────────────────────────────────────────────
 
-    private static async Task<string> DownloadAudioAsync(
+    private async Task<string> DownloadAudioAsync(
         string url,
         StreamPlatform platform,
         CancellationToken cancellationToken)
@@ -372,7 +391,7 @@ public sealed class StreamTranscriptionService
         }
     }
 
-    private static async Task<string> DownloadYouTubeAudioAsync(
+    private async Task<string> DownloadYouTubeAudioAsync(
         string url,
         string tempDir,
         CancellationToken cancellationToken)
@@ -392,7 +411,7 @@ public sealed class StreamTranscriptionService
         return audioFile;
     }
 
-    private static async Task<string> DownloadInstagramAudioAsync(
+    private async Task<string> DownloadInstagramAudioAsync(
         string url,
         string tempDir,
         CancellationToken cancellationToken)
@@ -565,17 +584,68 @@ public sealed class StreamTranscriptionService
         }
     }
 
+    // ── FFmpeg availability gate ──────────────────────────────────────
+
+    /// <summary>
+    /// Returns true when FFmpeg is on PATH (either cached from app startup or
+    /// just detected). If not, surfaces the modal install prompt once and
+    /// re-detects on the user's behalf when they dismiss it. Returns false
+    /// only if the user cancels the prompt or no prompt service is wired up.
+    /// </summary>
+    private async Task<bool> EnsureFfmpegAvailableAsync(CancellationToken cancellationToken)
+    {
+        if (_ffmpegDetector is null)
+        {
+            // Detector not wired in this construction path (e.g. tests).
+            // Fall through and let the underlying ffmpeg invocation report
+            // its own error; the legacy code path remains unchanged.
+            return true;
+        }
+
+        if (_ffmpegDetector.CachedInfo is not null) return true;
+
+        // Re-probe in case the user installed FFmpeg out-of-band since startup.
+        var info = await _ffmpegDetector.DetectAsync(cancellationToken);
+        if (info is not null) return true;
+
+        if (_ffmpegPrompt is null)
+        {
+            Trace.TraceWarning(
+                "[StreamTranscriptionService] FFmpeg missing and no prompt service registered.");
+            return false;
+        }
+
+        var result = await _ffmpegPrompt.PromptForInstallAsync(
+            "Stream transcription (YouTube, Instagram, web streams) requires FFmpeg.",
+            cancellationToken);
+
+        // Re-check the cache; the dialog re-runs detection on success.
+        return result == FfmpegPromptResult.Installed
+            && _ffmpegDetector.CachedInfo is not null;
+    }
+
     // ── Process runner ────────────────────────────────────────────────
 
-    private static async Task<string> RunProcessAsync(
+    private async Task<string> RunProcessAsync(
         string fileName,
         string arguments,
         CancellationToken cancellationToken,
         int timeoutMs = 60_000)
     {
+        // If the caller wants ffmpeg and the detector has resolved an absolute
+        // path (e.g. the winget-installed location whose PATH hasn't refreshed
+        // for this process), prefer that over relying on PATH lookup. yt-dlp
+        // remains on PATH (we don't bundle / detect it).
+        var resolvedFile = fileName;
+        if (string.Equals(fileName, "ffmpeg", StringComparison.OrdinalIgnoreCase)
+            && _ffmpegDetector?.CachedInfo is { ExecutablePath: var ffPath })
+        {
+            resolvedFile = ffPath;
+        }
+
         var psi = new ProcessStartInfo
         {
-            FileName = fileName,
+            FileName = resolvedFile,
             Arguments = arguments,
             UseShellExecute = false,
             CreateNoWindow = true,
