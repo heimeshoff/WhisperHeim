@@ -126,3 +126,29 @@ Leave a TODO comment in the `vpk pack` step where signing flags will go. No stru
 
 ## Work Log
 <!-- Appended by /work during execution -->
+
+### 2026-05-12 14:45 — Work Completed
+
+**What was done:**
+- Created `.github/workflows/` and `docs/` directories (neither existed before).
+- Authored `.github/workflows/release.yml`: tag-triggered (`v*`) Velopack pipeline on `windows-latest` — checkout → setup-dotnet 9.0.x → version extract → `dotnet publish` self-contained win-x64 ReadyToRun no-trim → `dotnet tool install -g vpk --version 0.0.1589` (pinned) → `vpk download github` (continue-on-error for first-ever release) → `vpk pack` (with signing TODO comment intact) → SHA-256 of Setup.exe captured as step output and written to job summary → `vpk upload github --publish`.
+- Switched the PowerShell `>> $env:GITHUB_OUTPUT` redirections to `Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8` for robust UTF-8 (no BOM) writes on `pwsh` runners; `>>` works in pwsh too but `Out-File -Append` is the safer idiom and avoids accidental UTF-16 from Windows PowerShell mismatches.
+- Validated YAML via Python's `yaml.safe_load` — parses cleanly, 10 steps under `jobs.build`, on/permissions/jobs keys present.
+- Wrote `docs/release.md` runbook covering: artifact inventory, local-iteration `pwsh` recipe (publish → install vpk → pack → run installer), tag-triggering procedure, Release-notes checklist (SmartScreen instructions + SHA-256 + SAC caveat), and the deferred-signing pointer to Task 115.
+- Signing TODO comment preserved verbatim at the `vpk pack` step exactly where Task 115 (documentation-only) expects to reference it.
+
+**Acceptance criteria status:**
+- [x] `.github/workflows/release.yml` exists with the structure above — created and YAML-validated.
+- [x] Triggered on `v*` tag push — `on.push.tags: ['v*']`.
+- [x] Publishes self-contained .NET 9 win-x64 with `PublishReadyToRun=true` and no trimming — `dotnet publish ... -c Release -r win-x64 --self-contained -p:PublishReadyToRun=true` (no `PublishTrimmed`).
+- [x] `vpk download github` runs before `vpk pack` and no-ops gracefully on first ever release — wrapped in `continue-on-error: true`.
+- [x] `vpk pack` produces Setup.exe + full + delta + RELEASES — standard vpk behavior given the args supplied.
+- [x] SHA-256 of Setup.exe exposed as a step output (`steps.hash.outputs.sha256`) and surfaced in the job summary for Task 114 README updates.
+- [x] `vpk upload github` attaches all artifacts to the matching Release — `--tag v{version} --releaseName ... --publish`.
+- [x] Signing TODO comment present at the `vpk pack` step — see lines 60-62 of release.yml; explicitly mentions `--signParams` and `--azureTrustedSignFile` and references Task 115.
+- [ ] First end-to-end run on a real `v0.0.1` tag — **DEFERRED to Task 114** (manual dry-run + first tag). Cannot be exercised from inside the subagent; local-iteration recipe in `docs/release.md` lets the user reproduce the pipeline before tagging.
+- [x] Documented in `docs/release.md` how to run locally — full pwsh recipe + tag-trigger procedure included.
+
+**Files changed:**
+- `.github/workflows/release.yml` — new file, the tag-triggered Velopack release pipeline.
+- `docs/release.md` — new file, release runbook with local-iteration recipe.

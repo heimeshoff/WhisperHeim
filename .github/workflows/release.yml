@@ -1,0 +1,103 @@
+name: Release
+
+# Tag-triggered Velopack build for WhisperHeim.
+# Pushing a tag like `v0.0.1` runs publish → vpk pack → vpk upload, which
+# attaches Setup.exe, the full + delta nupkgs, and the RELEASES manifest to a
+# GitHub Release named after the tag.
+#
+# Channel discipline: all `v*` tags currently go to a single Release channel.
+# When beta channels are needed, parameterise on tag shape (e.g. `v*-beta`).
+# Out of scope here -- see Task 111 notes.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write   # required for `vpk upload github` to create/update Releases
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Extract version from tag
+        id: ver
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}".TrimStart('v')
+          "version=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Publish (self-contained, ReadyToRun, no trimming)
+        shell: pwsh
+        run: |
+          dotnet publish src/WhisperHeim/WhisperHeim.csproj `
+            -c Release -r win-x64 --self-contained `
+            -p:PublishReadyToRun=true `
+            -o publish
+
+      - name: Install vpk (Velopack CLI)
+        shell: pwsh
+        run: dotnet tool install -g vpk --version 0.0.1589
+
+      - name: Download previous releases (for delta computation)
+        # No-ops gracefully on the very first release (no prior tag exists yet).
+        # `continue-on-error` so a brand-new repo / first ever tag doesn't fail the job.
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          vpk download github `
+            --repoUrl https://github.com/${{ github.repository }} `
+            --token ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pack (vpk pack)
+        shell: pwsh
+        run: |
+          vpk pack `
+            --packId WhisperHeim `
+            --packVersion ${{ steps.ver.outputs.version }} `
+            --packDir publish `
+            --mainExe WhisperHeim.exe `
+            --packTitle "WhisperHeim" `
+            --packAuthors "Marco Heimeshoff"
+          # TODO post-UG: add --signParams "/td sha256 /fd sha256 /tr http://timestamp.acs.microsoft.com /f cert.pfx /p $env:SIGN_PASS"
+          #               or --azureTrustedSignFile signing.json once a signing identity exists. See Task 115.
+
+      - name: SHA-256 of Setup.exe
+        id: hash
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem -Path Releases -Filter '*-Setup.exe' | Select-Object -First 1
+          if (-not $setup) { throw "No Setup.exe found in Releases/" }
+          $hash = (Get-FileHash -Algorithm SHA256 $setup.FullName).Hash
+          Write-Host "Setup.exe: $($setup.Name)"
+          Write-Host "SHA-256:   $hash"
+          "sha256=$hash" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "setup_name=$($setup.Name)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Upload to GitHub Release
+        shell: pwsh
+        run: |
+          vpk upload github `
+            --repoUrl https://github.com/${{ github.repository }} `
+            --tag v${{ steps.ver.outputs.version }} `
+            --releaseName "WhisperHeim ${{ steps.ver.outputs.version }}" `
+            --publish `
+            --token ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        shell: pwsh
+        run: |
+          "## WhisperHeim ${{ steps.ver.outputs.version }}" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          "- Setup: ``${{ steps.hash.outputs.setup_name }}``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          "- SHA-256: ``${{ steps.hash.outputs.sha256 }}``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8

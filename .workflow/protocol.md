@@ -2,6 +2,23 @@
 
 ---
 
+## 2026-05-12 14:45 -- Task Completed: 111 - GitHub Actions Release Workflow (Tag-Triggered Velopack Build)
+
+**Type:** Task Completion
+**Task:** 111 - GitHub Actions Release Workflow
+**Summary:** Created `.github/workflows/release.yml` (tag-triggered, publish self-contained win-x64 ReadyToRun → pinned `vpk 0.0.1589` → download-prior (continue-on-error) → pack with signing-TODO preserved → SHA-256 capture → upload to GitHub Release) and `docs/release.md` with the local-iteration pwsh recipe. YAML validated. "First real tag end-to-end" criterion deferred to Task 114.
+**Files changed:** 3 files
+
+---
+
+## 2026-05-12 14:44 -- Batch Started: [111]
+
+**Type:** Batch Start
+**Tasks:** 111 - GitHub Actions Release Workflow (Tag-Triggered Velopack Build)
+**Mode:** Parallel (batch of 1; only 111 unblocked after batch 3)
+
+---
+
 ## 2026-05-12 14:43 -- Task Completed: 110 - FFmpeg Detection + First-Use Install Prompt
 
 **Type:** Task Completion
