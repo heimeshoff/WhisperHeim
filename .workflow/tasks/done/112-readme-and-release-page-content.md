@@ -83,3 +83,32 @@ A short FAQ-style section (in README or a `docs/why-unsigned.md`):
 
 ## Work Log
 <!-- Appended by /work during execution -->
+
+### 2026-05-12 14:49 — Work Completed
+
+**What was done:**
+- Rewrote the top-level `README.md` to be the public-facing entry point (hero, download link, SmartScreen install steps, first-run expectations, default hotkeys, optional FFmpeg, data location with uninstall-preservation note matching Task 113, system requirements, privacy bullets, signing/verification, source-build instructions, Ko-fi, TBD license placeholder). Preserved the project's pragmatic-technical tone; kept the existing Ko-fi block and a "Build from source" subsection so the README still serves contributors.
+- Created `docs/why-unsigned.md` covering: what SmartScreen is, why a new unsigned binary is flagged, three independent verification paths (SHA-256, source, network), what Smart App Control does and why it hard-blocks, the signing roadmap (UG → Microsoft Trusted Signing → flip the workflow flag), and what users can do in the meantime.
+- Created `.github/release-template.md` with four placeholders (`{{VERSION}}`, `{{SETUP_NAME}}`, `{{SHA256}}`, `{{CHANGES}}`) plus install/verification/FFmpeg/known-issues/notes sections matching the README's tone. Designed to be consumable by either a manual paste or `vpk upload --releaseNotes` / `gh release edit --notes-file`.
+- Appended a "Surfacing the SHA-256 in the Release body" section to `docs/release.md` with both the manual workflow (copy from job summary into the template) and a `gh release edit`-based automation sketch. Added Task 112 to the Related-tasks list so the cross-link is bidirectional.
+- Created `docs/media/` with a placeholder README documenting exactly what `install.mp4` and the hero recording should contain, with the size budget and capture steps so a future recording session is a paint-by-numbers job. Left `<!-- TODO -->` comments in `README.md` at the two spots where the media will plug in — did NOT fake a recorded artifact, per task instructions.
+
+**Acceptance criteria status:**
+- [x] Top-level `README.md` covers all required sections — hero paragraph (line 3-5), download link to `releases/latest` with `certutil` hint, install with SmartScreen + Smart App Control branches, first-run (Parakeet download + tray + bundled VAD/Seg), default hotkeys table, optional FFmpeg with `winget` line, data location with uninstall-preservation note cross-linked to Task 113's behaviour, system requirements, privacy bullets (local, no telemetry, no accounts, outbound traffic enumerated), signing/verification with `docs/why-unsigned.md` link, TBD license placeholder pointing at roadmap.
+- [ ] `install.mp4` (or `.webp` / `.gif`) recorded and linked from README — **DEFERRED**. Subagents cannot record screen captures. Placeholders left in README (`<!-- TODO -->` comments referencing `docs/media/install.mp4`); `docs/media/README.md` documents the exact recording recipe. Manual follow-up before the first public Release announcement.
+- [x] `.github/release-template.md` exists with placeholders for changelog + SHA-256 — created with four named placeholders and explanatory HTML comments at the top.
+- [x] SHA-256 from Task 111 workflow shows up in Release body — documented the path end-to-end in `docs/release.md` (manual default + automation sketch). The workflow's `SHA-256 of Setup.exe` step already emits to the job summary; the new docs section closes the loop from summary → user-visible Release body.
+- [x] `docs/why-unsigned.md` explains SmartScreen and SAC with clear next-steps — separate file per task body, covers both Defender SmartScreen (More info → Run anyway) and Smart App Control (hard block, only "fix" is to disable SAC or wait), plus the signing roadmap.
+- [x] Optional FFmpeg `winget` line present in README install section — section titled "Optional: install FFmpeg" with `winget install -e --id Gyan.FFmpeg`.
+- [ ] User-tested: a friend / colleague who hasn't seen WhisperHeim can install it from the GitHub Release with no extra hand-holding — **DEFERRED**. Cannot be performed from a subagent. Recommend running this manual check during Task 114's E2E dry run with a non-technical observer.
+
+**Files changed:**
+- `README.md` — full rewrite to public-release shape; kept Ko-fi and source-build sections.
+- `docs/why-unsigned.md` — new file; SmartScreen / SAC / signing-roadmap FAQ.
+- `.github/release-template.md` — new file; release-body template with four placeholders.
+- `docs/media/README.md` — new file; placeholder + recording recipe for `install.mp4` and the hero clip.
+- `docs/release.md` — appended "Surfacing the SHA-256 in the Release body" section (manual + `gh release edit` automation sketch) and added Task 112 to the Related-tasks list.
+
+**Deferred manual follow-ups (carried in the README / docs as TODO comments):**
+- Record `docs/media/install.mp4` (and a hero clip) before the first public Release announcement. Recipe in `docs/media/README.md`.
+- User-test the README with someone who hasn't seen WhisperHeim — fold into Task 114's manual checklist.

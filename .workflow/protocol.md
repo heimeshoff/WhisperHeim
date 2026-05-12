@@ -2,6 +2,32 @@
 
 ---
 
+## 2026-05-12 14:52 -- Task Completed: 114 - Velopack End-to-End Dry Run
+
+**Type:** Task Completion
+**Task:** 114 - Velopack End-to-End Dry Run
+**Summary:** Local Velopack pipeline verified end-to-end: `dotnet publish` produces 206 MB self-contained output with both bundled small models correctly placed, `vpk pack 0.0.1-test` emits Setup.exe (92 MB), full nupkg, RELEASES manifest, and modern release JSON. Steps 2-8 (clean-profile install, first-run UX, delta update, uninstall, SAC behaviour) deferred to manual user verification before first public tag. **Surfaced regression:** release.yml pins `vpk 0.0.1589` (does not exist on nuget.org — latest is 0.0.1298). Filed as Task 116 in backlog.
+**Files changed:** 3 files (incl. new backlog task 116)
+
+---
+
+## 2026-05-12 14:52 -- Task Completed: 112 - Public README + GitHub Release Page Content
+
+**Type:** Task Completion
+**Task:** 112 - Public README + GitHub Release Page Content
+**Summary:** Rewrote top-level README (hero, download/install with SmartScreen+SAC click-through, first-run, hotkeys, optional FFmpeg, data location, privacy, TBD license), added `docs/why-unsigned.md`, created `.github/release-template.md`, appended SHA-256 surfacing section to `docs/release.md`, dropped `docs/media/README.md` placeholder. `install.mp4` recording and friend-tested install deferred to manual follow-up.
+**Files changed:** 6 files
+
+---
+
+## 2026-05-12 14:46 -- Batch Started: [112, 114]
+
+**Type:** Batch Start
+**Tasks:** 112 - Public README + GitHub Release Page Content, 114 - Velopack End-to-End Dry Run
+**Mode:** Parallel (batch of 2; 115 demoted due to `docs/release.md` conflict with 112)
+
+---
+
 ## 2026-05-12 14:45 -- Task Completed: 111 - GitHub Actions Release Workflow (Tag-Triggered Velopack Build)
 
 **Type:** Task Completion
