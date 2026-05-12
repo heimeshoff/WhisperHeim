@@ -2,6 +2,44 @@
 
 ---
 
+## 2026-05-12 14:25 -- Task Completed: 107 - Add Velopack to the Project (Custom Main + Bootstrap)
+
+**Type:** Task Completion
+**Task:** 107 - Add Velopack to the Project (Custom Main + Bootstrap)
+**Summary:** Wired Velopack via custom `[STAThread] Main` in Program.cs with UI-free `OnFirstRun` hook, switched App.xaml from ApplicationDefinition to Page, set `<StartupObject>` to `WhisperHeim.Program`, exposed first-run detection (`App.IsFirstRun` via `Program.IsFirstRun` + `VELOPACK_FIRSTRUN` env var) for Task 108 to consume. `dotnet build` clean. Full `vpk pack` smoke-tests deferred to Task 114.
+**Files changed:** 4 files
+
+---
+
+## 2026-05-12 14:22 -- Batch Started: [107]
+
+**Type:** Batch Start
+**Tasks:** 107 - Add Velopack to the Project (Custom Main + Bootstrap)
+**Mode:** Parallel (batch of 1; 109 and 110 demoted due to csproj / App.xaml.cs conflict with 107)
+
+---
+
+## 2026-05-12 -- Planning: M5 Public Release backlog from installer research
+
+**Type:** Planning
+**Summary:** Captured the 9 implications from `.workflow/research/installer-and-github-distribution.md` as backlog tasks under a new milestone M5: Public Release (GitHub Distribution). Each task links back to the research file and includes acceptance criteria, dependencies, and concrete file/code touch points so a worker can pick any one up cold. Dependency spine: 107 (Velopack bootstrap) → 108 (first-run dialog), 109 (bundle small models), 110 (FFmpeg detect/prompt), 111 (release workflow, also depends on 109), 112 (README, depends on 111), 113 (uninstall hygiene, depends on 107), 114 (E2E dry run, depends on most), 115 (signing hook, depends on 111).
+**Milestones created/updated:** Added M5: Public Release (GitHub Distribution) to `roadmap.md`; marked M4 (TTS) as removed per Task 103.
+**Tasks created:** 107-velopack-bootstrap, 108-first-run-model-download-dialog, 109-bundle-small-models-in-publish, 110-ffmpeg-detection-and-install-prompt, 111-github-actions-release-workflow, 112-readme-and-release-page-content, 113-uninstall-data-preservation, 114-velopack-pack-dry-run, 115-code-signing-deferred-hook (all in `backlog/`).
+**Tasks moved to backlog:** n/a (all newly created in backlog).
+**Ideas incorporated:** n/a.
+
+---
+
+## 2026-05-12 -- Research Completed: Installer & GitHub Distribution
+
+**Type:** Research
+**Topic:** How should WhisperHeim be packaged into a GitHub-released Windows installer with all dependencies bundled (or downloaded on first run) in 2026?
+**Output:** `.workflow/research/installer-and-github-distribution.md`
+**Summary:** Don't bundle the 640 MB Parakeet model — move from "first-use" to "first-launch with progress dialog" (matches LM Studio / Whisper Desktop / Buzz). DO bundle the tiny models (Silero VAD, Pyannote Seg ~3 MB total). FFmpeg: **do NOT bundle — detect at startup and prompt the user to install it themselves via `winget install Gyan.FFmpeg` or a download-page link** (decided 2026-05-12 by user after initial recommendation to bundle BtbN `lgpl-shared`). This eliminates LGPL source-mirror / attribution / unmodified-binary obligations entirely; the user picks the build under their own license. Features that need FFmpeg (Stream/YouTube transcription) surface the same prompt on first invocation; OGG decode already falls back to Concentus. The bundling section is retained in the report as reference if we ever revisit. User data MUST live in `%AppData%\WhisperHeim` (Roaming) not `%LocalAppData%\WhisperHeim` (the install dir Velopack wipes). SmartScreen tightened in Win11 25H2; Smart App Control hard-blocks unsigned with no override — release page needs a click-through video and a SAC caveat. Latest Velopack 0.0.1589 (Apr 2026); code-signing flags exist in `vpk pack` and can be flipped on post-UG without re-architecting. Index updated. Punch list of 9 concrete tasks in the report.
+**Caller:** user (one-shot research request)
+
+---
+
 ## 2026-05-11 11:29 -- Task Completed: 105 - Origin-Machine Owns Transcription
 
 **Type:** Task Completion

@@ -11,12 +11,26 @@
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <ServerGarbageCollection>true</ServerGarbageCollection>
     <GarbageCollectionAdaptationMode>0</GarbageCollectionAdaptationMode>
+    <!-- Custom Main in Program.cs hosts VelopackApp.Run() ahead of WPF startup. -->
+    <StartupObject>WhisperHeim.Program</StartupObject>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Velopack requires a custom [STAThread] Main, so App.xaml cannot be the
+      ApplicationDefinition (which would auto-generate its own Main). We remove
+      the implicit ApplicationDefinition and re-add App.xaml as a Page so the
+      generated InitializeComponent() partial still hooks up the resources.
+    -->
+    <ApplicationDefinition Remove="App.xaml" />
+    <Page Include="App.xaml" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Concentus" Version="2.*" />
     <PackageReference Include="Concentus.Oggfile" Version="1.*" />
     <PackageReference Include="OllamaSharp" Version="5.4.25" />
+    <PackageReference Include="Velopack" Version="0.0.1298" />
     <PackageReference Include="WPF-UI" Version="3.*" />
     <PackageReference Include="WPF-UI.Tray" Version="3.*" />
     <PackageReference Include="NAudio" Version="2.*" />

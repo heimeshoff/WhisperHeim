@@ -48,7 +48,7 @@
 ---
 
 ### M4: Text-to-Speech (Kyutai Pocket TTS)
-**Status:** Not Started
+**Status:** Removed (Task 103 — feature deleted)
 **Target:** Local AI voice generation with voice cloning and read-aloud hotkey
 
 **Goals:**
@@ -60,3 +60,23 @@
 - Custom voice management (create, name, preview, delete)
 
 **Tasks:** 023, 029, 030, 031, 032, 033, 034, 035
+
+---
+
+### M5: Public Release (GitHub Distribution)
+**Status:** Not Started
+**Target:** Ship WhisperHeim as a downloadable installer on GitHub Releases with auto-update
+
+**Goals:**
+- Velopack-based installer + auto-update pipeline
+- First-launch model download UX (640 MB Parakeet) with progress + pause/resume
+- Small models (Silero VAD, Pyannote Seg 3.0) bundled with the app
+- FFmpeg detected at startup; user prompted to install via `winget` when missing
+- Tagged-release GitHub Actions workflow producing `Setup.exe` + delta packages
+- Public README + Release page with SmartScreen click-through guidance
+- Uninstall preserves user data (`%AppData%\WhisperHeim` and configurable `DataPath`)
+- Code-signing slot stubbed for post-UG activation
+
+**Tasks:** 107, 108, 109, 110, 111, 112, 113, 114, 115
+
+**Research:** `.workflow/research/installer-and-github-distribution.md` (2026-05-12), `.workflow/research/auto-update-and-distribution.md` (2026-03-27)

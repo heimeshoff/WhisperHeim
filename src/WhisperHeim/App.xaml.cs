@@ -39,6 +39,17 @@ public partial class App : Application
     // all work even when the user has Start Minimized enabled and no
     // window has ever been opened.
 
+    /// <summary>
+    /// True when this WPF process is the first launch after a Velopack
+    /// install. Populated in <see cref="OnStartup"/> from the
+    /// <see cref="Program.IsFirstRun"/> flag (set by Velopack's
+    /// <c>OnFirstRun</c> hook in Program.cs) and the <c>VELOPACK_FIRSTRUN</c>
+    /// environment variable Velopack also sets. Task 108 consumes this to
+    /// decide whether to surface the first-run model download dialog;
+    /// for now it is just recorded.
+    /// </summary>
+    public bool IsFirstRun { get; private set; }
+
     private TranscriptionService? _transcriptionService;
     private InputSimulator? _inputSimulator;
     private FileTranscriptionService? _fileTranscriptionService;
@@ -75,6 +86,20 @@ public partial class App : Application
             Shutdown(0);
             return;
         }
+
+        // Capture Velopack first-run signal. Two sources are consulted:
+        //   1. Program.IsFirstRun -- flipped by VelopackApp's OnFirstRun hook
+        //      in Program.cs (runs before WPF, no UI allowed there).
+        //   2. VELOPACK_FIRSTRUN env var -- Velopack sets this for the first
+        //      launch after install. Belt-and-braces in case the hook didn't
+        //      fire (e.g. running unpacked / dotnet run with the env var set
+        //      manually for testing).
+        // Task 108 will use this to gate the first-run model download dialog.
+        IsFirstRun = Program.IsFirstRun
+            || string.Equals(
+                Environment.GetEnvironmentVariable("VELOPACK_FIRSTRUN"),
+                "true",
+                StringComparison.OrdinalIgnoreCase);
 
         // Global exception handler for diagnostics -- guarded against re-entrance
         // to prevent cascading MessageBox dialogs when multiple exceptions fire

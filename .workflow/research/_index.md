@@ -44,6 +44,10 @@
 
 | 2026-03-27 | Auto-Update & Distribution | [auto-update-and-distribution.md](auto-update-and-distribution.md) | Velopack (free, Rust-based, delta updates) is the right framework; MSIX is wrong for tray apps needing system access; code signing blocked for German individuals — ship unsigned, sign after UG registration |
 
+## Installer & GitHub Distribution (2026-05-12)
+
+| 2026-05-12 | Installer & GitHub Distribution | [installer-and-github-distribution.md](installer-and-github-distribution.md) | Do NOT bundle the 640 MB Parakeet model — move to first-run download with progress dialog; DO bundle Silero VAD / Pyannote (~3 MB); FFmpeg: do NOT bundle — detect at startup, prompt user to install via `winget install Gyan.FFmpeg` (sidesteps LGPL/GPL redistribution entirely); store user data in `%AppData%\WhisperHeim` (Roaming) so Velopack uninstall doesn't nuke recordings; SmartScreen tightened in Win11 25H2 (Smart App Control hard-blocks unsigned, no override) — needs click-through video on release page |
+
 ## MacWhisper Growth Playbook (2026-03-27)
 
 | 2026-03-27 | MacWhisper Growth Playbook | [macwhisper-growth-playbook.md](macwhisper-growth-playbook.md) | Zero paid ads; 250K+ downloads in 17 months via Twitter/X audience, Apple featuring, press (iMore App of Year), Product Hunt, and perfect timing on Whisper hype. Ship fast (2-2-2 method), iterate publicly, each feature = launch event. |
