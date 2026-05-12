@@ -42,4 +42,22 @@
     <Resource Include="Assets\heimeshoff.jpg" />
   </ItemGroup>
 
+  <!--
+    Task 109: Bundle the small models (Silero VAD ~2 MB, Pyannote Seg 3.0 ~1.5 MB)
+    next to WhisperHeim.exe so a fresh install can record + diarize with no
+    network call. The large Parakeet model stays unbundled (per Task 108).
+    The <Link> path mirrors the per-user models layout, so ModelManagerService's
+    bundled-first ResolveModelPath finds them at {AppDir}\models\<subdir>\<file>.
+  -->
+  <ItemGroup>
+    <None Include="Assets\Models\silero-vad\silero_vad.onnx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>models\silero-vad\silero_vad.onnx</Link>
+    </None>
+    <None Include="Assets\Models\pyannote-segmentation-3.0\model.int8.onnx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>models\pyannote-segmentation-3.0\model.int8.onnx</Link>
+    </None>
+  </ItemGroup>
+
 </Project>

@@ -283,6 +283,23 @@
                             </Border>
                         </DockPanel>
 
+                        <!-- Bundled models attribution (Task 109) -->
+                        <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                CornerRadius="10"
+                                Padding="14,10"
+                                Margin="12,0,12,4">
+                            <StackPanel>
+                                <TextBlock Text="BUNDLED WITH WHISPERHEIM"
+                                           FontSize="9" FontWeight="Bold"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           Margin="0,0,0,4" />
+                                <TextBlock FontSize="11" TextWrapping="Wrap" LineHeight="16"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}">
+                                    <Run Text="Silero VAD" FontWeight="SemiBold" /><Run Text=" (MIT License) by Silero Team. " /><Run Text="Pyannote Segmentation 3.0" FontWeight="SemiBold" /><Run Text=" int8 conversion by csukuangfj (MIT License), based on pyannote.audio (MIT)." />
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+
                         <!-- Model list -->
                         <ItemsControl x:Name="ModelList" Margin="12,0,12,12">
                             <ItemsControl.ItemTemplate>

@@ -2,6 +2,32 @@
 
 ---
 
+## 2026-05-12 14:43 -- Task Completed: 110 - FFmpeg Detection + First-Use Install Prompt
+
+**Type:** Task Completion
+**Task:** 110 - FFmpeg Detection + First-Use Install Prompt
+**Summary:** Added `FfmpegDetector` (singleton, PATH probe + winget-location fallback, 2 s timeout, StateChanged event) and WPF-UI `FfmpegMissingDialog` (winget runner with streamed log, gyan.dev link, "I installed it" re-detect, winget-absent/access-denied edge cases). Wired UI-agnostic `IFfmpegPromptService` into `StreamTranscriptionService` (hard-require with retry-once) and `AudioFileDecoder` (Concentus fallback preserved ahead of modal). Live-updating FFmpeg status card on General page.
+**Files changed:** 10 files
+
+---
+
+## 2026-05-12 14:43 -- Task Completed: 109 - Bundle Silero VAD + Pyannote Seg in the Publish Output
+
+**Type:** Task Completion
+**Task:** 109 - Bundle Silero VAD + Pyannote Seg in the Publish Output
+**Summary:** Vendored Silero VAD (~2 MB) and Pyannote Segmentation 3.0 (~1.5 MB) ONNX models into `src/WhisperHeim/Assets/Models/`, wired them through csproj with `PreserveNewest` and `<Link>` so publish output places them at `{publish}/models/<subdir>/<file>`. Added bundled-first `ResolveModelPath` to `ModelManagerService` consulted by `CheckModel`, `EnsureModelsAsync`, and `DownloadModelAsync`. MIT license attribution added to About page.
+**Files changed:** 5 files
+
+---
+
+## 2026-05-12 14:33 -- Batch Started: [109, 110]
+
+**Type:** Batch Start
+**Tasks:** 109 - Bundle Silero VAD + Pyannote Seg in the Publish Output, 110 - FFmpeg Detection + First-Use Install Prompt
+**Mode:** Parallel (batch of 2; no file overlap)
+
+---
+
 ## 2026-05-12 14:32 -- Task Completed: 113 - Uninstall Data Preservation (Hygiene + Documentation)
 
 **Type:** Task Completion

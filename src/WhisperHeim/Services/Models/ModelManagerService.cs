@@ -127,16 +127,41 @@ public sealed class ModelManagerService
     public static string GetManifestPath() => ManifestPath;
 
     /// <summary>
-    /// Returns the directory where a given model's files are stored.
+    /// Returns the directory where a given model's files are stored in the
+    /// per-user (writable) models root. This is the destination for downloads.
+    /// Note: at runtime, a model file may instead resolve to the bundled
+    /// location next to the EXE -- see <see cref="ResolveModelPath"/>.
     /// </summary>
     public static string GetModelDirectory(ModelDefinition model) =>
         Path.Combine(ModelsRoot, model.SubDirectory);
 
     /// <summary>
-    /// Returns the full path to a specific model file.
+    /// Returns the path to a specific model file, preferring the bundled
+    /// location alongside the EXE (<c>{AppDir}\models\{subdir}\{file}</c>) and
+    /// falling back to the per-user models folder (<c>%APPDATA%\WhisperHeim\models</c>).
+    /// Task 109 ships Silero VAD + Pyannote Seg in the publish output; they
+    /// resolve to the bundled path. Parakeet has no bundled copy and falls
+    /// through to the per-user folder, which is also where downloads land.
     /// </summary>
     public static string GetModelFilePath(ModelDefinition model, string fileName) =>
-        Path.Combine(ModelsRoot, model.SubDirectory, fileName);
+        ResolveModelPath(model, fileName);
+
+    /// <summary>
+    /// Bundled-first path resolution. If the file exists next to the EXE at
+    /// <c>{AppContext.BaseDirectory}\models\{subdir}\{file}</c>, returns that.
+    /// Otherwise returns the per-user path under <see cref="ModelsRoot"/>,
+    /// regardless of whether the file exists there yet -- callers (download,
+    /// existence checks) expect a stable "this is where it would live" path.
+    /// </summary>
+    public static string ResolveModelPath(ModelDefinition model, string fileName)
+    {
+        var bundled = Path.Combine(
+            AppContext.BaseDirectory, "models", model.SubDirectory, fileName);
+        if (File.Exists(bundled))
+            return bundled;
+
+        return Path.Combine(ModelsRoot, model.SubDirectory, fileName);
+    }
 
     /// <summary>
     /// Convenience: returns the Silero VAD model path.
@@ -189,7 +214,12 @@ public sealed class ModelManagerService
     }
 
     /// <summary>
-    /// Checks the status of a single model.
+    /// Checks the status of a single model. Honors bundled-first resolution
+    /// so files shipped in the publish output (Task 109: Silero VAD, Pyannote
+    /// Seg 3.0) are recognized as Ready even when the per-user models folder
+    /// is empty. The reported directory still points at the per-user folder
+    /// because that is where downloads land; the bundled folder is read-only
+    /// from the app's perspective.
     /// </summary>
     public ModelStatusInfo CheckModel(ModelDefinition model)
     {
@@ -199,7 +229,9 @@ public sealed class ModelManagerService
 
         foreach (var file in model.Files)
         {
-            var path = Path.Combine(dir, file.FileName);
+            // Use ResolveModelPath so bundled files count as present even when
+            // the per-user folder is empty.
+            var path = ResolveModelPath(model, file.FileName);
             if (File.Exists(path))
             {
                 var info = new FileInfo(path);
@@ -339,6 +371,29 @@ public sealed class ModelManagerService
                 var file = model.Files[i];
                 var filePath = Path.Combine(dir, file.FileName);
                 Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
+
+                // Bundled-first short-circuit (Task 109): if the file ships in
+                // the publish output next to the EXE, count it as present and
+                // skip downloading -- don't litter the per-user folder.
+                var bundledPath = Path.Combine(
+                    AppContext.BaseDirectory, "models", model.SubDirectory, file.FileName);
+                if (File.Exists(bundledPath))
+                {
+                    var bundledSize = new FileInfo(bundledPath).Length;
+                    totalDownloadedSoFar += bundledSize;
+                    yield return new ModelDownloadProgress
+                    {
+                        ModelName = model.Name,
+                        CurrentFileName = file.FileName,
+                        CurrentFileDownloaded = bundledSize,
+                        CurrentFileTotal = bundledSize,
+                        TotalDownloaded = totalDownloadedSoFar,
+                        TotalExpected = model.TotalSizeBytes,
+                        FileIndex = i,
+                        FileCount = model.Files.Count,
+                    };
+                    continue;
+                }
 
                 // Skip if already present at an acceptable size.
                 if (File.Exists(filePath))
@@ -524,6 +579,17 @@ public sealed class ModelManagerService
 
             // Ensure parent directory exists (for files in subdirectories like test_wavs/bria.wav)
             Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
+
+            // Bundled-first short-circuit (Task 109): if the file ships in
+            // the publish output next to the EXE, count it as present and
+            // skip downloading.
+            var bundledPath = Path.Combine(
+                AppContext.BaseDirectory, "models", model.SubDirectory, file.FileName);
+            if (File.Exists(bundledPath))
+            {
+                totalDownloadedSoFar += new FileInfo(bundledPath).Length;
+                continue;
+            }
 
             // Skip if file already exists with correct size
             if (File.Exists(filePath))
