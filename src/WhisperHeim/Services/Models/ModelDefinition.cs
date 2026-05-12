@@ -46,3 +46,17 @@ public sealed record ModelStatusInfo(
     ModelStatus Status,
     string ModelDirectory,
     long DownloadedBytes);
+
+/// <summary>
+/// One row in <c>models/manifest.json</c>. Lets subsequent launches
+/// fast-path past the first-run download dialog when models are already
+/// present, without re-stat-ing every file.
+/// </summary>
+public sealed class ManifestEntry
+{
+    /// <summary>ISO-8601 UTC timestamp of when the model was finalized on disk.</summary>
+    public string DownloadedAt { get; set; } = string.Empty;
+
+    /// <summary>Total bytes across all files of the model.</summary>
+    public long SizeBytes { get; set; }
+}

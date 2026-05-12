@@ -242,21 +242,82 @@ public partial class App : Application
         var startupService = new StartupService();
         startupService.RefreshIfEnabled();
 
-        // Check if AI models need downloading (first run)
-        if (!_modelManager.AreAllModelsReady())
+        // First-run model download dialog (Task 108).
+        //
+        // Surface a modal FirstRunSetupWindow when either:
+        //   - this is the first launch after a Velopack install
+        //     (Program.IsFirstRun / VELOPACK_FIRSTRUN), OR
+        //   - any required model file is missing on disk.
+        //
+        // After Task 109 lands and Silero VAD + Pyannote Seg are bundled
+        // into the publish output, GetMissingRequiredModels() naturally
+        // omits them and the dialog shrinks to only show Parakeet for new
+        // users -- no code change needed here.
+        //
+        // UX choice: when "start minimized" is on AND a model is missing we
+        // still show the dialog. The alternative (silently boot to tray with
+        // no models) leaves dictation broken until the user thinks to open
+        // settings. Showing the modal is the only way to surface the
+        // dependency. The dialog itself takes care of *not* appearing when
+        // models are already present (next condition).
+        var missingRequired = _modelManager.GetMissingRequiredModels();
+        if (IsFirstRun || missingRequired.Count > 0)
         {
-            bool success = ModelDownloadDialog.ShowAndDownload(_modelManager);
-            if (!success)
+            if (missingRequired.Count == 0)
             {
-                // User cancelled or download failed -- exit gracefully
-                Shutdown();
-                return;
+                // First-run but nothing to download (e.g. dev environment
+                // re-using an existing models folder). Persist the manifest
+                // so the next launch skips this branch entirely.
+                try { _modelManager.WriteManifest(); }
+                catch (Exception ex)
+                {
+                    Trace.TraceWarning("[App] WriteManifest failed: {0}", ex.Message);
+                }
+            }
+            else
+            {
+                Trace.TraceInformation(
+                    "[App] First-run setup: {0} missing required model(s) -- showing dialog.",
+                    missingRequired.Count);
+                var setup = Views.FirstRunSetupWindow.ShowAndRun(_modelManager, missingRequired);
+
+                if (setup.UserSkipped)
+                {
+                    // User chose "Skip for now". Continue boot; if they
+                    // attempt to dictate without the model the existing
+                    // lazy-download path (ModelDownloadDialog) will fire.
+                    Trace.TraceInformation(
+                        "[App] First-run setup: user skipped. Lazy-download fallback armed.");
+                }
+                else if (!setup.AllModelsReady)
+                {
+                    // Closed without skip AND not complete: treat the same
+                    // as skip rather than shutting down. The user can still
+                    // configure / read transcripts; dictation will trigger
+                    // the lazy-download fallback.
+                    Trace.TraceInformation(
+                        "[App] First-run setup: dialog closed before completion. Continuing.");
+                }
             }
         }
 
         // ── Services (all lifecycle-independent of MainWindow) ─────────
         _transcriptionService = new TranscriptionService();
-        _transcriptionService.LoadModel();
+        // If the user skipped first-run setup, the Parakeet model may be
+        // absent. Load lazily/best-effort so the rest of the app (tray icon,
+        // settings UI, transcripts viewer) still boots; the lazy-download
+        // fallback (ModelDownloadDialog) will fire when dictation is
+        // attempted and the model is still missing.
+        try
+        {
+            _transcriptionService.LoadModel();
+        }
+        catch (Exception ex)
+        {
+            Trace.TraceWarning(
+                "[App] TranscriptionService.LoadModel failed (likely missing model after Skip): {0}",
+                ex.Message);
+        }
         _inputSimulator = new InputSimulator();
         _fileTranscriptionService = new FileTranscriptionService(_transcriptionService);
         _templateService = new TemplateService(_settingsService);

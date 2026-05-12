@@ -1,6 +1,9 @@
 using System.IO;
 using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
+using System.Text.Json;
 using WhisperHeim.Services.Settings;
 
 namespace WhisperHeim.Services.Models;
@@ -104,6 +107,24 @@ public sealed class ModelManagerService
     /// </summary>
     public static IReadOnlyList<ModelDefinition> KnownModels { get; } =
         [ParakeetTdt06B, SileroVad, PyannoteSegmentation, SpeakerEmbedding];
+
+    /// <summary>
+    /// Models that are required for the app to deliver its primary value
+    /// (dictation + call transcription with diarization). The first-run
+    /// dialog gates on these. Today this is the same as <see cref="KnownModels"/>,
+    /// but once Task 109 lands and Silero VAD / Pyannote Seg are bundled in
+    /// the publish output, their files will already resolve on disk and
+    /// <see cref="GetMissingRequiredModels"/> will naturally omit them.
+    /// </summary>
+    public static IReadOnlyList<ModelDefinition> RequiredModels { get; } =
+        [ParakeetTdt06B, SileroVad, PyannoteSegmentation, SpeakerEmbedding];
+
+    private static string ManifestPath => Path.Combine(ModelsRoot, "manifest.json");
+
+    /// <summary>
+    /// Returns the path to <c>models/manifest.json</c>. Public for diagnostics.
+    /// </summary>
+    public static string GetManifestPath() => ManifestPath;
 
     /// <summary>
     /// Returns the directory where a given model's files are stored.
@@ -214,6 +235,272 @@ public sealed class ModelManagerService
         return KnownModels
             .Where(m => CheckModel(m).Status != ModelStatus.Ready)
             .ToList();
+    }
+
+    /// <summary>
+    /// Returns the subset of <see cref="RequiredModels"/> whose files are not
+    /// fully present on disk. Used by the first-run setup dialog to decide
+    /// whether to surface itself and which models to list as rows. Once a
+    /// future build bundles Silero VAD / Pyannote Seg into the publish
+    /// output, those resolve as <see cref="ModelStatus.Ready"/> automatically
+    /// and drop out of this list -- no code change needed.
+    /// </summary>
+    public IReadOnlyList<ModelDefinition> GetMissingRequiredModels()
+    {
+        return RequiredModels
+            .Where(m => CheckModel(m).Status != ModelStatus.Ready)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Writes <c>models/manifest.json</c> describing the models currently on
+    /// disk. Subsequent launches can fast-path past the first-run dialog by
+    /// reading this manifest instead of stat-ing every file. Best-effort:
+    /// failures are logged but do not propagate.
+    /// </summary>
+    public void WriteManifest()
+    {
+        try
+        {
+            Directory.CreateDirectory(ModelsRoot);
+            var entries = new Dictionary<string, ManifestEntry>(StringComparer.OrdinalIgnoreCase);
+            foreach (var model in KnownModels)
+            {
+                var info = CheckModel(model);
+                if (info.Status == ModelStatus.Ready)
+                {
+                    entries[model.SubDirectory] = new ManifestEntry
+                    {
+                        DownloadedAt = DateTime.UtcNow.ToString("O"),
+                        SizeBytes = info.DownloadedBytes,
+                    };
+                }
+            }
+
+            var json = JsonSerializer.Serialize(entries, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(ManifestPath, json);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Trace.TraceWarning(
+                "[ModelManagerService] Failed to write manifest.json: {0}", ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Reads <c>models/manifest.json</c>. Returns an empty dictionary if it
+    /// doesn't exist or fails to parse. Best-effort.
+    /// </summary>
+    public IReadOnlyDictionary<string, ManifestEntry> ReadManifest()
+    {
+        try
+        {
+            if (!File.Exists(ManifestPath))
+                return new Dictionary<string, ManifestEntry>();
+
+            var json = File.ReadAllText(ManifestPath);
+            return JsonSerializer.Deserialize<Dictionary<string, ManifestEntry>>(json)
+                   ?? new Dictionary<string, ManifestEntry>();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Trace.TraceWarning(
+                "[ModelManagerService] Failed to read manifest.json: {0}", ex.Message);
+            return new Dictionary<string, ManifestEntry>();
+        }
+    }
+
+    /// <summary>
+    /// Streaming variant of <see cref="DownloadAllMissingModelsAsync"/>:
+    /// yields a <see cref="ModelDownloadProgress"/> roughly every 256 KB of
+    /// transfer, plus once per file completion. Supports per-file pause
+    /// (the caller can hold the returned async-iterator and stop pulling)
+    /// and resume via HTTP Range when the CDN supports it -- partial bytes
+    /// land in <c>file.tmp</c> and the next call picks up where this one
+    /// left off. Cancellation is honored cooperatively.
+    /// </summary>
+    /// <param name="models">Models to ensure are downloaded. Files that are
+    /// already present at an acceptable size are skipped.</param>
+    /// <param name="ct">Cancellation token.</param>
+    public async IAsyncEnumerable<ModelDownloadProgress> EnsureModelsAsync(
+        IEnumerable<ModelDefinition> models,
+        [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        foreach (var model in models)
+        {
+            ct.ThrowIfCancellationRequested();
+            var dir = GetModelDirectory(model);
+            Directory.CreateDirectory(dir);
+
+            long totalDownloadedSoFar = 0;
+            for (int i = 0; i < model.Files.Count; i++)
+            {
+                ct.ThrowIfCancellationRequested();
+                var file = model.Files[i];
+                var filePath = Path.Combine(dir, file.FileName);
+                Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
+
+                // Skip if already present at an acceptable size.
+                if (File.Exists(filePath))
+                {
+                    var existingSize = new FileInfo(filePath).Length;
+                    if (IsFileSizeAcceptable(existingSize, file.ExpectedSizeBytes))
+                    {
+                        totalDownloadedSoFar += existingSize;
+                        yield return new ModelDownloadProgress
+                        {
+                            ModelName = model.Name,
+                            CurrentFileName = file.FileName,
+                            CurrentFileDownloaded = existingSize,
+                            CurrentFileTotal = existingSize,
+                            TotalDownloaded = totalDownloadedSoFar,
+                            TotalExpected = model.TotalSizeBytes,
+                            FileIndex = i,
+                            FileCount = model.Files.Count,
+                        };
+                        continue;
+                    }
+
+                    File.Delete(filePath);
+                }
+
+                await foreach (var p in DownloadFileResumableAsync(
+                    file, filePath, model, i, totalDownloadedSoFar, ct))
+                {
+                    yield return p;
+                }
+
+                if (File.Exists(filePath))
+                    totalDownloadedSoFar += new FileInfo(filePath).Length;
+            }
+        }
+    }
+
+    private async IAsyncEnumerable<ModelDownloadProgress> DownloadFileResumableAsync(
+        ModelFileDefinition file,
+        string filePath,
+        ModelDefinition model,
+        int fileIndex,
+        long previousFilesTotal,
+        [EnumeratorCancellation] CancellationToken ct)
+    {
+        var tempPath = filePath + ".tmp";
+
+        long alreadyOnDisk = 0;
+        if (File.Exists(tempPath))
+        {
+            try { alreadyOnDisk = new FileInfo(tempPath).Length; }
+            catch { alreadyOnDisk = 0; }
+        }
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, file.DownloadUrl);
+        if (alreadyOnDisk > 0)
+        {
+            request.Headers.Range = new RangeHeaderValue(alreadyOnDisk, null);
+        }
+
+        HttpResponseMessage response;
+        try
+        {
+            response = await SharedHttpClient.SendAsync(
+                request, HttpCompletionOption.ResponseHeadersRead, ct);
+        }
+        catch (OperationCanceledException)
+        {
+            // Partial download stays in .tmp for resume on next call.
+            throw;
+        }
+
+        using (response)
+        {
+            // If server doesn't honor Range, the response will be 200 OK with
+            // the full file. Restart from byte 0 in that case.
+            bool serverHonoredRange = response.StatusCode == System.Net.HttpStatusCode.PartialContent;
+            if (alreadyOnDisk > 0 && !serverHonoredRange)
+            {
+                TryDeleteFile(tempPath);
+                alreadyOnDisk = 0;
+            }
+
+            response.EnsureSuccessStatusCode();
+
+            long contentLength = response.Content.Headers.ContentLength ?? file.ExpectedSizeBytes;
+            // For partial-content responses, Content-Length is the *remaining*
+            // bytes; total is alreadyOnDisk + remaining.
+            long totalBytes = serverHonoredRange
+                ? alreadyOnDisk + contentLength
+                : contentLength;
+
+            var fileMode = serverHonoredRange ? FileMode.Append : FileMode.Create;
+            await using var contentStream = await response.Content.ReadAsStreamAsync(ct);
+            await using var fileStream = new FileStream(
+                tempPath, fileMode, FileAccess.Write, FileShare.None, 81920, useAsync: true);
+
+            var buffer = new byte[81920];
+            long bytesThisCall = 0;
+            long bytesDownloaded = alreadyOnDisk;
+            int bytesRead;
+            long bytesSinceLastReport = 0;
+
+            // Emit an initial progress tick so the UI shows immediate motion.
+            yield return new ModelDownloadProgress
+            {
+                ModelName = model.Name,
+                CurrentFileName = file.FileName,
+                CurrentFileDownloaded = bytesDownloaded,
+                CurrentFileTotal = totalBytes,
+                TotalDownloaded = previousFilesTotal + bytesDownloaded,
+                TotalExpected = model.TotalSizeBytes,
+                FileIndex = fileIndex,
+                FileCount = model.Files.Count,
+            };
+
+            while (true)
+            {
+                bytesRead = await contentStream.ReadAsync(buffer, ct);
+                if (bytesRead <= 0) break;
+
+                await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), ct);
+                bytesThisCall += bytesRead;
+                bytesDownloaded += bytesRead;
+                bytesSinceLastReport += bytesRead;
+
+                if (bytesSinceLastReport >= 262_144) // ~256 KB
+                {
+                    bytesSinceLastReport = 0;
+                    yield return new ModelDownloadProgress
+                    {
+                        ModelName = model.Name,
+                        CurrentFileName = file.FileName,
+                        CurrentFileDownloaded = bytesDownloaded,
+                        CurrentFileTotal = totalBytes,
+                        TotalDownloaded = previousFilesTotal + bytesDownloaded,
+                        TotalExpected = model.TotalSizeBytes,
+                        FileIndex = fileIndex,
+                        FileCount = model.Files.Count,
+                    };
+                }
+            }
+
+            await fileStream.FlushAsync(ct);
+
+            yield return new ModelDownloadProgress
+            {
+                ModelName = model.Name,
+                CurrentFileName = file.FileName,
+                CurrentFileDownloaded = bytesDownloaded,
+                CurrentFileTotal = totalBytes,
+                TotalDownloaded = previousFilesTotal + bytesDownloaded,
+                TotalExpected = model.TotalSizeBytes,
+                FileIndex = fileIndex,
+                FileCount = model.Files.Count,
+            };
+        }
+
+        // Move temp -> final atomically.
+        if (File.Exists(filePath))
+            File.Delete(filePath);
+        File.Move(tempPath, filePath);
     }
 
     /// <summary>

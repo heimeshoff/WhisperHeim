@@ -2,6 +2,32 @@
 
 ---
 
+## 2026-05-12 14:32 -- Task Completed: 113 - Uninstall Data Preservation (Hygiene + Documentation)
+
+**Type:** Task Completion
+**Task:** 113 - Uninstall Data Preservation
+**Summary:** Added install-dir guard rejecting DataPaths under `AppContext.BaseDirectory` / `%LocalAppData%\WhisperHeim\` in both `GeneralPage.xaml.cs` and `DataPathService.SetDataPath` as defence-in-depth; implemented optional pre-uninstall Velopack hook dropping `WhisperHeim-data-location.txt` on desktop; completed user-data audit (only transient recording staging hits LocalAppData by design). 98/98 tests pass (8 new).
+**Files changed:** 5 files
+
+---
+
+## 2026-05-12 14:32 -- Task Completed: 108 - First-Run Model Download Dialog
+
+**Type:** Task Completion
+**Task:** 108 - First-Run Model Download Dialog
+**Summary:** Implemented WPF-UI styled `FirstRunSetupWindow` (per-model progress, pause/resume via HTTP Range, skip, retry-on-error), added `EnsureModelsAsync` / `GetMissingRequiredModels` / `models/manifest.json` IO to `ModelManagerService`, rewired `App.OnStartup` to gate on `IsFirstRun || missingRequired` while leaving the lazy-fallback `ModelDownloadDialog` intact.
+**Files changed:** 5 files
+
+---
+
+## 2026-05-12 14:26 -- Batch Started: [108, 113]
+
+**Type:** Batch Start
+**Tasks:** 108 - First-Run Model Download Dialog, 113 - Uninstall Data Preservation (Hygiene + Documentation)
+**Mode:** Parallel (batch of 2; 109 and 110 demoted due to ModelManagerService / App.xaml.cs conflict with 108)
+
+---
+
 ## 2026-05-12 14:25 -- Task Completed: 107 - Add Velopack to the Project (Custom Main + Bootstrap)
 
 **Type:** Task Completion
