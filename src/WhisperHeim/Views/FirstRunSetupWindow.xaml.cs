@@ -115,7 +115,9 @@ public partial class FirstRunSetupWindow : Window
             Minimum = 0,
             Maximum = 100,
         };
-        bar.SetBinding(ProgressBar.ValueProperty, new Binding(nameof(ModelRowVm.Percent)) { Source = row });
+        // ProgressBar.Value inherits TwoWay-by-default from RangeBase, which
+        // can't bind against ModelRowVm.Percent's private setter -- pin OneWay.
+        bar.SetBinding(ProgressBar.ValueProperty, new Binding(nameof(ModelRowVm.Percent)) { Source = row, Mode = BindingMode.OneWay });
         Grid.SetRow(bar, 2); Grid.SetColumn(bar, 0); Grid.SetColumnSpan(bar, 2);
         grid.Children.Add(bar);
 
