@@ -5,21 +5,6 @@ description: Kill running WhisperHeim, rebuild, and launch. Use when the user sa
 
 # Deploy WhisperHeim
 
-Kill any running instance, publish a self-contained Release build, and launch the new exe.
-NOTE: Do NOT use `-p:PublishSingleFile=true` — WPF apps crash on startup with DllNotFoundException when published as single file.
+Invoke the `/deploy` slash command. It runs `deploy.cmd` (→ `scripts/publish.ps1`), which kills any running WhisperHeim.exe, publishes a self-contained Release build to `publish/`, and launches the new exe.
 
-Run these three commands sequentially via Bash:
-
-```bash
-taskkill //IM WhisperHeim.exe //F 2>&1 || true
-```
-
-```bash
-dotnet publish src/WhisperHeim/WhisperHeim.csproj -c Release -r win-x64 --self-contained -o publish -v q 2>&1 | tail -5
-```
-
-```bash
-start "" "C:/src/heimeshoff/tooling/WhisperHeim/publish/WhisperHeim.exe"
-```
-
-If the publish fails, report the error. Do not launch the exe if the build failed.
+Do not run the publish commands manually — the script encodes the correct flags (notably: no `PublishSingleFile`, which would make this WPF app crash on startup).
